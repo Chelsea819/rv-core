@@ -24,6 +24,11 @@
 #define PMEM_LEFT  ((paddr_t)CONFIG_MBASE)
 #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
+
+#define FLASH_SIZE 1024
+#define FLASH_ADDR 0x30000000
+uint8_t* guest_to_flash(paddr_t paddr);
+
 uint8_t* guest_to_sram(paddr_t paddr);
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
@@ -38,6 +43,11 @@ static inline bool in_pmem(paddr_t addr) {
 //判断 addr 是否在 内存区域中
 static inline bool in_sram(paddr_t addr) {
   return addr - SRAM_LEFT < SRAM_SIZE;
+}
+
+
+static inline bool in_flash(paddr_t addr) {
+  return addr - FLASH_ADDR < FLASH_SIZE;
 }
 
 word_t paddr_read(paddr_t addr, int len);
