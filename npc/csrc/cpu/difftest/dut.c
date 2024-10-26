@@ -11,6 +11,7 @@
 #include "common.h"
 #include "reg.h"
 #include "config.h"
+uint8_t* guest_to_host_flash(paddr_t paddr);
 
 #ifdef CONFIG_WAVE
 extern VerilatedVcdC *m_trace;
@@ -19,7 +20,8 @@ extern CPU_state cpu;
 
 #ifdef CONFIG_DIFFTEST
 int isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
-
+#define FLASH_SIZE 1024
+#define FLASH_ADDR 0x30000000
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *duti, bool direction) = NULL;
@@ -118,6 +120,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   
   //将DUT的guest memory拷贝到REF中
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+
+  ref_difftest_memcpy(FLASH_ADDR, guest_to_host_flash(0), FLASH_SIZE, DIFFTEST_TO_REF);
 
   // ref_difftest_memcpy(RESET_VECTOR, guest_to_flash(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
   //将DUT的寄存器状态拷贝到REF中
