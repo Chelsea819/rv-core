@@ -38,7 +38,7 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	output	reg	[ADDR_LEN - 1:0]		addr_r_addr_o,
 	output		                		addr_r_valid_o,
 	input		                		addr_r_ready_i,
-	output		[2:0]                	addr_r_size_o,
+	output	reg	[2:0]                	addr_r_size_o,
 
 	// Read data
 	input		[DATA_LEN - 1:0]		r_data_i	,
@@ -49,7 +49,7 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// Addr Write
 	output	reg	[ADDR_LEN - 1:0]		addr_w_addr_o,	// 写地址
 	output		                		addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
-	output		[2:0]                	addr_w_size_o,	// 主设备给出的地址和相关控制信号有效
+	output	reg	[2:0]                	addr_w_size_o,	// 主设备给出的地址和相关控制信号有效
 	input		                		addr_w_ready_i, // 从设备已准备好接收地址和相关的控制信号
 
 	// Write data
@@ -129,8 +129,16 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg & rstn & (addr_r_valid_delay == RANDOM_DELAY); // addr valid and load inst
     assign r_ready_o = (con_state == LSU_WAIT_LSU_VALID) & (r_ready_delay == RANDOM_DELAY);
     assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (addr_w_valid_delay == RANDOM_DELAY);  // addr valid and store inst
-    assign addr_w_size_o = `AXI_ADDR_SIZE_4;  // addr valid and store inst
-	assign addr_r_size_o = `AXI_ADDR_SIZE_4;
+    // assign addr_w_size_o = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
+	// 						(load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[15]}}, mem_rdata_unaligned[15:0]}: 
+	// 						(load_type_i == `LOAD_LBU_8) ? {{24{1'b0}}, mem_rdata_unaligned[7:0]}: 
+	// 						(load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[15:0]}: 
+	// 						`AXI_ADDR_SIZE_4;  // addr valid and store inst
+	// assign addr_r_size_o = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
+	// 						(load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[15]}}, mem_rdata_unaligned[15:0]}: 
+	// 						(load_type_i == `LOAD_LBU_8) ? {{24{1'b0}}, mem_rdata_unaligned[7:0]}: 
+	// 						(load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[15:0]}: 
+	// 						`AXI_ADDR_SIZE_4;
     assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (w_data_valid_delay == RANDOM_W_DATA_DELAY);
     assign bkwd_ready_o = (con_state == LSU_WAIT_LSU_VALID) & rstn & (bkwd_ready_delay == RANDOM_DELAY);
 
@@ -193,6 +201,8 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     always @(*) begin
 		if(~rstn) begin
 			addr_r_addr_o = 0;
+			addr_r_size_o = 0;
+			addr_w_size_o = 0;
             addr_w_addr_o = 0;
             w_data = 0;
             w_strb = 0;
@@ -200,6 +210,16 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
         end else if(con_state == LSU_WAIT_ADDR_PASS) begin
             addr_r_addr_o = alu_result_i;
             addr_w_addr_o = alu_result_i;
+			addr_r_size_o = (load_type_i == `LOAD_LB_8)  ? `AXI_ADDR_SIZE_1 : 
+							(load_type_i == `LOAD_LH_16) ? `AXI_ADDR_SIZE_2: 
+							(load_type_i == `LOAD_LBU_8) ? `AXI_ADDR_SIZE_1: 
+							(load_type_i == `LOAD_LHU_16) ? `AXI_ADDR_SIZE_2: 
+							// (load_type_i == `LOAD_LW_32) ? `AXI_ADDR_SIZE_4: 
+							`AXI_ADDR_SIZE_4;
+			addr_w_size_o = (store_type_i == `STORE_SB_8)? `AXI_ADDR_SIZE_1 :
+							(store_type_i == `STORE_SH_16) ? `AXI_ADDR_SIZE_2 :
+							// (store_type_i == `STORE_SW_32) ? `AXI_ADDR_SIZE_4 : 
+							`AXI_ADDR_SIZE_4;
             w_data = mem_wdata_i;
             w_strb = (store_type_i == `STORE_SB_8)? `AXI_W_STRB_8 :
                     (store_type_i == `STORE_SH_16) ? `AXI_W_STRB_16 :
@@ -208,6 +228,8 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		end else begin 
 			addr_r_addr_o = 0;
             addr_w_addr_o = 0;
+			addr_r_size_o = 0;
+			addr_w_size_o = 0;
             w_data = 0;
             w_strb = 0;
 		end
