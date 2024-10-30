@@ -48,8 +48,7 @@ module ysyx_22041211_decoder(
     // assign idu_ready_o = 1'b1;
     // assign idu_valid_o = 1'b1;
     // always @(*) begin
-	// 	$display("csr_flag_o = [%b]",csr_flag_o);
-	// 	$display("jmp_flag_o = [%b]",jmp_flag_o);
+	// 	$display("pc = [%x]",pc_o);
 	// end
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;

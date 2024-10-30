@@ -27,6 +27,8 @@ __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction)
       memcpy(guest_to_host(addr) ,(const paddr_t*)buf ,n);
     }else if (in_sram(addr)) {
       memcpy(guest_to_sram(addr) ,(const paddr_t*)buf ,n);
+    }else if (in_flash(addr)) {
+      memcpy(guest_to_flash(addr) ,(const paddr_t*)buf ,n);
     }else {
       Assert(0, "Out of bound!");
     }
@@ -35,6 +37,8 @@ __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction)
       memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_host(addr)) ,n);
     }else if (in_sram(addr)) {
       memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_sram(addr)) ,n);
+    }else if (in_flash(addr)) {
+      memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_flash(addr)) ,n);
     }else {
       Assert(0, "Out of bound!");
     }

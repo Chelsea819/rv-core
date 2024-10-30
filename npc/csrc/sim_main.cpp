@@ -38,7 +38,7 @@ static const uint32_t img[] = {
     0xdeadbeef, // some data
 };
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+// extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 
 void reset_cycle() {
   int n = 10;
