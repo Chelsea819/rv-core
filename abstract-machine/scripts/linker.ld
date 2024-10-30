@@ -42,6 +42,7 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
+    _bss_end = .;
   } > REGION_BSS AT> mrom
 
   _heap_start = 0x0f000000;
