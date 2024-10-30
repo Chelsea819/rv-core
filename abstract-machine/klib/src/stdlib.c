@@ -40,6 +40,7 @@ void *malloc(size_t size) {
 #if !(defined(__ISA_NATIVE__) && defined(__NATIVE_USE_KLIB__))
   // if(!size) return NULL;
   if(addr == NULL){
+    halt(1);
     addr = (char *)heap.start;
   }
   void *hbrk = addr;
