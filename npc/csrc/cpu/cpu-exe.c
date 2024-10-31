@@ -489,7 +489,7 @@ static void exec_once()
       #ifdef CONFIG_FTRACE_PASS
       if(strcmp(name,"putch") != 0) 
         for(int i = 10; i < 15; i++){
-          printf("\033[104m %d %s: \033[0m \t0x%08x\n",i,regs[i],gpr(i));
+          printf("\033[104m %d %s: \033[0m \t0x%08x\n",i,regs[i],dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_RegisterFile__DOT__rf[i]);
         }
       #endif
       index++;
