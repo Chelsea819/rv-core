@@ -46,9 +46,9 @@ SECTIONS {
   } > REGION_BSS AT> mrom
 
   _heap_start = _bss_end;
-  . = 0x0f000000 + 0x10;
-
-  _stack_top = ALIGN(0x1000);
+  . = 0x0f000000 + 0x1000;
+  _heap_end = ALIGN(0x1000);
+  _stack_top = _heap_end;
   . = 0x0f000000 + 0x2000;
   _stack_pointer = .;
   end = .;
