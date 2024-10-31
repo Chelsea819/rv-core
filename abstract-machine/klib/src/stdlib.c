@@ -41,13 +41,9 @@ void *malloc(size_t size) {
   // if(!size) return NULL;
   if(addr == NULL){
     addr = (char *)heap.start;
-    printf("heap.start = %x\n",heap.start);
-    printf("addr = %x\n",addr);
   }
   void *hbrk = addr;
   addr = addr + size;
-  printf("hbrk = %x\n",hbrk);
-  printf("addr = %x\n",addr);
   // assert(size >= 0);
   // assert((uintptr_t)heap.start > (uintptr_t)addr);
   // assert((uintptr_t)heap.start <= (uintptr_t)addr);
