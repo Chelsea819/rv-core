@@ -18,6 +18,7 @@ module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
 );
 	reg 	[DATA_WIDTH - 1:0] 		csr [3:0]	;
 	wire 	[1:0]  					csr_idx		;
+	reg  mvendorid;
 
 	assign csr_idx = (csr_addr == `CSR_MCAUSE_ADDR)	? `CSR_MCAUSE_IDX :
 					 (csr_addr == `CSR_MSTATUS_ADDR)? `CSR_MSTATUS_IDX :
