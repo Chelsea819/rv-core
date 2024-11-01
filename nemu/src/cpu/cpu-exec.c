@@ -248,6 +248,7 @@ struct func_call
 /* let CPU conduct current command and renew PC */
 static void exec_once(Decode *s, vaddr_t pc)
 {
+  printf("pc = %x",cpu.pc);
   s->pc = pc;
   s->snpc = pc;
   // 取指和译码

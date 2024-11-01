@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <dlfcn.h>
 
 #include <isa.h>
@@ -119,7 +118,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   ref_difftest_init(port);
   
   //将DUT的guest memory拷贝到REF中
-  printf("RESET_VECTOR=%X",RESET_VECTOR);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
 
   // ref_difftest_memcpy(FLASH_ADDR, guest_to_host_flash(0), FLASH_SIZE, DIFFTEST_TO_REF);
