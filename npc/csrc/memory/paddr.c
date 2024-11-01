@@ -12,6 +12,7 @@
 *
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
+#include <cstdio>
 #include <memory/host.h>
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
@@ -120,6 +121,7 @@ void init_mem(){
 }
 
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
+  printf("mrom_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
 #ifdef CONFIG_MTRACE
