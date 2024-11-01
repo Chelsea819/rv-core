@@ -12,6 +12,7 @@
 *
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
+#include <cstdint>
 #include <cstdio>
 #include <memory/host.h>
 #include <memory/vaddr.h>
@@ -20,6 +21,7 @@
 #include <isa.h>
 #include <common.h>
 #include <debug.h>
+#include <sys/types.h>
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
@@ -120,11 +122,17 @@ void init_mem(){
     }
 	return ;
 }
+#define BITMASK(bits) ((1ull << (bits)) - 1)
+
+//位抽取
+#define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
   printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
+    uint32_t tmp = *data;
+    *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
 #ifdef CONFIG_MTRACE
     // Log("mrom_read ---  [addr: 0x%08x rdata: 0x%08x]", addr, 
     //     data);
