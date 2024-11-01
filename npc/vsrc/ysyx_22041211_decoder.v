@@ -47,9 +47,9 @@ module ysyx_22041211_decoder(
     assign csr_addr_o = inst_i[31:20];
     // assign idu_ready_o = 1'b1;
     // assign idu_valid_o = 1'b1;
-    always @(*) begin
-		$display("pc = [%x]",pc_o);
-	end
+    // always @(*) begin
+	// 	$display("pc = [%x]",pc_o);
+	// end
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
     parameter [1:0] IDU_WAIT_IFU_VALID = 2'b00, IDU_WAIT_IDU_VALID = 2'b01, IDU_WAIT_EXU_READY = 2'b10;
