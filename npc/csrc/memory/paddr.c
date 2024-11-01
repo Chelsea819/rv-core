@@ -32,7 +32,7 @@ uint8_t* guest_to_host(paddr_t paddr) {
   // printf("pmem: 0x%08x\n",pmem);
   // printf("paddr: 0x%08x\n",paddr);
   // printf("CONFIG_MBASE: 0x%08x\n",CONFIG_MBASE);
-  return pmem + paddr - CONFIG_MBASE; 
+  return (uint8_t*)pmem + paddr; 
 }
 // paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
@@ -120,8 +120,8 @@ void init_mem(){
 	return ;
 }
 
-extern "C" void mrom_read(int32_t addr, int32_t *data) {
-  printf("mrom_read\n");
+extern "C" void flash_read(int32_t addr, int32_t *data) {
+  printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
 #ifdef CONFIG_MTRACE
@@ -130,6 +130,19 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 #endif
     return;
   }
+  out_of_bound(addr);
+  return;
+}
+extern "C" void mrom_read(int32_t addr, int32_t *data) {
+  printf("mrom_read\n");
+//   if (likely(in_pmem(addr))) {
+//     *data = pmem_read(addr, 4);
+// #ifdef CONFIG_MTRACE
+//     // Log("mrom_read ---  [addr: 0x%08x rdata: 0x%08x]", addr, 
+//     //     data);
+// #endif
+//     return;
+//   }
   out_of_bound(addr);
   return;
 }
@@ -151,7 +164,7 @@ vaddr_t paddr_read(paddr_t addr,int len) {
 }
 
 void paddr_write(vaddr_t addr, vaddr_t len, word_t data) {
-  printf("paddr_write\n");
+  printf("write device\n");
   #ifdef CONFIG_MTRACE
   // Log("paddr_write --- [addr: 0x%08x len: %d data: 0x%08x]",addr,len,data);
   #endif
