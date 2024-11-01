@@ -128,7 +128,7 @@ void init_mem(){
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
-  printf("flash_read\n");
+  // printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
     uint32_t tmp = *data;
