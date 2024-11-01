@@ -248,7 +248,6 @@ struct func_call
 /* let CPU conduct current command and renew PC */
 static void exec_once(Decode *s, vaddr_t pc)
 {
-  printf("exec_once--pc = %x\n",cpu.pc);
   s->pc = pc;
   s->snpc = pc;
   // 取指和译码
@@ -493,8 +492,6 @@ void assert_fail_msg()
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n)
 {
-    printf("cpu_exec--pc = %x\n",cpu.pc);
-
   g_print_step = (n < MAX_INST_TO_PRINT);
   switch (nemu_state.state)
   {
