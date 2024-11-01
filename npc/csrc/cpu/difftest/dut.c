@@ -20,7 +20,7 @@ extern CPU_state cpu;
 
 #ifdef CONFIG_DIFFTEST
 int isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
-#define FLASH_SIZE 1024
+// #define FLASH_SIZE 1024
 #define FLASH_ADDR 0x30000000
 
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
