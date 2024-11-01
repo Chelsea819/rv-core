@@ -29,9 +29,9 @@ void set_npc_state(int state, vaddr_t pc, int halt_ret) {
 __attribute__((noinline))
 void invalid_inst(vaddr_t thispc) {
   uint32_t temp[2];
-  // vaddr_t pc = thispc;
-  // temp[0] = vaddr_read(pc, 4);
-  // temp[1] = vaddr_read(pc, 4);
+  vaddr_t pc = thispc;
+  temp[0] = vaddr_read(pc, 4);
+  temp[1] = vaddr_read(pc, 4);
 
   uint8_t *p = (uint8_t *)temp;
   printf("invalid opcode(PC = " FMT_WORD "):\n"
