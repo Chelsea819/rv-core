@@ -141,7 +141,6 @@ static int parse_args(int argc, char *argv[]) {
 }
 
 void init_monitor(int argc, char *argv[]) {
-  printf("init_monitor--pc = %x\n",cpu.pc);
   /* Perform some global initialization. */
 
   /* Parse arguments. */
