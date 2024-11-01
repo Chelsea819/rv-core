@@ -32,6 +32,7 @@ uint8_t* guest_to_host(paddr_t paddr) {
   // printf("pmem: 0x%08x\n",pmem);
   // printf("paddr: 0x%08x\n",paddr);
   // printf("CONFIG_MBASE: 0x%08x\n",CONFIG_MBASE);
+  paddr = paddr & 0x0fffffff;
   return (uint8_t*)pmem + paddr; 
 }
 // paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
