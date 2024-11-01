@@ -31,7 +31,7 @@ static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
 }
 #else
-#define FLASH_SIZE 16 * 1024 * 1024
+#define FLASH_SIZE 0x8000000
 static inline bool in_pmem(paddr_t addr) {
   if ((addr & 0xf0000000) == 0x30000000) {
     addr = addr & 0x0fffffff;
