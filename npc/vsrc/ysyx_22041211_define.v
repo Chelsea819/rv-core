@@ -1,6 +1,6 @@
 `include "ysyx_22041211_define_axi.v"
 // DECODER
-`define PC_RESET_VAL    32'h2000_0000
+`define PC_RESET_VAL    32'h3000_0000
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
