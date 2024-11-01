@@ -33,6 +33,7 @@ static inline bool in_pmem(paddr_t addr) {
 #else
 #define FLASH_SIZE 16 * 1024 * 1024
 static inline bool in_pmem(paddr_t addr) {
+  addr = addr & 0x0fffffff;
   return addr < FLASH_SIZE;
 }
 
