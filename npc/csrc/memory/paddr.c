@@ -135,7 +135,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 }
 
 vaddr_t paddr_read(paddr_t addr,int len) {
-  
+  printf("paddr_read\n");
 	if (likely(in_pmem(addr))) {
     word_t rdata = pmem_read(addr,len);
     #ifdef CONFIG_MTRACE
@@ -151,6 +151,7 @@ vaddr_t paddr_read(paddr_t addr,int len) {
 }
 
 void paddr_write(vaddr_t addr, vaddr_t len, word_t data) {
+  printf("paddr_write\n");
   #ifdef CONFIG_MTRACE
   // Log("paddr_write --- [addr: 0x%08x len: %d data: 0x%08x]",addr,len,data);
   #endif
