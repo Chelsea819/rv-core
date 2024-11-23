@@ -5,7 +5,8 @@
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-/* verilator lint_off UNOPTFLAT */
+/* verilator 
+ UNOPTFLAT */
 `include "ysyx_22041211_define.v"
 module ysyx_22041211_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input								reset		,
