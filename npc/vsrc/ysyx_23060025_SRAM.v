@@ -1,12 +1,12 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_counter.v
+	> File Name: ysyx_23060025_counter.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input								rstn			,
     input		                		clock			,
     input		                		ren			,

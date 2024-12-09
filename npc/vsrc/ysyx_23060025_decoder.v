@@ -1,5 +1,5 @@
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_decoder(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_decoder(
     input									      clock				        ,
     input									      reset				        ,
     input           [31:0]                        inst_i                    ,
@@ -163,7 +163,7 @@ assign  {branch_type_o, jmp_target_o, jmp_flag_o, csr_flag_o} = ({opcode, func3}
                                                                 ({opcode, func3} == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRS_FUNC3})       ? {`BRANCH_INVALID, 32'b0,             ~`EN_JMP, `CSR_CSRRS}  :         // I-csrrs
                                                                 0;       
 
-ysyx_22041211_immGen my_gen (
+ysyx_23060025_immGen my_gen (
     .inst       (inst_i),
     .imm        (imm_o)
 );

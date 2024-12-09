@@ -1,13 +1,13 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_counter.v
+	> File Name: ysyx_23060025_counter.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock rstn waddr wdata wen wmask
-`include "ysyx_22041211_define.v"
-`include "ysyx_22041211_define_delay.v"
-module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
+`include "ysyx_23060025_define.v"
+`include "ysyx_23060025_define_delay.v"
+module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	input								rstn			,
     input		                		wd_i		,
     input		                		clock			,
@@ -84,13 +84,13 @@ module ysyx_22041211_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
         wire			[3:0]		        	delay_num;
         wire			[3:0]		        	delay_num_w_data;
 
-        ysyx_22041211_LFSR u_LFSR(
+        ysyx_23060025_LFSR u_LFSR(
             .clock          ( clock          ),
             .rstn         ( rstn         ),
             .initial_var  ( 4'b1  		 ),
             .result       ( delay_num    )
         );
-        ysyx_22041211_LFSR u_LFSR_w_data(
+        ysyx_23060025_LFSR u_LFSR_w_data(
             .clock          ( clock          ),
             .rstn         ( rstn         ),
             .initial_var  ( 4'b1  		 ),

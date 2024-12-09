@@ -1,4 +1,4 @@
-`include "ysyx_22041211_define_axi.v"
+`include "ysyx_23060025_define_axi.v"
 // DECODER
 `define PC_RESET_VAL    32'h3000_0000
 
@@ -141,11 +141,15 @@
 `define CSR_MSTATUS_ADDR     12'h300
 `define CSR_MEPC_ADDR        12'h341
 `define CSR_MTVEC_ADDR       12'h305
+`define CSR_MVENDORID_ADDR   12'hf11
+`define CSR_MARCHID_ADDR     12'hf12
 
-`define CSR_MCAUSE_IDX       2'b00
-`define CSR_MSTATUS_IDX      2'b01
-`define CSR_MEPC_IDX         2'b10
-`define CSR_MTVEC_IDX        2'b11
+`define CSR_MCAUSE_IDX       3'b000
+`define CSR_MSTATUS_IDX      3'b001
+`define CSR_MEPC_IDX         3'b010
+`define CSR_MTVEC_IDX        3'b011
+`define CSR_MVENDORID_IDX    3'b100
+`define CSR_MARCHID_IDX      3'b101
 
 
 

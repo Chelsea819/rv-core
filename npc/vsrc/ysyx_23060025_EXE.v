@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_add.v
+	> File Name: ysyx_23060025_add.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时24分15秒
  ************************************************************************/
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_EXE #(parameter DATA_LEN = 32)(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	input									      clock				        ,
     input									      reset				        ,
 	input		[DATA_LEN - 1:0]		reg1_i		,
@@ -112,7 +112,7 @@ module ysyx_22041211_EXE #(parameter DATA_LEN = 32)(
 		endcase
 	end
 
-	ysyx_22041211_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
+	ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
 		`BRANCH_BEQ, alu_zero,
 		`BRANCH_BNE, ~alu_zero,
 		`BRANCH_BLT, alu_less,
@@ -121,14 +121,14 @@ module ysyx_22041211_EXE #(parameter DATA_LEN = 32)(
 		`BRANCH_BGEU, ~alu_less
 	});
 
-	ysyx_22041211_MuxKeyWithDefault #(2,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
+	ysyx_23060025_MuxKeyWithDefault #(2,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
 		`CSR_CSRRW, reg1_i,
 		`CSR_CSRRS, reg1_i | csr_rdata_i
 	});
 
 	assign csr_type_o = csr_flag_i;
 
-	ysyx_22041211_ALU my_alu(
+	ysyx_23060025_ALU my_alu(
 		.src1				(src1),
 		.src2				(src2),
 		.alu_control		(alu_control),
@@ -137,14 +137,14 @@ module ysyx_22041211_EXE #(parameter DATA_LEN = 32)(
 		.alu_zero_o  		(alu_zero)
 	);
 
-	ysyx_22041211_MuxKeyWithDefault #(4,2,32) src1_choose (src1, alu_sel[1:0], 32'b0, {
+	ysyx_23060025_MuxKeyWithDefault #(4,2,32) src1_choose (src1, alu_sel[1:0], 32'b0, {
 		`ALU_SEL1_ZERO, 32'b0,
 		`ALU_SEL1_REG1, reg1_i,
 		`ALU_SEL1_PC,   pc_i,
 		`ALU_SEL1_CSR,  csr_rdata_i
 	});
 
-	ysyx_22041211_MuxKeyWithDefault #(4,2,32) src2_choose (src2, alu_sel[3:2], 32'b0, {
+	ysyx_23060025_MuxKeyWithDefault #(4,2,32) src2_choose (src2, alu_sel[3:2], 32'b0, {
 		`ALU_SEL1_ZERO, 32'b0,
 		`ALU_SEL2_REG2, reg2_i,
 		`ALU_SEL2_IMM, 	imm_i,

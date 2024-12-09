@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_register.v
+	> File Name: ysyx_23060025_register.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	input								clock		,
 	input								reset		,
 	input	    [11:0]					csr_addr,	// 要读的csr
@@ -16,8 +16,8 @@ module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
 	output	reg	[DATA_WIDTH - 1:0]		csr_pc_o	,
 	output		[DATA_WIDTH - 1:0]		r_data	
 );
-	reg 	[DATA_WIDTH - 1:0] 		csr [3:0]	;
-	wire 	[1:0]  					csr_idx		;
+	reg 	[DATA_WIDTH - 1:0] 		csr [5:0]	;
+	wire 	[2:0]  					csr_idx		;
 	reg  mvendorid;
 
 	assign csr_idx = (csr_addr == `CSR_MCAUSE_ADDR)	? `CSR_MCAUSE_IDX :
@@ -47,8 +47,11 @@ module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
 	// end
 
 	always @(posedge clock) begin
-		if(reset)
+		if(reset) begin
 			csr[`CSR_MSTATUS_IDX] <= 32'h1800;
+			csr[`CSR_MVENDORID_IDX] <= 32'h79737978;
+			csr[`CSR_MARCHID_IDX] <= 32'd23060025;
+		end
 		else if (^csr_type_i == 1'b1) 
 			csr[csr_idx] <= wdata;
 		else if(csr_type_i == `CSR_ECALL) begin

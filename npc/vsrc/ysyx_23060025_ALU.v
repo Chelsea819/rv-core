@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_add.v
+	> File Name: ysyx_23060025_add.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时24分15秒
  ************************************************************************/
- `include "ysyx_22041211_define.v"
-module ysyx_22041211_ALU #(parameter DATA_LEN = 32)(
+ `include "ysyx_23060025_define.v"
+module ysyx_23060025_ALU #(parameter DATA_LEN = 32)(
 	input		[DATA_LEN - 1:0]		src1		,
 	input		[DATA_LEN - 1:0]		src2		,
 	input 		[3:0]					alu_control	,
@@ -24,7 +24,7 @@ module ysyx_22041211_ALU #(parameter DATA_LEN = 32)(
 	// 	$display("src1 = [%h], src2 = [%h] sub_result = [%b] s_compare_result = [%b] u_compare_result = [%b]",src1, src2, sub_result, s_compare_result, u_compare_result);
 	// end
 	
-	ysyx_22041211_MuxKeyWithDefault #(10,4,32) ALUmode (result_tmp, alu_control, 32'b0, {
+	ysyx_23060025_MuxKeyWithDefault #(10,4,32) ALUmode (result_tmp, alu_control, 32'b0, {
 		`ALU_OP_ADD, 			src1 + src2,
 		`ALU_OP_SUB, 			sub_result, 
 		`ALU_OP_XOR, 			src1 ^ src2,

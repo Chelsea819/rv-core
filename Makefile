@@ -1,4 +1,5 @@
-STUID = ysyx_22041211
+STUID = ysyx_23060025
+# STUID = ysyx_22041211
 STUNAME = 王晓雪
 
 # DO NOT modify the following code!!!
