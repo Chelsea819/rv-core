@@ -24,6 +24,8 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 					 (csr_addr == `CSR_MSTATUS_ADDR)? `CSR_MSTATUS_IDX :
 					 (csr_addr == `CSR_MEPC_ADDR)	? `CSR_MEPC_IDX :
 					 (csr_addr == `CSR_MTVEC_ADDR)	? `CSR_MTVEC_IDX :
+					 (csr_addr == `CSR_MVENDORID_ADDR)	? `CSR_MVENDORID_IDX :
+					 (csr_addr == `CSR_MARCHID_ADDR)	? `CSR_MARCHID_IDX :
 					 `CSR_MTVEC_IDX ;
 
 	// assign csr_pc_o = (csr_type_i == `CSR_ECALL)	? csr[`CSR_MTVEC_IDX] :

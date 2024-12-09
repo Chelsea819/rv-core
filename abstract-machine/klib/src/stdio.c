@@ -190,6 +190,28 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         }
         if(if_long) if_long = false;
       }
+      else if(fmt[i] == 'u'){
+        percent = 0;
+        char arr_tmp[NUM_BUF] = {0};  //存放数字转换成的字符
+        int numAdd = NUM_BUF - 2;  //数组的下标 从后往前存
+
+        unsigned long num = va_arg(ap,unsigned long); //要替换的数字
+        //每一次调用va_arg()都会修改ap，这样下一次调用 就会返回下一个参数
+        //va_arg(ap,type) 这个type是为了初始化一个指向目标的指针
+        //如果type不匹配或者没有下一个参数，会出现随机错误
+
+        flag = 10; 
+        neg = 0;
+
+        u_intHandel(&num, &numAdd, flag, arr_tmp);
+        formatHandel(&if_wid, &if_for, numAdd, &width, out, &k);
+
+        //将数字存入out数组
+        for( ; k < n-1 && numAdd < NUM_BUF - 1 ; k++,numAdd ++){     
+          out[k] = arr_tmp[numAdd];
+        }
+        if(if_long) if_long = false;
+      }
       else {
         putch(fmt[i]);
         panic("Not completed format");
