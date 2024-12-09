@@ -26,9 +26,20 @@
 uint8_t* guest_to_host(paddr_t paddr);
 
 //判断 addr 是否在 内存区域中
+#ifdef STORE_MROM
 static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
 }
+#else
+#define FLASH_SIZE 0x8000000
+static inline bool in_pmem(paddr_t addr) {
+  if ((addr & 0xf0000000) == 0x30000000) {
+    addr = addr & 0x0fffffff;
+  }
+  return addr < FLASH_SIZE;
+}
+
+#endif
 vaddr_t paddr_read(paddr_t addr,int len);
 void paddr_write(vaddr_t addr, vaddr_t len, word_t data);
 
