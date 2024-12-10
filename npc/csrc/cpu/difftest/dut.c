@@ -74,17 +74,6 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
   }
 }
 
-void init_skip_pool(){
-  for (int i = 0; i < NR_SKIP; i ++) {
-    skip_pool[i].is_skip_ref_bool = false;
-    skip_pool[i].is_skip_ref_pc = 0;
-    skip_pool[i].next = (i == NR_SKIP - 1 ? skip_pool : &skip_pool[i + 1]);
-    skip_pool[i].past = (i == 0 ? &skip_pool[NR_SKIP - 1] : &skip_pool[i - 1]);
-  }
-  head = skip_pool;
-  tail = skip_pool;
-}
-
 void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
 
@@ -126,7 +115,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   //将DUT的寄存器状态拷贝到REF中
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 
-  init_skip_pool();
 
 }
 
