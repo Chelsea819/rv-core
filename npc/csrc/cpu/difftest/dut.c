@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <dlfcn.h>
 
 #include <isa.h>
@@ -151,7 +152,7 @@ static void checkregs(CPU_state *ref, vaddr_t npc) {
 //进行逐条指令执行后的状态对比
 void difftest_step(vaddr_t pc, vaddr_t npc) {
   CPU_state ref_r;
-  printf("pc = 0x%08x npc = 0x%08x\n",pc,npc);
+  
   if (skip_dut_nr_inst > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
@@ -170,8 +171,12 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
+    printf("is_skip_ref=true-----");
+    printf("pc = 0x%08x npc = 0x%08x\n",pc,npc);
     return;
   }
+  printf("is_skip_ref=false-----");
+    printf("pc = 0x%08x npc = 0x%08x\n",pc,npc);
 // ref 0x8000 0x8004 0x8008 0x800c
 // dut 0x8000 0x8000 0x8004 0x8008
 
