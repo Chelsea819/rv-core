@@ -510,7 +510,6 @@ static void exec_once()
 
 /* stimulate the way CPU works ,get commands constantly */
 static void execute(uint64_t n) {
-  printf("n=%x\n",n);
   for (; n > 0; n--)
   {
     exec_once();
