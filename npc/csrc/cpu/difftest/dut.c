@@ -99,6 +99,7 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   // ref_difftest_memcpy(RESET_VECTOR, guest_to_flash(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
   //将DUT的寄存器状态拷贝到REF中
+  printf("cpu.pc = %x\n",cpu.pc);
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 
   // init_skip_pool();
