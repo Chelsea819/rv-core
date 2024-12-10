@@ -153,6 +153,7 @@ static void checkregs(CPU_state *ref, vaddr_t npc) {
 //进行逐条指令执行后的状态对比
 void difftest_step(vaddr_t pc, vaddr_t npc) {
   CPU_state ref_r;
+  printf("ref->pc = %x\n",ref_r.pc);
   
   if (skip_dut_nr_inst > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
