@@ -34,7 +34,7 @@ bool ifbreak = false;
 
 extern "C" void pc_get(int pc, int dnpc){
   // printf("pc = %x dpc = %x\n",pc,dnpc);
-  cpu.pc = pc;
+  cpu.pc = dnpc;
   # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
     s.pc = pc;
     s.dnpc = dnpc;
