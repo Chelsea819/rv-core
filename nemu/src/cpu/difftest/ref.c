@@ -76,5 +76,4 @@ __EXPORT void difftest_init(int port) {
   initial = false;
   /* Perform ISA dependent initialization. */
   init_isa();
-  printf("diff pc = %p\n",&cpu.pc);
 }
