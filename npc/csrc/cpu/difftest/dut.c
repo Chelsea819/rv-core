@@ -173,7 +173,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     is_skip_ref = false;
     return;
   }
-  printf("is_skip_ref=false\n");
+  printf("is_skip_ref=false pc = %x\n",pc);
 // ref 0x8000 0x8004 0x8008 0x800c
 // dut 0x8000 0x8000 0x8004 0x8008
 
