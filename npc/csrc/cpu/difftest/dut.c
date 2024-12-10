@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <dlfcn.h>
 
 #include <isa.h>
@@ -166,11 +167,13 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
 
   //该指令的执行结果以NEMU的状态为准
   if (is_skip_ref) {
+    printf("is_skip_ref=true\n");
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
     return;
   }
+  printf("is_skip_ref=false\n");
 // ref 0x8000 0x8004 0x8008 0x800c
 // dut 0x8000 0x8000 0x8004 0x8008
 
