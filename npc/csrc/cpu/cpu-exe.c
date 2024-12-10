@@ -1,4 +1,5 @@
 #include <cpu/decode.h>
+#include <cstdio>
 #include <isa.h>
 #include <elf.h>
 #include "reg.h"
@@ -200,6 +201,7 @@ void resp_check(char resp){
 
 void diff_skip(){
 #ifdef CONFIG_DIFFTEST
+  printf("diff_skip\n");
   difftest_skip_ref();
 #endif
 }
