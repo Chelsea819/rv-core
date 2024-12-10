@@ -113,7 +113,7 @@ static int cmd_si(char *args){
     }
     n = convert_ten(args);
   }
-  cpu_exec(n*2);
+  cpu_exec(n);
   return 0;
 }
 
