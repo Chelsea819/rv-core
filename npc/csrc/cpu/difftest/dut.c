@@ -45,7 +45,7 @@ static int skip_dut_nr_inst = 0;
 void difftest_skip_ref() {
   tail->is_skip_ref_bool = true;
   tail->is_skip_ref_pc = cpu.pc;
-  printf("tail->is_skip_ref_pc = 0x%08x cpu.pc = 0x%08x cpu.pc = 0x%08x\n",tail->is_skip_ref_pc,cpu.pc,cpu.pc);
+  printf("difftest_skip_ref tail->is_skip_ref_pc = 0x%08x\n",tail->is_skip_ref_pc);
 
   // is_skip_ref = true;
   // is_skip_ref_pc = cpu.pc;
