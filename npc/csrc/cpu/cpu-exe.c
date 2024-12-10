@@ -201,7 +201,7 @@ void resp_check(char resp){
 
 void diff_skip(){
 #ifdef CONFIG_DIFFTEST
-  printf("diff_skip\n");
+  // printf("diff_skip\n");
   difftest_skip_ref();
 #endif
 }
