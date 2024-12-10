@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_add.v
+	> File Name: ysyx_23060025_add.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时24分15秒
  ************************************************************************/
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_pcPlus #(parameter DATA_LEN = 32)(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_pcPlus #(parameter DATA_LEN = 32)(
 	input		[DATA_LEN - 1:0]		pc_old,
 	input								reset,
 	output	reg	[DATA_LEN - 1:0]		pc_new

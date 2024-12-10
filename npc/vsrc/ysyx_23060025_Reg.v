@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_Reg.v
+	> File Name: ysyx_23060025_Reg.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 17时28分28秒
  ************************************************************************/
 
-module ysyx_22041211_Reg #(parameter WIDTH = 1, RESET_VAL = 0)(
+module ysyx_23060025_Reg #(parameter WIDTH = 1, RESET_VAL = 0)(
 	input							clock	,
 	input							reset	,
 	input			[WIDTH - 1:0]	din	,

@@ -1,4 +1,4 @@
-`include "ysyx_22041211_define_device.v"
+`include "ysyx_23060025_define_device.v"
 
 `define AXI_XBAR_SOC        1'b0 
 `define AXI_XBAR_CLINT       1'b1 

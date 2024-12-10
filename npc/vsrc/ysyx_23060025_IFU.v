@@ -1,13 +1,13 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_register.v
+	> File Name: ysyx_23060025_register.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
-`include "ysyx_22041211_define.v"
-`include "ysyx_22041211_define_delay.v"
+`include "ysyx_23060025_define.v"
+`include "ysyx_23060025_define_delay.v"
 
-module ysyx_22041211_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
+module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									clock				,
 	input									reset				,
 
@@ -58,7 +58,7 @@ module ysyx_22041211_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		reg				[3:0]		        	RANDOM_DELAY;
 		wire			[3:0]		        	delay_num;
 
-		ysyx_22041211_LFSR u_LFSR(
+		ysyx_23060025_LFSR u_LFSR(
 			.clock          ( clock          ),
 			.rstn         ( ~reset         ),
 			.initial_var  ( 4'b1  		 ),
@@ -179,9 +179,9 @@ module ysyx_22041211_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 
     // get new pc
-    ysyx_22041211_counter#(
+    ysyx_23060025_counter#(
         .ADDR_LEN         ( 32 )
-    )u_ysyx_22041211_counter(
+    )u_ysyx_23060025_counter(
         .clock              ( clock              ),
         .reset              ( reset              ),
         .branch_request_i ( branch_request_i ),
@@ -197,9 +197,9 @@ module ysyx_22041211_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
         .pc               ( pc               )
     );
 
-	ysyx_22041211_pcPlus#(
+	ysyx_23060025_pcPlus#(
 		.DATA_LEN ( 32 )
-	)u_ysyx_22041211_pcPlus(
+	)u_ysyx_23060025_pcPlus(
 		.pc_old ( pc ),
 		.reset    ( reset    ),
 		.pc_new ( pc_plus_4  )

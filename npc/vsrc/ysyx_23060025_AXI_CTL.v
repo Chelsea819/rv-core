@@ -1,14 +1,13 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_counter.v
+	> File Name: ysyx_23060025_counter.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-/* verilator 
- UNOPTFLAT */
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
+/* verilator lint_off UNOPTFLAT */
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input								reset		,
     input		                		clock		,
 
@@ -110,6 +109,16 @@ module ysyx_22041211_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign axi_addr_w_size_o = `AXI_ADDR_SIZE_4;
 	assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
 	assign axi_w_last_o = `AXI_W_LAST_TRUE;
+
+	// 访问部分设备时。跳过ref的difftest检查
+	// 设备：UART
+	import "DPI-C" function void diff_skip();
+	always @(*) begin
+		if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L) begin
+			diff_skip();
+		end
+	end
+
 
 	always @(*) begin
 		if (con_state == AXI_CTL_IDLE) begin

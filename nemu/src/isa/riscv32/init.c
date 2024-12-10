@@ -33,6 +33,9 @@ static void restart() {
 
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
+
+  cpu.marchid = 0x79737978;
+  cpu.mventorid = 23060025;
 }
 
 void init_isa() {

@@ -1,11 +1,11 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_register.v
+	> File Name: ysyx_23060025_register.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	input								clock		,
 	input								reset		,
 	input	    [11:0]					csr_addr,	// 要读的csr
@@ -24,6 +24,8 @@ module ysyx_22041211_CSR #(parameter DATA_WIDTH = 32)(
 					 (csr_addr == `CSR_MSTATUS_ADDR)? `CSR_MSTATUS_IDX :
 					 (csr_addr == `CSR_MEPC_ADDR)	? `CSR_MEPC_IDX :
 					 (csr_addr == `CSR_MTVEC_ADDR)	? `CSR_MTVEC_IDX :
+					 (csr_addr == `CSR_MVENDORID_ADDR)	? `CSR_MVENDORID_IDX :
+					 (csr_addr == `CSR_MARCHID_ADDR)	? `CSR_MARCHID_IDX :
 					 `CSR_MTVEC_IDX ;
 
 	// assign csr_pc_o = (csr_type_i == `CSR_ECALL)	? csr[`CSR_MTVEC_IDX] :

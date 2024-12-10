@@ -28,6 +28,8 @@ typedef concat(__GUEST_ISA__, _ISADecodeInfo) ISADecodeInfo;
 #define CSR_MCAUSE 0x342
 #define CSR_MTVEC 0x305
 #define CSR_MSTATUS 0x300
+#define CSR_MVENTORID 0xf11
+#define CSR_MARCHID 0xf12
 
 // monitor
 extern unsigned char isa_logo[];

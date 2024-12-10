@@ -1,5 +1,5 @@
-`include "ysyx_22041211_define.v"
-module ysyx_22041211_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
+`include "ysyx_23060025_define.v"
+module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	input								clock 		,
 	input								reset 		,
 
@@ -175,10 +175,10 @@ module ysyx_22041211_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	end
 `endif 
 
-ysyx_22041211_IFU#(
+ysyx_23060025_IFU#(
     .ADDR_WIDTH       ( 32 ),
     .DATA_WIDTH       ( 32 )
-)ysyx_22041211_IFU(
+)ysyx_23060025_IFU(
     .clock              ( clock              ),
     .reset              ( reset              ),
 	.addr_r_addr_o    ( inst_addr_r_addr_o              ),		
@@ -207,7 +207,7 @@ ysyx_22041211_IFU#(
 );
 
 
-	ysyx_22041211_RegisterFile ysyx_22041211_RegisterFile(
+	ysyx_23060025_RegisterFile ysyx_23060025_RegisterFile(
 		.clock		(clock),
 		.wdata		(reg_wdata_i),
 		.rd			(reg_waddr_i),
@@ -219,7 +219,7 @@ ysyx_22041211_IFU#(
 		.r_data2	(id_reg2_data_i)
 	);
 
-	ysyx_22041211_decoder ysyx_22041211_decoder(
+	ysyx_23060025_decoder ysyx_23060025_decoder(
 		.clock              				( clock              ),
 		.reset              				( reset              ),
 		.inst_i							(id_inst_i),
@@ -252,7 +252,7 @@ ysyx_22041211_IFU#(
 		.imm_o      					(ex_imm_i)
 	);
 
-	ysyx_22041211_EXE ysyx_22041211_EXE(
+	ysyx_23060025_EXE ysyx_23060025_EXE(
 		.clock              	( clock     ),
 		.reset              	( reset     ),
 		.reg1_i				(ex_reg1_i),
@@ -286,10 +286,10 @@ ysyx_22041211_IFU#(
 		.alu_result_o		(lsu_alu_result_i)
 	);
 
-	ysyx_22041211_LSU#(
+	ysyx_23060025_LSU#(
 		.DATA_LEN          ( 32 ),
 		.ADDR_LEN          ( 32 )
-	)ysyx_22041211_LSU(
+	)ysyx_23060025_LSU(
 		.rstn           ( ~reset           ),
 		.wd_i          ( lsu_wd_i          ),
 		.clock           ( clock           		),
@@ -338,9 +338,9 @@ ysyx_22041211_IFU#(
 	);
 
 
-	// ysyx_22041211_LSU#(
+	// ysyx_23060025_LSU#(
 	// 	.DATA_LEN      ( 32 )
-	// )u_ysyx_22041211_LSU(
+	// )u_ysyx_23060025_LSU(
 	// 	.reset           ( reset           ),
 	// 	.wd_i          ( lsu_wd_i          ),
 	// 	.clock           ( clock           		),
@@ -375,9 +375,9 @@ ysyx_22041211_IFU#(
 	// 	.csr_wdata_o    ( wb_csr_wdata_i   	)
 	// );
 
-	ysyx_22041211_wb#(
+	ysyx_23060025_wb#(
 		.DATA_LEN     ( 32 )
-	)ysyx_22041211_wb(
+	)ysyx_23060025_wb(
 		.reset          ( reset          ),
 		.wd_i         ( wb_reg_wen_i ),
 		.clock          ( clock          ),
@@ -398,9 +398,9 @@ ysyx_22041211_IFU#(
 	);
 
 
-	ysyx_22041211_CSR#(
+	ysyx_23060025_CSR#(
 		.DATA_WIDTH    ( 32 )
-	)ysyx_22041211_CSR(
+	)ysyx_23060025_CSR(
 		.clock           ( clock           ),
 		.reset           ( reset           ),
 		.csr_addr      ( csr_addr_i      ),

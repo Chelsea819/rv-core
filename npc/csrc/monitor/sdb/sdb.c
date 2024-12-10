@@ -113,7 +113,7 @@ static int cmd_si(char *args){
     }
     n = convert_ten(args);
   }
-  cpu_exec(n*2);
+  cpu_exec(n);
   return 0;
 }
 
@@ -197,6 +197,16 @@ static int cmd_xref(char *args){
   }
   return 0; 
 }
+
+static int cmd_rref(char *args){
+  CPU_state ref;
+  ref_difftest_regcpy(&ref, DIFFTEST_TO_DUT);
+  for(int i = 0; i < RISCV_GPR_NUM; i++){
+      printf("\033[103m %d: \033[0m \t%s  \033[104m 0x%08x\033[0m\n",i,regs[i],ref.gpr[i]);
+  }
+  printf("\033[105m ref->pc: \033[0m \t0x%08x\n",ref.pc);
+  return 0; 
+}
 #endif
 
 static int cmd_info(char *args){
@@ -244,6 +254,7 @@ static struct
     {"d","Delete certain watchpoint.",cmd_d},
     #ifdef CONFIG_DIFFTEST
     {"xref","Scan the memory of reference in difftest.",cmd_xref},
+    {"rref","Scan the register of reference in difftest.",cmd_rref},
     #endif
     /* TODO: Add more commands */
 

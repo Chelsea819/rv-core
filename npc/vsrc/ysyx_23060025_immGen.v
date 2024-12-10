@@ -1,4 +1,4 @@
-module ysyx_22041211_immGen #(parameter DATA_LEN = 32)(
+module ysyx_23060025_immGen #(parameter DATA_LEN = 32)(
     input		[DATA_LEN - 1:0]		inst,
     output		[DATA_LEN - 1:0]		imm
 );
@@ -7,7 +7,7 @@ wire [6:0]      opcode;
 
 assign opcode = inst[6:0];
 
-ysyx_22041211_MuxKeyWithDefault #(10,7,32) imm_gen (imm, opcode, 32'b0, {
+ysyx_23060025_MuxKeyWithDefault #(10,7,32) imm_gen (imm, opcode, 32'b0, {
 		7'b0110011, 32'b0,       // R-type   add sub xor or and sll srl sra slt sltu
         7'b0010011, {{20{inst[31]}}, inst[31:20]},       // I-type   addi xori ori andi slli srli srai slti sltiu
         7'b0000011, {{20{inst[31]}}, inst[31:20]},       // I-type   lb lh lw lbu lhu

@@ -1,5 +1,5 @@
-`include "ysyx_22041211_define.v"
-module ysyx_22041211 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
+`include "ysyx_23060025_define.v"
+module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	input								clock 				,
 	input								reset 				,
 	input								io_interrupt		,
@@ -205,10 +205,10 @@ module ysyx_22041211 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	end
 
 
-	ysyx_22041211_cpu#(
+	ysyx_23060025_cpu#(
 		.DATA_LEN            ( 32 ),
 		.ADDR_LEN 	         ( 32 )
-	)ysyx_22041211_cpu(
+	)ysyx_23060025_cpu(
 		.clock               ( clock                 ),
 		.reset               ( reset                 ),
 		.inst_addr_r_addr_o	 ( inst_addr_r_addr_o  ),
@@ -239,10 +239,10 @@ module ysyx_22041211 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_i              ( inst              )
 	);
 
-	ysyx_22041211_AXI_CTL#(
+	ysyx_23060025_AXI_CTL#(
 		.ADDR_LEN            ( 32 ),
 		.DATA_LEN            ( 32 )
-	)u_ysyx_22041211_AXI_CTL(
+	)u_ysyx_23060025_AXI_CTL(
 		.reset               ( reset                ),
 		.clock               ( clock                 ),
 		.inst_addr_r_addr_i  ( inst_addr_r_addr_o  ),
@@ -312,10 +312,10 @@ module ysyx_22041211 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_bkwd_id_i      ( xbar_bkwd_id_i       )
 	);
 
-	ysyx_22041211_xbar#(
+	ysyx_23060025_xbar#(
 		.ADDR_LEN               ( 32 ),
 		.DATA_LEN 		        ( 32 )
-	)u_ysyx_22041211_xbar(
+	)u_ysyx_23060025_xbar(
 		.rstn                   ( ~reset                   ),
 		.clock                    ( clock                    ),
 		.axi_device				( axi_device			 ),
@@ -401,10 +401,10 @@ module ysyx_22041211 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.clint_r_ready_i        ( clint_r_ready_o        )
 	);
 
-	ysyx_22041211_CLINT#(
+	ysyx_23060025_CLINT#(
 		.ADDR_LEN       ( 32 ),
 		.DATA_LEN 	    ( 32 )
-	)u_ysyx_22041211_CLINT(
+	)u_ysyx_23060025_CLINT(
 		.rstn           ( ~reset           ),
 		.clock          ( clock            ),
 		.addr_r_addr_i  ( clint_addr_r_addr_o  ),

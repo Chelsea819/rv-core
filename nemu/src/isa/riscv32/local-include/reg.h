@@ -36,6 +36,8 @@ static inline int check_csr_reg_idx(int idx) {
 #define CSR_MEPC_REG (cpu.mepc)
 #define CSR_MSTATUS_REG (cpu.mstatus)
 #define CSR_MTVEC_REG (cpu.mtvec)
+#define CSR_MVENTORID_REG (cpu.mventorid)
+#define CSR_MARCHID_REG (cpu.marchid)
 
 static inline const char* reg_name(int idx) {
   extern const char* regs[];

@@ -1,4 +1,4 @@
-module ysyx_22041211_LFSR#(DATA_LEN = 4)(
+module ysyx_23060025_LFSR#(DATA_LEN = 4)(
     input									    clock				,
 	input									    rstn			,
     input       [DATA_LEN-1:0]                  initial_var     ,

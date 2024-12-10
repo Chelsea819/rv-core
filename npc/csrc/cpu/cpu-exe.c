@@ -1,5 +1,4 @@
 #include <cpu/decode.h>
-#include <cstdint>
 #include <cstdio>
 #include <isa.h>
 #include <elf.h>
@@ -35,7 +34,7 @@ bool ifbreak = false;
 
 extern "C" void pc_get(int pc, int dnpc){
   // printf("pc = %x dpc = %x\n",pc,dnpc);
-  cpu.pc = pc;
+  cpu.pc = dnpc;
   # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
     s.pc = pc;
     s.dnpc = dnpc;
@@ -200,6 +199,13 @@ void resp_check(char resp){
   }
 }
 
+void diff_skip(){
+#ifdef CONFIG_DIFFTEST
+  // printf("diff_skip\n");
+  difftest_skip_ref();
+#endif
+}
+
 static void trace_and_difftest(){
   
 #ifdef CONFIG_ITRACE_COND
@@ -241,10 +247,13 @@ static void trace_and_difftest(){
   for(int i = 0; i < RISCV_GPR_NUM; i ++){
     cpu.gpr[i] = R(i);
   }
-  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_CSR__DOT__csr[0];
-  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_CSR__DOT__csr[2];
-  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_CSR__DOT__csr[1];
-  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_CSR__DOT__csr[3];
+  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[0];
+  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[2];
+  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[1];
+  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[3];
+  cpu.mventorid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[4];
+  cpu.marchid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[5];
+//  printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
  IFDEF(CONFIG_DIFFTEST, difftest_step(diff.pc, diff.dnpc));
 #endif
 
@@ -351,7 +360,7 @@ static void exec_once()
     printf("\nebreak!\n");
     // printf("ebreak: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst);
     // set_npc_state(NPC_STOP, cpu.pc, 0);ifbreak = false;
-    NPCTRAP(cpu.pc, dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_RegisterFile__DOT__rf[10]);
+    NPCTRAP(cpu.pc, dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_RegisterFile__DOT__rf[10]);
   }
 
   #if (defined CONFIG_TRACE) || (defined CONFIG_TRACE)
@@ -488,7 +497,7 @@ static void exec_once()
       #ifdef CONFIG_FTRACE_PASS
       if(strcmp(name,"putch") != 0) 
         for(int i = 10; i < 15; i++){
-          printf("\033[104m %d %s: \033[0m \t0x%08x\n",i,regs[i],dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_22041211_cpu__DOT__ysyx_22041211_RegisterFile__DOT__rf[i]);
+          printf("\033[104m %d %s: \033[0m \t0x%08x\n",i,regs[i],dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_RegisterFile__DOT__rf[i]);
         }
       #endif
       index++;

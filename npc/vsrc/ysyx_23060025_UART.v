@@ -1,13 +1,13 @@
 /*************************************************************************
-	> File Name: ysyx_22041211_counter.v
+	> File Name: ysyx_23060025_counter.v
 	> Author: Chelsea
 	> Mail: 1938166340@qq.com 
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-`include "ysyx_22041211_define.v"
-`include "ysyx_22041211_define_delay.v"
-module ysyx_22041211_UART #(parameter DATA_LEN = 32)(
+`include "ysyx_23060025_define.v"
+`include "ysyx_23060025_define_delay.v"
+module ysyx_23060025_UART #(parameter DATA_LEN = 32)(
 	input								rstn		,
     input		                		clock			,
 
@@ -34,7 +34,7 @@ module ysyx_22041211_UART #(parameter DATA_LEN = 32)(
 		reg				[3:0]		        	RANDOM_DELAY;
 		wire			[3:0]		        	delay_num;
 
-		ysyx_22041211_LFSR u_LFSR(
+		ysyx_23060025_LFSR u_LFSR(
 			.clock          ( clock          ),
 			.rstn         ( rstn         ),
 			.initial_var  ( 4'b1  		 ),
