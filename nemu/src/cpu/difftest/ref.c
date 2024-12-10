@@ -56,6 +56,7 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
   } else {
     memcpy(dut, ref, DIFFTEST_REG_SIZE);
   }
+  printf("ref-pc = %x\n",ref->pc);
 }
 
 
