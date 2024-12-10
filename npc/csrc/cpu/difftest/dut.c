@@ -47,7 +47,6 @@ void difftest_skip_ref() {
   tail->is_skip_ref_pc = cpu.pc;
   // printf("tail->is_kskip_ref_pc = 0x%08x cpu.pc = 0x%08x cpu.pc = 0x%08x\n",tail->is_skip_ref_pc,cpu.pc,cpu.pc);
 
-  tail = tail->next;
   // is_skip_ref = true;
   // is_skip_ref_pc = cpu.pc;
   // If such an instruction is one of the instruction packing in QEMU
@@ -82,7 +81,7 @@ void init_skip_pool(){
     skip_pool[i].past = (i == 0 ? &skip_pool[NR_SKIP - 1] : &skip_pool[i - 1]);
   }
   head = skip_pool;
-  tail = skip_pool;
+  tail = &skip_pool[1];
 }
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
@@ -192,15 +191,20 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
   }
 
   //该指令的执行结果以NEMU的状态为准
-  if (head->is_skip_ref_bool && pc == head->is_skip_ref_pc) {
+  if (head->is_skip_ref_bool) {
     // Log("pc = 0x%08x npc = 0x%08x\n",pc,npc);
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     head->is_skip_ref_bool = false;
     head->is_skip_ref_pc = 0;
-    head = head->next;
+    head = tail;
+    tail = head;
     return;
   }
+  head->is_skip_ref_bool = false;
+  head->is_skip_ref_pc = 0;
+  head = tail;
+  tail = head;
 // ref 0x8000 0x8004 0x8008 0x800c
 // dut 0x8000 0x8000 0x8004 0x8008
 
