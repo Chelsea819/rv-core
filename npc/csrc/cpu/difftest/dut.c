@@ -189,7 +189,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
       panic("can not catch up with ref.pc = " FMT_WORD " at pc = " FMT_WORD, ref_r.pc, pc);
     return;
   }
-
+  struct is_skip_ref *tmp = head;
   //该指令的执行结果以NEMU的状态为准
   if (head->is_skip_ref_bool) {
     printf("true--pc = 0x%08x npc = 0x%08x\n",pc,npc);
@@ -198,14 +198,14 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     head->is_skip_ref_bool = false;
     head->is_skip_ref_pc = 0;
     head = tail;
-    tail = head;
+    tail = tmp;
     return;
   }
   printf("false--pc = 0x%08x npc = 0x%08x\n",pc,npc);
   head->is_skip_ref_bool = false;
   head->is_skip_ref_pc = 0;
   head = tail;
-  tail = head;
+  tail = tmp;
 // ref 0x8000 0x8004 0x8008 0x800c
 // dut 0x8000 0x8000 0x8004 0x8008
 
