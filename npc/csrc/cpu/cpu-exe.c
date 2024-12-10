@@ -198,6 +198,12 @@ void resp_check(char resp){
   }
 }
 
+void diff_skip(){
+#ifdef CONFIG_DIFFTEST
+  difftest_skip_ref();
+#endif
+}
+
 static void trace_and_difftest(){
   
 #ifdef CONFIG_ITRACE_COND
