@@ -253,6 +253,7 @@ static struct
     {"d","Delete certain watchpoint.",cmd_d},
     #ifdef CONFIG_DIFFTEST
     {"xref","Scan the memory of reference in difftest.",cmd_xref},
+    {"rref","Scan the register of reference in difftest.",cmd_rref},
     #endif
     /* TODO: Add more commands */
 
