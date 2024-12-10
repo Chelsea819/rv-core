@@ -251,7 +251,7 @@ static void trace_and_difftest(){
   cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[2];
   cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[1];
   cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[3];
- printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
+//  printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
  IFDEF(CONFIG_DIFFTEST, difftest_step(diff.pc, diff.dnpc));
 #endif
 
