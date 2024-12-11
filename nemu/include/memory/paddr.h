@@ -35,7 +35,7 @@ static inline bool in_psram(paddr_t addr) {
   return addr - PSRAM_ADDR < PSRAM_SIZE;
 }
 
-#define FLASH_SIZE 1024
+#define FLASH_SIZE 0x10000000
 #define FLASH_ADDR 0x30000000
 uint8_t* guest_to_flash(paddr_t paddr);
 

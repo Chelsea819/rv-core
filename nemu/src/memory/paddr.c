@@ -22,11 +22,10 @@ word_t psram_read(int32_t addr, int len);
 // word_t sram_addr_read(paddr_t addr, int len);
 // void sram_addr_write(paddr_t addr, int len, word_t data);
 void flash_read(uint32_t addr, uint32_t *data);
-
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
-static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+static uint8_t pmem[FLASH_SIZE] PG_ALIGN = {};
 //{}使用聚合初始化把数组初始化为0
 #endif
 
@@ -56,7 +55,7 @@ static void out_of_bound(paddr_t addr) {
 
 void init_mem() {
 #if   defined(CONFIG_PMEM_MALLOC)
-  pmem = malloc(CONFIG_MSIZE);
+  pmem = malloc(FLASH_SIZE);
   /* 如果定义了CONFIG_PMEM_MALLOC,
   则调用malloc()分配一块CONFIG_MSIZE大小的内存区域,
   并存入pmem变量 */
@@ -69,7 +68,7 @@ void init_mem() {
   循环初始化为随机数*/
   uint32_t *p = (uint32_t *)pmem;
   int i;
-  for (i = 0; i < (int) (CONFIG_MSIZE / sizeof(p[0])); i ++) {
+  for (i = 0; i < (int) (FLASH_SIZE / sizeof(p[0])); i ++) {
     p[i] = 0;
   }
 #endif
