@@ -87,6 +87,7 @@ word_t paddr_read(paddr_t addr, int len) {
   if (likely(in_psram(addr))) return psram_read(addr, len); // 地址落在物理内存空间
   if (likely(in_flash(addr))) {uint32_t data = 0; flash_read(addr, &data); return data;} // 地址落在物理内存空间
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));  // 地址落在设备空间
+  printf("end\n");
   out_of_bound(addr);
   return 0;
 }
