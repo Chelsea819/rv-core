@@ -82,22 +82,22 @@ void init_mem() {
 
 // 物理地址访问
 word_t paddr_read(paddr_t addr, int len) {
-  printf("paddr_read addr = %x len = %d\n",addr,len);
+  // printf("paddr_read addr = %x len = %d\n",addr,len);
   if (likely(in_pmem(addr))) return pmem_read(addr, len); // 地址落在物理内存空间
   if (likely(in_psram(addr))) return psram_read(addr, len); // 地址落在物理内存空间
   if (likely(in_flash(addr))) {uint32_t data = 0; flash_read(addr, &data); return data;} // 地址落在物理内存空间
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));  // 地址落在设备空间
-  printf("end\n");
+  // printf("end\n");
   out_of_bound(addr);
   return 0;
 }
 
 // 物理地址访问
 void paddr_write(paddr_t addr, int len, word_t data) {
-  printf("paddr_write addr = %x len = %d\n",addr,len);
+  // printf("paddr_write addr = %x len = %d\n",addr,len);
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   if (likely(in_psram(addr))) { psram_write(addr, len, data); return; }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
-  printf("end\n");
+  // printf("end\n");
   out_of_bound(addr);
 }
