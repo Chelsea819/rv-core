@@ -4,7 +4,7 @@ PHDRS { text PT_LOAD; data PT_LOAD; }
 MEMORY {
   /* mrom : ORIGIN = 0x20000000, LENGTH = 4K */
   flash : ORIGIN = 0x30000000, LENGTH = 16K
-  psram : ORIGIN = 0x80000000, LENGTH = 16K
+  psram : ORIGIN = 0x80000000, LENGTH = 16M
 }
 
 REGION_ALIAS("REGION_TEXT", flash);
