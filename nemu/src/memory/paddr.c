@@ -82,6 +82,7 @@ void init_mem() {
 
 // 物理地址访问
 word_t paddr_read(paddr_t addr, int len) {
+  printf("addr = %x len = %d\n",addr,len);
   if (likely(in_pmem(addr))) return pmem_read(addr, len); // 地址落在物理内存空间
   if (likely(in_psram(addr))) return psram_read(addr, len); // 地址落在物理内存空间
   if (likely(in_flash(addr))) {uint32_t data = 0; flash_read(addr, &data); return data;} // 地址落在物理内存空间
