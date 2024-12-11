@@ -32,7 +32,20 @@ static inline bool in_pmem(paddr_t addr) {
 }
 #else
 #define FLASH_SIZE 0x8000000
+#define PSRAM_SIZE 0x1fffffff
+#define PSRAM_ADDR 0x80000000
+
+#define PSRAM_LEFT  ((paddr_t)PSRAM_ADDR)
+#define PSRAM_RIGHT ((paddr_t)PSRAM_ADDR + PSRAM_SIZE - 1)
+
 static inline bool in_pmem(paddr_t addr) {
+  if ((addr & 0xf0000000) == 0x30000000) {
+    addr = addr & 0x0fffffff;
+  }
+  return addr < FLASH_SIZE;
+}
+
+static inline bool in_psram(paddr_t addr) {
   if ((addr & 0xf0000000) == 0x30000000) {
     addr = addr & 0x0fffffff;
   }

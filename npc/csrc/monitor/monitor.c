@@ -28,6 +28,7 @@ typedef struct ftrace_file{
 void init_rand();
 void init_log(const char *log_file);
 void init_mem();
+void init_psram();
 // void init_flash();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
@@ -157,6 +158,8 @@ void init_npc_monitor(int argc,char *argv[]){
 
     //init memory
     init_mem();
+
+    init_psram();
 
     // init_flash();
 
