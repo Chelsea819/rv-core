@@ -32,10 +32,7 @@
 #define PSRAM_RIGHT ((paddr_t)PSRAM_ADDR + PSRAM_SIZE - 1)
 
 static inline bool in_psram(paddr_t addr) {
-  if ((addr & 0xe0000000) == PSRAM_ADDR) {
-    addr = addr & 0x00ffffff;
-  }
-  return addr < PSRAM_SIZE;
+  return addr - PSRAM_ADDR < PSRAM_SIZE;
 }
 
 #define FLASH_SIZE 1024
