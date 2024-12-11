@@ -48,10 +48,10 @@ SECTIONS {
   } > REGION_BSS AT> flash
 
   _heap_start = _bss_end;
-  . = 0x0f000000 + 0x1000;
+  . = 0x80000000 + 0x1000;
   _heap_end = ALIGN(0x1000);
   _stack_top = _heap_end;
-  . = 0x0f000000 + 0x2000;
+  . = 0x80000000 + 0x2000;
   _stack_pointer = .;
   end = .;
   _end = .;
