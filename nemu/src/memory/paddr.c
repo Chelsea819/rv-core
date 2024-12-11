@@ -33,21 +33,21 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
-static word_t pmem_read(paddr_t addr, int len) {
+// static word_t pmem_read(paddr_t addr, int len) {
   
-  word_t ret = host_read(guest_to_host(addr), len);
-  #ifdef CONFIG_MTRACE
-      // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,ret);
-  #endif
-  return ret;
-}
+//   word_t ret = host_read(guest_to_host(addr), len);
+//   #ifdef CONFIG_MTRACE
+//       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,ret);
+//   #endif
+//   return ret;
+// }
 
-static void pmem_write(paddr_t addr, int len, word_t data) {
-  #ifdef CONFIG_MTRACE
-  Log("paddr_write --- [addr: 0x%08x len: %d data: 0x%08x]",addr,len,data);
-  #endif
-  host_write(guest_to_host(addr), len, data);
-}
+// static void pmem_write(paddr_t addr, int len, word_t data) {
+//   #ifdef CONFIG_MTRACE
+//   Log("paddr_write --- [addr: 0x%08x len: %d data: 0x%08x]",addr,len,data);
+//   #endif
+//   host_write(guest_to_host(addr), len, data);
+// }
 
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
@@ -82,7 +82,7 @@ void init_mem() {
 
 // 物理地址访问
 word_t paddr_read(paddr_t addr, int len) {
-  if (likely(in_pmem(addr))) return pmem_read(addr, len); // 地址落在物理内存空间
+  // if (likely(in_pmem(addr))) return pmem_read(addr, len); // 地址落在物理内存空间
   if (likely(in_psram(addr))) return psram_read(addr, len); // 地址落在物理内存空间
   if (likely(in_flash(addr))) {uint32_t data = 0; flash_read(addr, &data); return data;} // 地址落在物理内存空间
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));  // 地址落在设备空间
@@ -92,7 +92,7 @@ word_t paddr_read(paddr_t addr, int len) {
 
 // 物理地址访问
 void paddr_write(paddr_t addr, int len, word_t data) {
-  if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  // if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   if (likely(in_psram(addr))) { psram_write(addr, len, data); return; }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
