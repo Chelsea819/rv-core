@@ -25,6 +25,19 @@
 #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
 
+#define PSRAM_SIZE 0x1fffffff
+#define PSRAM_ADDR 0x80000000
+
+#define PSRAM_LEFT  ((paddr_t)PSRAM_ADDR)
+#define PSRAM_RIGHT ((paddr_t)PSRAM_ADDR + PSRAM_SIZE - 1)
+
+static inline bool in_psram(paddr_t addr) {
+  if ((addr & 0xe0000000) == PSRAM_ADDR) {
+    addr = addr & 0x00ffffff;
+  }
+  return addr < PSRAM_SIZE;
+}
+
 #define FLASH_SIZE 1024
 #define FLASH_ADDR 0x30000000
 uint8_t* guest_to_flash(paddr_t paddr);
