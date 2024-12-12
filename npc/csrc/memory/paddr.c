@@ -109,7 +109,7 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
 
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
-      addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
+      addr, PSRAM_LEFT, PSRAM_RIGHT, cpu.pc);
 }
 
 void init_mem(){
@@ -155,18 +155,44 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
   return;
 }
 
+// vaddr_t paddr_read(paddr_t addr,int len) {
+//   printf("paddr_read\n");
+// 	if (likely(in_pmem(addr))) {
+//     word_t rdata = pmem_read(addr,len);
+//     Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+//     #ifdef CONFIG_MTRACE
+//       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+//     #endif
+//     return rdata;
+//   }
+//   // printf("read device\n");
+//   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
+//   // printf("read device---out of bound\n");
+//   out_of_bound(addr);
+//   return 0;
+// }
+void psram_read(int32_t addr, int32_t *data);
+
 vaddr_t paddr_read(paddr_t addr,int len) {
   printf("paddr_read\n");
-	if (likely(in_pmem(addr))) {
-    word_t rdata = pmem_read(addr,len);
-    Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+	if (likely(in_psram(addr))) {
+    addr = addr & 0x1fffffff;
+    int32_t rdata = 0;
+    psram_read(addr,&rdata);
+    // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
-    return rdata;
+    switch (len) {
+      case 1: return rdata & 0x000000ff;
+      case 2: return rdata & 0x0000ffff;
+      case 4: return rdata;
+      IFDEF(CONFIG_ISA64, case 8: return rdata & 0xffffffffffffffff;);
+      default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
+    }
   }
   // printf("read device\n");
-  IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
+  // IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   // printf("read device---out of bound\n");
   out_of_bound(addr);
   return 0;

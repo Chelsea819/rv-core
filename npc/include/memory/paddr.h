@@ -45,6 +45,13 @@ static inline bool in_pmem(paddr_t addr) {
   return addr < FLASH_SIZE;
 }
 
+static inline bool in_psram(paddr_t addr) {
+  if ((addr & 0xe0000000) == 0x80000000) {
+    addr = addr & 0x1fffffff;
+  }
+  return addr < FLASH_SIZE;
+}
+
 
 #endif
 vaddr_t paddr_read(paddr_t addr,int len);
