@@ -171,7 +171,7 @@ static int cmd_x(char *args){
   vaddr_t addr = convert_16(arg2);
   printf("addr = %08x\n",addr);
 
-  for (int i = 0;i < len;i ++){
+  for (int i = 0;i < len;i = i + 4){
     printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i,vaddr_read(addr + i,4));
   }
   return 0; 
