@@ -355,8 +355,8 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     
     // load
 	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store_reg == 1'b0) ? {mem_rdata_rare_i} :
-								(addr_unaligned[1:0] == 2'b01 ) ? {{mem_rdata_rare_i[15:0]}, 16'b0} :
-								(addr_unaligned[1:0] == 2'b10 ) ? {{mem_rdata_rare_i[23:0]}, 8'b0} :
+								(addr_unaligned[1:0] == 2'b01 ) ? {{mem_rdata_rare_i[23:0]}, 8'b0} :
+								(addr_unaligned[1:0] == 2'b10 ) ? {{mem_rdata_rare_i[15:0]}, 16'b0} :
 								(addr_unaligned[1:0] == 2'b11 ) ? {{mem_rdata_rare_i[7:0], 24'b0}} : 0;
 								
     assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[31:24]} : 
