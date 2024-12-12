@@ -354,6 +354,14 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     // assign mem_ren_o = mem_to_reg;
     
     // load
+	/*
+		addr_unaligned--访存地址的后两位
+		对于mem 地址0x80000010【0-3】-- 内容【00_01_02_03】
+		PSRAM->CPU 00_01_02_03
+		0x80000011 addr_unaligned[1:0] == 2'b01---- 【00_01_02_03】--[01_02_03_00]
+		0x80000012 addr_unaligned[1:0] == 2'b10---- 【00_01_02_03】--[02_03_00_00]  
+		0x80000013 addr_unaligned[1:0] == 2'b11---- 【00_01_02_03】--[03_00_00_00]
+	*/
 	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store_reg == 1'b0) ? {mem_rdata_rare_i} :
 								(addr_unaligned[1:0] == 2'b01 ) ? {{mem_rdata_rare_i[23:0]}, 8'b0} :
 								(addr_unaligned[1:0] == 2'b10 ) ? {{mem_rdata_rare_i[15:0]}, 16'b0} :
