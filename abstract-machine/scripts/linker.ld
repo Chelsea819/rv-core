@@ -45,7 +45,14 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-  } > REGION_BSS AT> flash
+  } > REGION_BSS
+  /* .bss : {
+    _bss_start = .;
+    *(.bss*)
+    *(.sbss*)
+    *(.scommon)
+    _bss_end = .;
+  } > REGION_BSS AT> flash */
 
   _heap_start = _bss_end;
   . = 0x80000000 + 0x200000;
