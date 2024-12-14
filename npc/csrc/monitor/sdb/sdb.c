@@ -194,32 +194,34 @@ static int cmd_xref(char *args){
   int len = convert_ten(arg2);
   vaddr_t addr = convert_16(arg3);
   uint32_t *ref_mem = (uint32_t *)malloc(len*per);
-  ref_difftest_memcpy(addr, ref_mem, len / per, DIFFTEST_TO_DUT);
+  ref_difftest_memcpy(addr, ref_mem, len*per, DIFFTEST_TO_DUT);
 
   // printf("addr = %08x\n",addr);
-  switch(per){ 
-    case 1: 
-      for (int i = 0;i < len;i += 1)
-        printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i, ref_mem[i]);
-      break;
-    case 2:
-      for (int i = 0;i < len;i += 1)
-        printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 2*i, ((uint16_t*)ref_mem)[i]);
-      break;
-    case 4:
-      for (int i = 0;i < len;i += 1)
-        printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 4*i, ((uint32_t*)ref_mem)[i]);
-      break;
-    default:  Assert(0,"Unlegal word:[%d]",per);
+  // switch(per){
+  //   case 1: 
+  //     for (int i = 0;i < len;i += 1)
+  //       printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i, ref_mem[i]);
+  //     break;
+  //   case 2:
+  //     for (int i = 0;i < len;i += 1)
+  //       printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 2*i, ((uint16_t*)ref_mem)[i]);
+  //     break;
+  //   case 4:
+  //     for (int i = 0;i < len;i += 1)
+  //       printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 4*i, ((uint32_t*)ref_mem)[i]);
+  //     break;
+  //   default:  Assert(0,"Unlegal word:[%d]",per);
 
+  // }
+
+  for (int i = 0;i < len;i += 1){
+    printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i*4, ref_mem[i]);
   }
 
   free(ref_mem);
   ref_mem = NULL;
 
-  // for (int i = 0;i < len;i += 4){
-  //   printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i, ref_mem[i]);
-  // }
+  
   return 0; 
 }
 
