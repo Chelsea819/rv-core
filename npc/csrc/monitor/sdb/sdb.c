@@ -200,12 +200,15 @@ static int cmd_xref(char *args){
     case 1: 
       for (int i = 0;i < len;i += 1)
         printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i, ref_mem[i]);
+      break;
     case 2:
       for (int i = 0;i < len;i += 1)
         printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 2*i, ((uint16_t*)ref_mem)[i]);
+      break;
     case 4:
       for (int i = 0;i < len;i += 1)
         printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + 4*i, ((uint32_t*)ref_mem)[i]);
+      break;
     default:  Assert(0,"Unlegal word:[%d]",per);
 
   }
