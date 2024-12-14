@@ -13,6 +13,8 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
+#include <cstdint>
+#include <cstdlib>
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
@@ -191,8 +193,7 @@ static int cmd_xref(char *args){
   int per = convert_ten(arg1);
   int len = convert_ten(arg2);
   vaddr_t addr = convert_16(arg3);
-  
-  uint8_t ref_mem[len*per] = {0};
+  uint8_t *ref_mem = (uint8_t *)malloc(len*per);
   ref_difftest_memcpy(addr, ref_mem, len / per, DIFFTEST_TO_DUT);
 
   // printf("addr = %08x\n",addr);
@@ -212,6 +213,9 @@ static int cmd_xref(char *args){
     default:  Assert(0,"Unlegal word:[%d]",per);
 
   }
+
+  free(ref_mem);
+  ref_mem = NULL;
 
   // for (int i = 0;i < len;i += 4){
   //   printf("\033[105m 0x%08x: \033[0m \t0x%08x\n",addr + i, ref_mem[i]);
