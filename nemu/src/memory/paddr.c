@@ -92,7 +92,7 @@ word_t paddr_read(paddr_t addr, int len) {
 
 // 物理地址访问
 void paddr_write(paddr_t addr, int len, word_t data) {
-  printf("paddr_write addr = %x len = %d data = %x\n",addr,len,data);
+  // printf("paddr_write addr = %x len = %d data = %x\n",addr,len,data);
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   if (likely(in_psram(addr))) { psram_write(addr, len, data); return; }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
