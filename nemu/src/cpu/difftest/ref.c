@@ -37,6 +37,8 @@ __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction)
   } else {
     if (in_pmem(addr)) {
       memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_host(addr)) ,n);
+    }else if (in_psram(addr)) {
+      memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_psram(addr)) ,n);
     }else if (in_sram(addr)) {
       memcpy((paddr_t*)buf ,(const paddr_t*)(guest_to_sram(addr)) ,n);
     }else if (in_flash(addr)) {
