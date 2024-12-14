@@ -174,7 +174,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 void psram_read(int32_t addr, int32_t *data);
 
 vaddr_t paddr_read(paddr_t addr,int len) {
-  printf("paddr_read\n");
+  // printf("paddr_read\n");
 	if (likely(in_psram(addr))) {
     addr = addr & 0x1fffffff;
     int32_t rdata = 0;
