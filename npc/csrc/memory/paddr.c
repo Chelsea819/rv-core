@@ -203,7 +203,7 @@ vaddr_t paddr_read(paddr_t addr,int len) {
     addr = addr & 0x1fffffff;
     int32_t rdata = 0;
     psram_read_sdb(addr,&rdata,len);
-    // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+    Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
