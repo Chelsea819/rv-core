@@ -54,6 +54,9 @@ SECTIONS {
     _bss_end = .;
   } > REGION_BSS AT> flash */
 
+  /*
+    2M = 2^20 * 2 = 16^5 * 2 = 0x200000
+  */
   _heap_start = _bss_end;
   . = 0x80000000 + 0x200000;
   _heap_end = ALIGN(0x1000);
