@@ -2,7 +2,7 @@
  *
  * Automatically generated file; DO NOT EDIT.
  * NPC Configuration Menu
- *
+ * 
  */
 #define CONFIG_DIFFTEST_REF_NAME "none"
 #define CONFIG_ENGINE "interpreter"
