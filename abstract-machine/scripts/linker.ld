@@ -33,7 +33,7 @@ SECTIONS {
     *(.data*)
     *(.sdata*)
     _data_end = .;
-  } > flash AT> REGION_DATA : data 
+  } > REGION_DATA AT> flash : data 
   _data_load_start = LOADADDR(.data);
   edata = .;
   _data = .;
@@ -60,7 +60,7 @@ SECTIONS {
     _stack_pointer = _stack_top;
     end = .;
     _end = .;
-  } > flash AT> REGION_BSS
+  } > REGION_BSS AT> flash
 
   /*
     2M = 2^20 * 2 = 16^5 * 2 = 0x200000
