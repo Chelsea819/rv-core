@@ -147,6 +147,24 @@ extern "C" void flash_read(int32_t addr, int32_t *data) {
   out_of_bound_flash(addr);
   return;
 }
+
+void flash_read_sdb(int32_t addr, int32_t *data, int len) {
+  // printf("flash_read\n");
+  if (likely(in_pmem(addr))) {
+    *data = pmem_read(addr, len);
+    uint32_t tmp = *data;
+    // printf("flash_read [0x%08x\n",tmp);
+    *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
+    // printf("flash_read ---  [addr: 0x%08x rdata: 0x%08x]\n", addr, *data);
+#ifdef CONFIG_MTRACE
+    
+#endif
+    return;
+  }
+  out_of_bound_flash(addr);
+  return;
+}
+
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
   printf("mrom_read\n");
 //   if (likely(in_pmem(addr))) {
@@ -178,13 +196,13 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 //   return 0;
 // }
 void psram_read(int32_t addr, int32_t *data);
-
+void psram_read_sdb(int32_t addr, int32_t *data, int len);
 vaddr_t paddr_read(paddr_t addr,int len) {
   // printf("paddr_read\n");
 	if (likely(in_psram(addr))) {
     addr = addr & 0x1fffffff;
     int32_t rdata = 0;
-    psram_read(addr,&rdata);
+    psram_read_sdb(addr,&rdata,len);
     // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
@@ -199,7 +217,7 @@ vaddr_t paddr_read(paddr_t addr,int len) {
   } else if (likely(in_pmem(addr))) {
     addr = addr & 0x0fffffff;
     int32_t rdata = 0;
-    flash_read(addr,&rdata);
+    flash_read_sdb(addr,&rdata,len);
     // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
