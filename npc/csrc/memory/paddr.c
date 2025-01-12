@@ -136,9 +136,9 @@ extern "C" void flash_read(int32_t addr, int32_t *data) {
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
     uint32_t tmp = *data;
-    printf("flash_read [0x%08x\n",tmp);
+    // printf("flash_read [0x%08x\n",tmp);
     *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
-    printf("flash_read ---  [addr: 0x%08x rdata: 0x%08x]\n", addr, *data);
+    // printf("flash_read ---  [addr: 0x%08x rdata: 0x%08x]\n", addr, *data);
 #ifdef CONFIG_MTRACE
     
 #endif
