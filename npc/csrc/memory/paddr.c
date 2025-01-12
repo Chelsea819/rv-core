@@ -223,8 +223,8 @@ vaddr_t paddr_read(paddr_t addr,int len) {
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
     switch (len) {
-      case 1: return rdata & 0x000000ff;
-      case 2: return rdata & 0x0000ffff;
+      case 1: return rdata & 0xff000000;
+      case 2: return rdata & 0xffff0000;
       case 4: return rdata;
       IFDEF(CONFIG_ISA64, case 8: return rdata & 0xffffffffffffffff;);
       default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
