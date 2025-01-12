@@ -3,7 +3,7 @@ PHDRS { text PT_LOAD; data PT_LOAD; }
 
 MEMORY {
   /* mrom : ORIGIN = 0x20000000, LENGTH = 4K */
-  flash : ORIGIN = 0x30000000, LENGTH = 16K
+  flash : ORIGIN = 0x30000000, LENGTH = 16M
   psram : ORIGIN = 0x80000000, LENGTH = 4M
 }
 
@@ -26,7 +26,7 @@ SECTIONS {
   .rodata : {
     *(.rodata*)
     rodata_end = .;
-  } > REGION_RODATA 
+  } > REGION_RODATA : text 
 
   .data : {
     _data_start = .;
@@ -39,27 +39,31 @@ SECTIONS {
   _data = .;
   _data_size = SIZEOF(.data);
 
-  .bss : {
-    _bss_start = .;
-    *(.bss*)
-    *(.sbss*)
-    *(.scommon)
-    _bss_end = .;
-  } > REGION_BSS
   /* .bss : {
     _bss_start = .;
     *(.bss*)
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-  } > REGION_BSS AT> flash */
+  } > REGION_BSS : data  */
+  .bss : {
+    _bss_start = .;
+    *(.bss*)
+    *(.sbss*)
+    *(.scommon)
+    _bss_end = .;
+    _heap_start = _bss_end;
+    . = ALIGN(0x1000);
+    _heap_end = .;
 
-  _heap_start = _bss_end;
-  . = 0x80000000 + 0x200000;
-  _heap_end = ALIGN(0x1000);
-  _stack_top = _heap_end;
-  . = 0x80000000 + 0x200000;
-  _stack_pointer = .;
-  end = .;
-  _end = .;
+    _stack_top = _heap_end + 0x2000;
+    _stack_pointer = _stack_top;
+    end = .;
+    _end = .;
+  } > REGION_BSS
+
+  /*
+    2M = 2^20 * 2 = 16^5 * 2 = 0x200000
+  */
+  
 }
