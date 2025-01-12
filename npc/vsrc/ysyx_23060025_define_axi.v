@@ -21,8 +21,8 @@
 `define AXI_W_LAST_TRUE 1'b1 
 `define AXI_W_LAST_FALSE 1'b0 
 
-`define AXI_W_STRB_8  4'b0001 
-`define AXI_W_STRB_16 4'b0011    
+`define AXI_W_STRB_8  4'b1000 
+`define AXI_W_STRB_16 4'b1100    
 `define AXI_W_STRB_32 4'b1111 
 
 `define AXI_R_ID_IF 4'b00
