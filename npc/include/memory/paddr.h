@@ -32,6 +32,11 @@ static inline bool in_pmem(paddr_t addr) {
 }
 #else
 #define FLASH_SIZE 0x8000000
+#define FLASH_ADDR 0x30000000
+
+#define FLASH_LEFT  ((paddr_t)FLASH_ADDR)
+#define FLASH_RIGHT ((paddr_t)FLASH_ADDR + FLASH_SIZE - 1)
+
 #define PSRAM_SIZE 0x0400000
 #define PSRAM_ADDR 0x80000000
 
