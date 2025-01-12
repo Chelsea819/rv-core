@@ -45,7 +45,7 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-  } > REGION_BSS
+  } > REGION_BSS : data 
   /* .bss : {
     _bss_start = .;
     *(.bss*)
