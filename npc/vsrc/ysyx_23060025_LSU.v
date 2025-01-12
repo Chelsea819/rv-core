@@ -333,9 +333,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     //     end
 	// end
 
-	// 器件内部忽略最后两位地址
 	assign aligned_store = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H) || 
-							(alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
+							(alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H) || 
+							(alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H);
 
 	always @(posedge clock) begin
         if(next_state == LSU_WAIT_LSU_VALID & con_state == LSU_WAIT_ADDR_PASS) begin	
@@ -367,10 +367,10 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 								(addr_unaligned[1:0] == 2'b10 ) ? {{mem_rdata_rare_i[15:0]}, 16'b0} :
 								(addr_unaligned[1:0] == 2'b11 ) ? {{mem_rdata_rare_i[7:0], 24'b0}} : 0;
 								
-    assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[7:0]} : 
-                    (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[15:0]}: 
-                    (load_type_i == `LOAD_LBU_8) ? {{24{1'b0}}, mem_rdata_unaligned[7:0]}: 
-                    (load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[15:0]}: 
+    assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[31:24]} : 
+                    (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[31:16]}: 
+                    (load_type_i == `LOAD_LBU_8) ? {{24{1'b0}}, mem_rdata_unaligned[31:24]}: 
+                    (load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[31:16]}: 
                     mem_rdata_unaligned;
 
     assign wd_o = wd_i;
