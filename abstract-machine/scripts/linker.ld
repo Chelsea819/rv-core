@@ -39,20 +39,20 @@ SECTIONS {
   _data = .;
   _data_size = SIZEOF(.data);
 
-  /* .bss : {
-    _bss_start = .;
-    *(.bss*)
-    *(.sbss*)
-    *(.scommon)
-    _bss_end = .;
-  } > REGION_BSS */
   .bss : {
     _bss_start = .;
     *(.bss*)
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-  } > REGION_BSS AT> flash
+  } > REGION_BSS
+  /* .bss : {
+    _bss_start = .;
+    *(.bss*)
+    *(.sbss*)
+    *(.scommon)
+    _bss_end = .;
+  } > REGION_BSS AT> flash */
 
   /*
     2M = 2^20 * 2 = 16^5 * 2 = 0x200000
