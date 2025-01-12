@@ -368,9 +368,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 								(addr_unaligned[1:0] == 2'b11 ) ? {{mem_rdata_rare_i[7:0], 24'b0}} : 0;
 								
     assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[7:0]} : 
-                    (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[31:16]}: 
+                    (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[31]}}, mem_rdata_unaligned[15:0]}: 
                     (load_type_i == `LOAD_LBU_8) ? {{24{1'b0}}, mem_rdata_unaligned[7:0]}: 
-                    (load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[31:16]}: 
+                    (load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[15:0]}: 
                     mem_rdata_unaligned;
 
     assign wd_o = wd_i;
