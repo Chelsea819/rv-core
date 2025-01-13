@@ -19,30 +19,33 @@ SECTIONS {
   .text : { 
     *(entry)
     *(.text*)
+    . = ALIGN(4);
   } > REGION_TEXT : text 
+  
   etext = .;
   _etext = .;
-  . = ALIGN(4);
+  
 
   .rodata : {
     *(.rodata*)
     rodata_end = .;
+    . = ALIGN(4);
   } > REGION_RODATA : text 
 
-  . = ALIGN(4);
+  
 
   .data : {
     _data_start = .;
     *(.data*)
     *(.sdata*)
     _data_end = .;
+    . = ALIGN(4);
   } > REGION_DATA AT> flash : data 
   _data_load_start = LOADADDR(.data);
   edata = .;
   _data = .;
   _data_size = SIZEOF(.data);
 
-  . = ALIGN(4);
 
   /* .bss : {
     _bss_start = .;
@@ -56,8 +59,8 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
+    . = ALIGN(4);
     _bss_end = .;
-    
   } > REGION_BSS
 
   /*
