@@ -66,7 +66,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		always @(posedge clock ) begin
 			if (~rstn) 
 				RANDOM_DELAY <= 4'b1;
-			else if((con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) || (con_state == WAIT_ADDR && next_state == WAIT_DATA_WRITE))
+			else if((con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) || (con_state == WAIT_ADDR))
 				RANDOM_DELAY <= delay_num;
 		end
 	// fixed var delay
@@ -126,13 +126,12 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		endcase
 	end
 
-	always @(*) begin
+	always @(posedge clock) begin
 		if(~rstn) begin
-			r_data_o = 0;
-		end else if(con_state == WAIT_DATA_GET && next_state == WAIT_ADDR) begin
-			r_data_o = r_data;
-		end else 
-			r_data_o = 0;
+			r_data_o <= 0;
+		end else if(con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) begin
+			r_data_o <= r_data;
+		end
 	end
 
 	
