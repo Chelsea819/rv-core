@@ -28,11 +28,10 @@ SECTIONS {
 
   .rodata : {
     *(.rodata*)
+    *(.srodata*)
     rodata_end = .;
     . = ALIGN(4);
   } > REGION_RODATA : text 
-
-  
 
   .data : {
     _data_start = .;
