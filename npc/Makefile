@@ -1,6 +1,6 @@
 DIR = ./obj_dir
 EXE = $(BUILD_DIR)/$(TOPNAME)
-WAVE = waveform.vcd
+WAVE = waveform.fst
 
 # SO = -so
 # NAME = riscv32-npc
@@ -50,7 +50,7 @@ VERILATOR_INCLUDE = $(addprefix -I, $(VERILATOR_INC_PATH))
 VERILATOR = verilator
 VERILATOR_CFLAGS += -MMD --cc   --build -j 0  \
 				-O3 --x-assign fast --x-initial fast --assert --public $(VERILATOR_INCLUDE)  \
-				--timescale "1ns/1ns" --no-timing --trace  --autoflush #-Wall 
+				--timescale "1ns/1ns" --no-timing --trace-fst  --autoflush #-Wall 
 
 #-ggdb -LDFLAGS -ggdb -CFLAGS -DVL_DEBUG=1 
 # -CFLAGS -D_GLIBCXX_DEBUG

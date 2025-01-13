@@ -22,7 +22,7 @@
 
 // #include "sim.h"
 // extern CPU_state cpu;
-// extern TOP_NAME *dut; extern VerilatedVcdC *m_trace;
+// extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 
 #define Log(format, ...) \
     _Log(ANSI_FMT("[%s:%d %s] " format, ANSI_FG_BLUE) "\n", \

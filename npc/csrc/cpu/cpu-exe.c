@@ -9,6 +9,7 @@
 #include <debug.h>
 #include <config.h>
 #include "sdb.h"
+#include "verilated_fst_c.h"
 
 #define OPCODE_JAL  0b1101111
 #define OPCODE_JALR 0b1100111
@@ -25,7 +26,7 @@ static struct diff_pc{
 #endif
 
 extern vluint64_t sim_time;
-extern TOP_NAME *dut; extern VerilatedVcdC *m_trace;
+extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
@@ -181,19 +182,19 @@ void resp_check(char resp){
     case 0b10:
       dut->final();
       #ifdef CONFIG_WAVE
-      m_trace->close();	//关闭波形跟踪文件
+      tfp->close();	//关闭波形跟踪文件
       #endif
       Assert(0, "[resp_check]-----[code:10]------[SLVERR, slave error]");
     case 0b11:
       dut->final();
       #ifdef CONFIG_WAVE
-      m_trace->close();	//关闭波形跟踪文件
+      tfp->close();	//关闭波形跟踪文件
       #endif
       Assert(0, "[resp_check]-----[code:11]------[DECERR, decode error]");
     default:
       dut->final();
       #ifdef CONFIG_WAVE
-      m_trace->close();	//关闭波形跟踪文件
+      tfp->close();	//关闭波形跟踪文件
       #endif
       Assert(0, "[resp_check]-----[code:%u]------[ERROR CODE]",(uint32_t)resp);
   }
@@ -327,7 +328,7 @@ void per_clk_cycle(){
     dut->clock ^= 1;
     dut->eval();
     #ifdef CONFIG_WAVE
-    m_trace->dump(sim_time);
+    tfp->dump(sim_time);
     sim_time++;
     #endif
     
@@ -566,7 +567,7 @@ void cpu_exec(uint64_t n)
 				printf("Program execution has ended. To restart the program, exit NPC and run again.\n");
 				dut->final();
         #ifdef CONFIG_WAVE
-        m_trace->close();	//关闭波形跟踪文件
+        tfp->close();	//关闭波形跟踪文件
         #endif
         return;
 			default:

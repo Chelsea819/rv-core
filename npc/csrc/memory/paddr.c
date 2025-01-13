@@ -27,7 +27,7 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 //{}使用聚合初始化把数组初始化为0
 #endif
 
-extern TOP_NAME *dut; extern VerilatedVcdC *m_trace;
+extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 uint8_t* guest_to_host(paddr_t paddr) { 
   // printf("pmem: 0x%08x\n",pmem);
   // printf("paddr: 0x%08x\n",paddr);
