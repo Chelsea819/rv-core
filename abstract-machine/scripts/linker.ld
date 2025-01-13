@@ -60,11 +60,11 @@ SECTIONS {
   */
   . = ALIGN(4);
   _heap_start = .;
-  . =  . + 0x2000;
+  . =  . + 0x200000;
   _heap_end = .;
   
   . = ALIGN(4);
-  . = . + 0x2000; /* 根据需要调整大小 */
+  . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
   end = .;
