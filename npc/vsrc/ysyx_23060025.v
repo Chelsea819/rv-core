@@ -416,4 +416,20 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.r_ready_i      ( clint_r_ready_o      )
 	);
 
+
+	ysyx_23060025_CLINT#(
+		.ADDR_LEN       ( 32 ),
+		.DATA_LEN 	    ( 32 )
+	)u_ysyx_23060025_CLINT(
+		.rstn           ( ~reset           ),
+		.clock          ( clock            ),
+		.addr_r_addr_i  ( clint_addr_r_addr_o  ),
+		.addr_r_valid_i ( clint_addr_r_valid_o ),
+		.addr_r_ready_o ( clint_addr_r_ready_i ),
+		.r_data_o       ( clint_r_data_i       ),
+		.r_resp_o       ( clint_r_resp_i       ),
+		.r_valid_o      ( clint_r_valid_i      ),
+		.r_ready_i      ( clint_r_ready_o      )
+	);
+
 endmodule
