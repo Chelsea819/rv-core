@@ -102,7 +102,6 @@ static long load_img() {
 
   fseek(fp, 0, SEEK_SET);
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
-  printf("addr = 0x%08lx\n",guest_to_host(RESET_VECTOR));
   //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
   printf("size = 0x%08lx\n",size);
   //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
