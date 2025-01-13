@@ -124,7 +124,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	always @(*) begin
 		if (con_state == AXI_CTL_IDLE) begin
-			if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
+			if ((data_addr_r_addr_i & 32'hffff_ff08) == `DEVICE_CLINT_ADDR_L) begin
 				axi_device = `AXI_XBAR_CLINT;
 			end else begin
 				axi_device = `AXI_XBAR_SOC;
