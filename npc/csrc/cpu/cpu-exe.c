@@ -352,6 +352,7 @@ static void exec_once()
   per_inst_cycle();
   // inst invalid check
   if(inst_invalid != 0){
+    Log("Invalid instruction!");
     invalid_inst(cpu.pc);
   }
 
