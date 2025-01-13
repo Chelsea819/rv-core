@@ -18,7 +18,7 @@
 
 #include "common.h"
 #include "sim.h"
-extern TOP_NAME *dut; extern VerilatedVcdC *m_trace;
+extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 #define REG_NUM MUXDEF(CONFIG_RVE, 16, 32)
 extern const char* regs[];
 /*check register index*/

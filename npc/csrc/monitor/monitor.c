@@ -28,6 +28,7 @@ typedef struct ftrace_file{
 void init_rand();
 void init_log(const char *log_file);
 void init_mem();
+void init_psram();
 // void init_flash();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
@@ -101,8 +102,10 @@ static long load_img() {
 
   fseek(fp, 0, SEEK_SET);
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
-//   printf("inst = 0x%08x\n",*(uint32_t*)(guest_to_host_npc(RESET_VECTOR)));
   //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
+  printf("size = 0x%08lx\n",size);
+  //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
+  // printf("ret = %d\n");
   assert(ret == 1);
 
   fclose(fp);
@@ -157,6 +160,8 @@ void init_npc_monitor(int argc,char *argv[]){
 
     //init memory
     init_mem();
+
+    init_psram();
 
     // init_flash();
 

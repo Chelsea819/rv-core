@@ -6,7 +6,7 @@
 // #include "sim.h"
 
 extern CPU_state cpu;
-extern TOP_NAME *dut; extern VerilatedVcdC *m_trace;
+extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 
 // 把通用寄存器和PC与从DUT中读出的寄存器的值进行比较.
 int isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {

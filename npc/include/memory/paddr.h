@@ -19,7 +19,7 @@
 #include <common.h>
 
 #define PMEM_LEFT  ((paddr_t)CONFIG_MBASE)
-#define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
+#define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + FLASH_SIZE - 1)
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
@@ -32,12 +32,31 @@ static inline bool in_pmem(paddr_t addr) {
 }
 #else
 #define FLASH_SIZE 0x8000000
+#define FLASH_ADDR 0x30000000
+
+#define FLASH_LEFT  ((paddr_t)FLASH_ADDR)
+#define FLASH_RIGHT ((paddr_t)FLASH_ADDR + FLASH_SIZE - 1)
+
+#define PSRAM_SIZE 0x1fffffff
+#define PSRAM_ADDR 0x80000000
+
+#define PSRAM_LEFT  ((paddr_t)PSRAM_ADDR)
+#define PSRAM_RIGHT ((paddr_t)PSRAM_ADDR + PSRAM_SIZE - 1)
+
 static inline bool in_pmem(paddr_t addr) {
   if ((addr & 0xf0000000) == 0x30000000) {
     addr = addr & 0x0fffffff;
   }
   return addr < FLASH_SIZE;
 }
+
+static inline bool in_psram(paddr_t addr) {
+  if ((addr & 0xe0000000) == 0x80000000) {
+    addr = addr & 0x1fffffff;
+  }
+  return addr < FLASH_SIZE;
+}
+
 
 #endif
 vaddr_t paddr_read(paddr_t addr,int len);

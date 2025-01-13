@@ -6,6 +6,8 @@
  ************************************************************************/
 // clock reset waddr wdata wen wmask
 /* verilator lint_off UNOPTFLAT */
+/* 当多个master同时访问同一个slave时, 获得访问权的master将得到放行, 可以成功访问slave; 
+ 其他master的请求将阻塞在仲裁器, 等待获得访问权的master访问结束后, 它们才能获得接下来的访问权. */
 `include "ysyx_23060025_define.v"
 module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input								reset		,

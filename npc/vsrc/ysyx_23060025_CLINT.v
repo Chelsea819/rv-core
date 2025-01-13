@@ -27,7 +27,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	parameter [1:0] WAIT_ADDR = 2'b00, WAIT_DATA_GET = 2'b01;
 	reg				[1:0]			        con_state	;
 	reg				[1:0]		        	next_state	;
-	wire						        	mem_ren	;
+	// wire						        	mem_ren	;
 	wire			[DATA_LEN - 1:0]	    r_data  ;
 	
 	reg 					[63:0] 				mtime;
@@ -35,7 +35,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	
 	assign addr_r_ready_o = (con_state == WAIT_ADDR) && rstn;
 	assign r_resp_o = {2{~(con_state == WAIT_DATA_GET) | ~rstn}};
-	assign mem_ren = (con_state == WAIT_DATA_GET) && rstn;
+	// assign mem_ren = (con_state == WAIT_DATA_GET) && rstn;
 
 	assign bit_sel = ~(addr_r_addr_i - `DEVICE_CLINT_ADDR_L == 0);
 	assign r_data = (bit_sel == 0) ?  mtime[DATA_LEN - 1:0] : mtime[63:DATA_LEN];
@@ -66,7 +66,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		always @(posedge clock ) begin
 			if (~rstn) 
 				RANDOM_DELAY <= 4'b1;
-			else if((con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) || (con_state == WAIT_ADDR && next_state == WAIT_DATA_WRITE))
+			else if((con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) || (con_state == WAIT_ADDR))
 				RANDOM_DELAY <= delay_num;
 		end
 	// fixed var delay
@@ -126,13 +126,12 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		endcase
 	end
 
-	always @(*) begin
+	always @(posedge clock) begin
 		if(~rstn) begin
-			r_data_o = 0;
-		end else if(con_state == WAIT_DATA_GET && next_state == WAIT_ADDR) begin
-			r_data_o = r_data;
-		end else 
-			r_data_o = 0;
+			r_data_o <= 0;
+		end else if(con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) begin
+			r_data_o <= r_data;
+		end
 	end
 
 	

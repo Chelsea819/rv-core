@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <dlfcn.h>
 
 #include <isa.h>
@@ -14,7 +13,7 @@
 #include "config.h"
 
 #ifdef CONFIG_WAVE
-extern VerilatedVcdC *m_trace;
+extern VerilatedFstC *tfp;
 #endif
 extern CPU_state cpu;
 
@@ -129,7 +128,7 @@ static void checkregs(CPU_state *ref, vaddr_t npc) {
     }
     dut->final();
   #ifdef CONFIG_WAVE
-    m_trace->close();
+    tfp->close();
   #endif
     printf("\33[1;31m Catch difference! \33[0m\n");
     set_npc_state(NPC_ABORT, npc, -1);

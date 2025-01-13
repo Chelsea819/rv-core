@@ -337,44 +337,6 @@ ysyx_23060025_IFU#(
 		.bkwd_ready_o      ( data_bkwd_ready_o      )
 	);
 
-
-	// ysyx_23060025_LSU#(
-	// 	.DATA_LEN      ( 32 )
-	// )u_ysyx_23060025_LSU(
-	// 	.reset           ( reset           ),
-	// 	.wd_i          ( lsu_wd_i          ),
-	// 	.clock           ( clock           		),
-	// 	.wreg_i   		( lsu_wreg_i   		),
-	// 	.alu_result_i   ( lsu_alu_result_i  	),
-	// 	.mem_wen_i     	( lsu_mem_wen_i   	),
-	// 	.mem_wdata_i   	( lsu_mem_wdata_i 	),
-
-	// 	.memory_inst_o  ( wb_memory_inst_i ),
-	// 	.load_type_i	( lsu_load_type_i	),
-	// 	.store_type_i	( lsu_store_type_i	),
-	// 	.csr_wdata_i	( lsu_csr_wdata_i	),
-	// 	.csr_type_i		( lsu_csr_type_i	),
-
-	// 	.mem_rdata_rare_i( data_r_data_i   	),
-	// 	.mem_ren_o   	( mem_ren_o 		),
-	// 	.mem_wen_o   	( mem_wen_o   	),
-	// 	.mem_wdata_o    ( mem_wdata_o   	),
-	// 	.mem_waddr_o    ( mem_waddr_o   		),
-	// 	.mem_raddr_o    ( mem_raddr_o 		),
-	// 	.mem_wmask_o  	( mem_wmask_o 	),
-	// 	.mem_rmask_o	( mem_rmask_o	),
-
-	// 	.ifu_valid     	( ifu_valid_o   	),
-	// 	// .wb_ready_o   	( wb_ready_o 		),
-	// 	// .lsu_ready_o    ( lsu_ready_o   	),
-	// 	.lsu_valid_o    ( lsu_valid_o   	),
-	// 	.wd_o     		( wb_reg_wen_i   		),
-	// 	.wreg_o   		( wb_wreg_i 		),
-	// 	.wdata_o  		( wb_reg_wdata_i 	),
-	// 	.csr_type_o		( wb_csr_type_i	),
-	// 	.csr_wdata_o    ( wb_csr_wdata_i   	)
-	// );
-
 	ysyx_23060025_wb#(
 		.DATA_LEN     ( 32 )
 	)ysyx_23060025_wb(
