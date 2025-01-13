@@ -56,7 +56,7 @@ SECTIONS {
     . = ALIGN(0x1000);
     _heap_end = .;
 
-    _stack_top = _heap_end + 0x2000;
+    _stack_top = .;
     _stack_pointer = _stack_top;
     end = .;
     _end = .;
