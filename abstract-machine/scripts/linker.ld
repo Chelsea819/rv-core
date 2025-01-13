@@ -52,18 +52,21 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-    _heap_start = _bss_end;
-    . = ALIGN(0x1000);
-    _heap_end = .;
-
-    _stack_top = .;
-    _stack_pointer = _stack_top;
-    end = .;
-    _end = .;
+    
   } > REGION_BSS
 
   /*
     2M = 2^20 * 2 = 16^5 * 2 = 0x200000
   */
+  . = ALIGN(4);
+  _heap_start = .;
+  . =  . + 0x2000;
+  _heap_end = .;
   
+  . = ALIGN(4);
+  . = . + 0x2000; /* 根据需要调整大小 */
+  _stack_top = .;
+  _stack_pointer = _stack_top;
+  end = .;
+  _end = .;
 }
