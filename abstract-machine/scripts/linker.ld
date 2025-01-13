@@ -22,11 +22,14 @@ SECTIONS {
   } > REGION_TEXT : text 
   etext = .;
   _etext = .;
+  . = ALIGN(4);
 
   .rodata : {
     *(.rodata*)
     rodata_end = .;
   } > REGION_RODATA : text 
+
+  . = ALIGN(4);
 
   .data : {
     _data_start = .;
@@ -38,6 +41,8 @@ SECTIONS {
   edata = .;
   _data = .;
   _data_size = SIZEOF(.data);
+
+  . = ALIGN(4);
 
   /* .bss : {
     _bss_start = .;
