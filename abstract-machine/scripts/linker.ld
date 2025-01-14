@@ -5,10 +5,11 @@ MEMORY {
   /* mrom : ORIGIN = 0x20000000, LENGTH = 4K */
   flash : ORIGIN = 0x30000000, LENGTH = 16M
   psram : ORIGIN = 0x80000000, LENGTH = 4M
+  sram : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
-REGION_ALIAS("REGION_TEXT", flash);
-REGION_ALIAS("REGION_RODATA", flash);
+REGION_ALIAS("REGION_TEXT", sram);
+REGION_ALIAS("REGION_RODATA", sram);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
 
@@ -17,21 +18,26 @@ SECTIONS {
   /* . = _pmem_start + _entry_offset; */
   . = ORIGIN(flash);
   .text : { 
+    _text_start = .;
     *(entry)
     *(.text*)
     . = ALIGN(4);
-  } > REGION_TEXT : text 
-  
+  } > REGION_TEXT AT> flash : text 
+  _text_load_start = LOADADDR(.text);
   etext = .;
   _etext = .;
+  _text_size = SIZEOF(.text);
   
 
   .rodata : {
+    _rodata_start = .;
     *(.rodata*)
     *(.srodata*)
     rodata_end = .;
     . = ALIGN(4);
-  } > REGION_RODATA : text 
+  } > REGION_RODATA AT> flash : text 
+  _rodata_load_start = LOADADDR(.rodata);
+  _rodata_size = SIZEOF(.rodata);
 
   .data : {
     _data_start = .;
