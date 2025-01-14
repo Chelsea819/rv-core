@@ -11,7 +11,7 @@ module ysyx_23060025_RegisterFile #(parameter ADDR_WIDTH = 16, DATA_WIDTH = 32)(
 	input	    [4:0]					rsc1	,
 	input	    [4:0]					rsc2	,
 	input	    [4:0]					rd		,
-	input								reset		,
+	input								reset	,
 	input								regWrite,
 	output		[DATA_WIDTH - 1:0]		r_data1	,
 	output		[DATA_WIDTH - 1:0]		r_data2	
