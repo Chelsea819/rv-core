@@ -8,7 +8,7 @@ MEMORY {
   sram : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
-REGION_ALIAS("REGION_TEXT", sram);
+REGION_ALIAS("REGION_TEXT", flash);
 REGION_ALIAS("REGION_RODATA", flash);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
@@ -16,8 +16,6 @@ REGION_ALIAS("REGION_BSS", psram);
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
   /* . = _pmem_start + _entry_offset; */
-  _sram_addr = 0x0f000000;
-
   . = ORIGIN(flash);
   _start_addr = .;
   .text : { 
@@ -33,10 +31,8 @@ SECTIONS {
   
 
   .rodata : {
-    _rodata_start = .;
     *(.rodata*)
     *(.srodata*)
-    rodata_end = .;
     . = ALIGN(4);
   } > REGION_RODATA AT> flash : text 
   _rodata_load_start = LOADADDR(.rodata);
@@ -54,6 +50,18 @@ SECTIONS {
   _data = .;
   _data_size = SIZEOF(.data);
 
+  .main (NOLOAD) : {
+    _mem_test_start = .;
+    *(.main)
+  } > sram
+
+  .rodata (NOLOAD) : {
+    _rodata_start = .;
+    *(.rodata*)
+    *(.srodata*)
+    rodata_end = .;
+    . = ALIGN(4);
+  } > sram
 
   /* .bss : {
     _bss_start = .;
