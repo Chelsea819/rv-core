@@ -3,7 +3,7 @@ PHDRS {
     text PT_LOAD;
     rodata PT_LOAD;
     data PT_LOAD;
-    /* sramtext PT_LOAD; */
+    bootloader PT_LOAD;
 }
 
 MEMORY {
@@ -17,25 +17,33 @@ REGION_ALIAS("REGION_TEXT", sram);
 REGION_ALIAS("REGION_RODATA", sram);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
-/* REGION_ALIAS("REGION_SRAMTEXT", psram); */
+REGION_ALIAS("REGION_BOOTLOADER", flash);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
   /* . = _pmem_start + _entry_offset; */
   . = ORIGIN(flash);
   _start_addr = .;
+
+  .bootloader : {
+    _bootloader_start = .;
+    *(.bootloader.text*)
+    . = ALIGN(4);
+    _bootloader_end = .;
+  } > REGION_BOOTLOADER : bootloader
+  ebootloader = .;
+  _ebootloader = .;
+
   .text : { 
     _text_start = .;
     *(entry)
     *(.text*)
     . = ALIGN(4);
-    _text_load_start = LOADADDR(.text);
-    _text_size = SIZEOF(.text);
   } > REGION_TEXT AT> flash : text 
-  
+  _text_load_start = LOADADDR(.text);
   etext = .;
   _etext = .;
-  
+  _text_size = SIZEOF(.text);
   
 
   .rodata : {
@@ -43,24 +51,21 @@ SECTIONS {
     *(.rodata*)
     *(.srodata*)
     . = ALIGN(4);
-    _rodata_load_start = LOADADDR(.rodata);
-    _rodata_size = SIZEOF(.rodata);
   } > REGION_RODATA AT> flash : rodata 
+  _rodata_load_start = LOADADDR(.rodata);
+  _rodata_size = SIZEOF(.rodata);
 
   .data : {
     _data_start = .;
     *(.data*)
     *(.sdata*)
     _data_end = .;
-    
     . = ALIGN(4);
-    _data_load_start = LOADADDR(.data);
-    _data_size = SIZEOF(.data);
   } > REGION_DATA AT> flash : data 
-  
+  _data_load_start = LOADADDR(.data);
   edata = .;
   _data = .;
-  
+  _data_size = SIZEOF(.data);
 
   /* .bss : {
     _bss_start = .;
@@ -85,12 +90,15 @@ SECTIONS {
   _heap_start = .;
   . =  . + 0x200000;
   _heap_end = .;
-  
-  . = ALIGN(4);
+
+
+  . = 0x0f000000;  /* 将栈分配到SRAM中 */
   . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
   end = .;
   _end = .;
 
+
+  
 }
