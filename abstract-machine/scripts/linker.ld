@@ -25,21 +25,6 @@ SECTIONS {
   . = ORIGIN(flash);
   _start_addr = .;
 
-
-
-  .text : { 
-    _text_start = .;
-    *(entry)
-    *(.text*)
-    . = ALIGN(4);
-  } > REGION_TEXT AT> flash : text 
-  _text_load_start = LOADADDR(.text);
-  etext = .;
-  _etext = .;
-  _text_size = SIZEOF(.text);
-  
-
-
 .bootloader : {
     _bootloader_start = .;
     *(.bootloader.text*)
@@ -49,7 +34,17 @@ SECTIONS {
   ebootloader = .;
   _ebootloader = .;
 
-
+  .text : { 
+    _text_start = .; 
+    *(entry)  
+    *(.text*)
+    . = ALIGN(4);
+  } > REGION_TEXT AT> flash : text 
+  _text_load_start = LOADADDR(.text);
+  etext = .;
+  _etext = .;
+  _text_size = SIZEOF(.text);
+  
 
   .rodata : {
     _rodata_start = .;
