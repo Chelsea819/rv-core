@@ -8,14 +8,16 @@ MEMORY {
   sram : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
-REGION_ALIAS("REGION_TEXT", sram);
-REGION_ALIAS("REGION_RODATA", sram);
+REGION_ALIAS("REGION_TEXT", flash);
+REGION_ALIAS("REGION_RODATA", flash);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
   /* . = _pmem_start + _entry_offset; */
+  _sram_addr = 0x0f000000;
+
   . = ORIGIN(flash);
   _start_addr = .;
   .text : { 
