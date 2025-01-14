@@ -50,6 +50,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg			[1:0]			        	next_state	;
 	wire									r_inst_en	;
 	wire									inst_invalid;
+	reg			[31:0]						jmp_target_reg;
 
 	// delay test
 `ifdef DELAY_TEST
@@ -140,6 +141,13 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			con_state <= IFU_WAIT_ADDR_PASS;
 		else 
 			con_state <= next_state;
+	end
+
+	always @(posedge clock ) begin
+		if(reset)
+			jmp_target_reg <= 0;
+		else if (con_state == IFU_WAIT_READY && next_state == IFU_WAIT_FINISH) 
+			jmp_target_reg <= jmp_target_i;
 	end
 
 	// next_state
