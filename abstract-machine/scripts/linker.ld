@@ -1,8 +1,5 @@
 ENTRY(_start)
 PHDRS {
-    text PT_LOAD;
-    rodata PT_LOAD;
-    data PT_LOAD;
     bootloader PT_LOAD;
 }
 
@@ -39,7 +36,7 @@ SECTIONS {
     _text_start = .; 
     *(.text*)
     . = ALIGN(4);
-  } > REGION_TEXT AT> flash : text 
+  } > REGION_TEXT AT> flash
   _text_load_start = LOADADDR(.text);
   etext = .;
   _etext = .;
@@ -51,7 +48,7 @@ SECTIONS {
     *(.rodata*)
     *(.srodata*)
     . = ALIGN(4);
-  } > REGION_RODATA AT> flash : rodata 
+  } > REGION_RODATA AT> flash 
   _rodata_load_start = LOADADDR(.rodata);
   _rodata_size = SIZEOF(.rodata);
 
@@ -61,7 +58,7 @@ SECTIONS {
     *(.sdata*)
     _data_end = .;
     . = ALIGN(4);
-  } > REGION_DATA AT> flash : data 
+  } > REGION_DATA AT> flash
   _data_load_start = LOADADDR(.data);
   edata = .;
   _data = .;
