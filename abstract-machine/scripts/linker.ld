@@ -29,11 +29,13 @@ SECTIONS {
     *(entry)
     *(.text*)
     . = ALIGN(4);
+    _text_load_start = LOADADDR(.text);
+    _text_size = SIZEOF(.text);
   } > REGION_TEXT AT> flash : text 
-  _text_load_start = LOADADDR(.text);
+  
   etext = .;
   _etext = .;
-  _text_size = SIZEOF(.text);
+  
   
 
   .rodata : {
@@ -41,21 +43,24 @@ SECTIONS {
     *(.rodata*)
     *(.srodata*)
     . = ALIGN(4);
+    _rodata_load_start = LOADADDR(.rodata);
+    _rodata_size = SIZEOF(.rodata);
   } > REGION_RODATA AT> flash : rodata 
-  _rodata_load_start = LOADADDR(.rodata);
-  _rodata_size = SIZEOF(.rodata);
 
   .data : {
     _data_start = .;
     *(.data*)
     *(.sdata*)
     _data_end = .;
+    
     . = ALIGN(4);
+    _data_load_start = LOADADDR(.data);
+    _data_size = SIZEOF(.data);
   } > REGION_DATA AT> flash : data 
-  _data_load_start = LOADADDR(.data);
+  
   edata = .;
   _data = .;
-  _data_size = SIZEOF(.data);
+  
 
   /* .bss : {
     _bss_start = .;
