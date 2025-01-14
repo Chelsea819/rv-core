@@ -1,5 +1,10 @@
 ENTRY(_start)
-PHDRS { text PT_LOAD; data PT_LOAD; }
+PHDRS {
+    text PT_LOAD;
+    rodata PT_LOAD;
+    data PT_LOAD;
+    sramtext PT_LOAD;
+}
 
 MEMORY {
   /* mrom : ORIGIN = 0x20000000, LENGTH = 4K */
@@ -12,6 +17,7 @@ REGION_ALIAS("REGION_TEXT", flash);
 REGION_ALIAS("REGION_RODATA", flash);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
+REGION_ALIAS("REGION_SRAMTEXT", sram);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
@@ -34,7 +40,7 @@ SECTIONS {
     *(.rodata*)
     *(.srodata*)
     . = ALIGN(4);
-  } > REGION_RODATA AT> flash : text 
+  } > REGION_RODATA AT> flash : rodata 
   _rodata_load_start = LOADADDR(.rodata);
   _rodata_size = SIZEOF(.rodata);
 
@@ -49,19 +55,6 @@ SECTIONS {
   edata = .;
   _data = .;
   _data_size = SIZEOF(.data);
-
-  .main (NOLOAD) : {
-    _mem_test_start = .;
-    *(.main)
-  } > sram
-
-  .rodata (NOLOAD) : {
-    _rodata_start = .;
-    *(.rodata*)
-    *(.srodata*)
-    rodata_end = .;
-    . = ALIGN(4);
-  } > sram
 
   /* .bss : {
     _bss_start = .;
@@ -78,6 +71,18 @@ SECTIONS {
     . = ALIGN(4);
     _bss_end = .;
   } > REGION_BSS
+
+  .sramtext : {
+    _sramtext_start = .;
+    *(.memtest.text*) /* Assuming .memtest.text is defined in your source */
+    *(.memtest.rodata*) /* Assuming .memtest.rodata is defined in your source */
+    . = ALIGN(4);
+    _sramtext_end = .;
+  } > REGION_SRAMTEXT AT> flash : sramtext
+  _sramtext_load_start = LOADADDR(.sramtext);
+  esramtext = .;
+  _esramtext = .;
+  _sramtext_size = SIZEOF(.sramtext);
 
   /*
     2M = 2^20 * 2 = 16^5 * 2 = 0x200000
