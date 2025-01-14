@@ -91,7 +91,7 @@ SECTIONS {
   . =  . + 0x200000;
   _heap_end = .;
 
-
+  . = 0x0f000000;
   . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
