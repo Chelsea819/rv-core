@@ -27,6 +27,7 @@ SECTIONS {
 
 .bootloader : {
     _bootloader_start = .;
+    *(entry)  
     *(.bootloader.text*)
     . = ALIGN(4);
     _bootloader_end = .;
@@ -36,7 +37,7 @@ SECTIONS {
 
   .text : { 
     _text_start = .; 
-    *(entry)  
+    
     *(.text*)
     . = ALIGN(4);
   } > REGION_TEXT AT> flash : text 
