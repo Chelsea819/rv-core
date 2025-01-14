@@ -72,18 +72,6 @@ SECTIONS {
     _bss_end = .;
   } > REGION_BSS
 
-  .sramtext : {
-    _sramtext_start = .;
-    *(.memtest.text*) /* Assuming .memtest.text is defined in your source */
-    *(.memtest.rodata*) /* Assuming .memtest.rodata is defined in your source */
-    . = ALIGN(4);
-    _sramtext_end = .;
-  } > REGION_SRAMTEXT AT> flash : sramtext
-  _sramtext_load_start = LOADADDR(.sramtext);
-  esramtext = .;
-  _esramtext = .;
-  _sramtext_size = SIZEOF(.sramtext);
-
   /*
     2M = 2^20 * 2 = 16^5 * 2 = 0x200000
   */
@@ -98,4 +86,17 @@ SECTIONS {
   _stack_pointer = _stack_top;
   end = .;
   _end = .;
+
+
+    .sramtext : {
+    _sramtext_start = .;
+    *(.memtest.text*) /* Assuming .memtest.text is defined in your source */
+    *(.memtest.rodata*) /* Assuming .memtest.rodata is defined in your source */
+    . = ALIGN(4);
+    _sramtext_end = .;
+  } > REGION_SRAMTEXT AT> flash : sramtext
+  _sramtext_load_start = LOADADDR(.sramtext);
+  esramtext = .;
+  _esramtext = .;
+  _sramtext_size = SIZEOF(.sramtext);
 }

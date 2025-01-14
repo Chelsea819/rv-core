@@ -186,8 +186,6 @@ void resp_check(char resp){
       #endif
       Assert(0, "[resp_check]-----[code:10]------[SLVERR, slave error]");
     case 0b11:
-      tfp->dump(sim_time);
-      sim_time++;
       dut->final();
       #ifdef CONFIG_WAVE
       tfp->close();	//关闭波形跟踪文件
