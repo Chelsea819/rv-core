@@ -17,7 +17,7 @@ REGION_ALIAS("REGION_TEXT", flash);
 REGION_ALIAS("REGION_RODATA", flash);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
-REGION_ALIAS("REGION_SRAMTEXT", sram);
+REGION_ALIAS("REGION_SRAMTEXT", psram);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
@@ -79,8 +79,9 @@ SECTIONS {
   _heap_start = .;
   . =  . + 0x200000;
   _heap_end = .;
-  
-  . = ALIGN(4);
+
+
+  . = 0x0f000000;  /* 将栈分配到SRAM中 */
   . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
