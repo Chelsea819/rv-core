@@ -17,7 +17,7 @@ REGION_ALIAS("REGION_TEXT", flash);
 REGION_ALIAS("REGION_RODATA", flash);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
-REGION_ALIAS("REGION_SRAMTEXT", psram);
+REGION_ALIAS("REGION_SRAMTEXT", sram);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
@@ -79,9 +79,8 @@ SECTIONS {
   _heap_start = .;
   . =  . + 0x200000;
   _heap_end = .;
-
-
-  . = 0x0f000000;  /* 将栈分配到SRAM中 */
+  
+  . = ALIGN(4);
   . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
@@ -89,7 +88,7 @@ SECTIONS {
   _end = .;
 
 
-  .sramtext : {
+    .sramtext : {
     _sramtext_start = .;
     *(.memtest.text*) /* Assuming .memtest.text is defined in your source */
     *(.memtest.rodata*) /* Assuming .memtest.rodata is defined in your source */
