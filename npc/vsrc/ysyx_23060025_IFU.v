@@ -197,7 +197,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
         .branch_flag_i    ( branch_flag_i    ),
         .pc_plus_4        ( pc_plus_4        ),
         .jmp_flag_i       ( jmp_flag_i       ),
-        .jmp_target_i     ( jmp_target_i     ),
+        .jmp_target_i     ( jmp_target_reg     ),
         .csr_jmp_i        ( csr_jmp_i        ),
         .csr_pc_i         ( csr_pc_i         ),
 		.con_state        ( con_state        ),
