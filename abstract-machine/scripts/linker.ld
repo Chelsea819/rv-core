@@ -13,8 +13,8 @@ MEMORY {
   sram : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
-REGION_ALIAS("REGION_TEXT", psram);
-REGION_ALIAS("REGION_RODATA", psram);
+REGION_ALIAS("REGION_TEXT", sram);
+REGION_ALIAS("REGION_RODATA", sram);
 REGION_ALIAS("REGION_DATA", psram);
 REGION_ALIAS("REGION_BSS", psram);
 REGION_ALIAS("REGION_BOOTLOADER", flash);
@@ -92,7 +92,6 @@ SECTIONS {
   _heap_end = .;
 
 
-  . = 0x0f000000;  /* 将栈分配到SRAM中 */
   . = . + 0x200000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
