@@ -74,7 +74,7 @@ SECTIONS {
     *(.scommon)
     _bss_end = .;
   } > REGION_BSS : data  */
-  .bss (NOLOAD): {
+  .bss : {
     _bss_start = .;
     *(.bss*)
     *(.sbss*)
@@ -91,7 +91,7 @@ SECTIONS {
   . =  . + 0x200000;
   _heap_end = .;
 
-  . = 0x0f000000;
+  /* . = 0x0f000000; */
   . = . + 0x2000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
