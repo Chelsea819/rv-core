@@ -29,7 +29,7 @@ SECTIONS {
 
   .text : { 
     _text_start = .;
-    
+    *(entry)
     *(.text*)
     . = ALIGN(4);
   } > REGION_TEXT AT> flash : text 
