@@ -108,8 +108,8 @@ static word_t pmem_read(paddr_t addr,int len) {
 // }
 
 static void out_of_bound(paddr_t addr) {
-  panic("address = " FMT_PADDR " is out of bound of psram [" FMT_PADDR ", " FMT_PADDR "] or flash [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
-      addr, PSRAM_LEFT, PSRAM_RIGHT, FLASH_LEFT, FLASH_RIGHT, cpu.pc);
+  // panic("address = " FMT_PADDR " is out of bound of psram [" FMT_PADDR ", " FMT_PADDR "] or flash [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+  //     addr, PSRAM_LEFT, PSRAM_RIGHT, FLASH_LEFT, FLASH_RIGHT, cpu.pc);
 }
 
 static void out_of_bound_flash(paddr_t addr) {
