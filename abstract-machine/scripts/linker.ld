@@ -3,6 +3,7 @@ PHDRS {
     text PT_LOAD;
     rodata PT_LOAD;
     data PT_LOAD;
+    fsbl PT_LOAD;
     bootloader PT_LOAD;
 }
 
