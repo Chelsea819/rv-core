@@ -121,7 +121,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 					 ((inst_i[6:0] == `TYPE_I_LOAD_OPCODE) & (inst_i[14:12] == `TYPE_I_LB_FUNC3 | inst_i[14:12] == `TYPE_I_LH_FUNC3 | inst_i[14:12] == `TYPE_I_LW_FUNC3 | inst_i[14:12] == `TYPE_I_LBU_FUNC3 | inst_i[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
 					 ((inst_i[6:0] == `TYPE_I_CSR_OPCODE) & (inst_i[14:12] == `TYPE_I_CSRRW_FUNC3 | inst_i[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
 					 ((inst_i[6:0] == `TYPE_S_OPCODE) & (inst_i[14:12] == `TYPE_S_SB_FUNC3 | inst_i[14:12] == `TYPE_S_SH_FUNC3 | inst_i[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
-					 ((inst_i[6:0] == `TYPE_I_BASE_OPCODE) & (inst_i[14:12] == `TYPE_I_SLTI_FUNC3 || inst_i[14:12] == `TYPE_I_SLTIU_FUNC3 || inst_i[14:12] == `TYPE_I_ADDI_FUNC3 || inst_i[14:12] == `TYPE_I_XORI_FUNC3 || inst_i[14:12] == `TYPE_I_ORI_FUNC3 || inst_i[14:12] == `TYPE_I_ANDI_FUNC3 || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
+					 ((inst_i[6:0] == `TYPE_I_BASE_OPCODE) & (inst_i[14:12] == `TYPE_I_SLTI_FUNC3 || inst_i[14:12] == `TYPE_I_SLTIU_FUNC3 || inst_i[14:12] == `TYPE_I_ADDI_FUNC3 || inst_i[14:12] == `TYPE_I_XORI_FUNC3 || inst_i[14:12] == `TYPE_I_ORI_FUNC3 || inst_i[14:12] == `TYPE_I_ANDI_FUNC3 || 
+					 										{inst_i[14:12], inst_i[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
 					 (inst_i[6:0] == `TYPE_R_OPCODE) | //R
 					 (inst_i == `TYPE_I_ECALL) | 
 					 (inst_i == `TYPE_I_MRET)  | 
