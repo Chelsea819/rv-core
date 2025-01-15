@@ -57,8 +57,7 @@ SECTIONS {
 
   .data : {
     _data_start = .;
-    /* *(.data*) */
-    *(.data)
+    *(.data*)
     *(.sdata*)
     _data_end = .;
     . = ALIGN(4);
@@ -70,7 +69,6 @@ SECTIONS {
 
   /* .bss : {
     _bss_start = .;
-    
     *(.bss*)
     *(.sbss*)
     *(.scommon)
@@ -78,8 +76,7 @@ SECTIONS {
   } > REGION_BSS : data  */
   .bss : {
     _bss_start = .;
-    *(.bss)
-    /* *(.bss*) */
+    *(.bss*)
     *(.sbss*)
     *(.scommon)
     . = ALIGN(4);
