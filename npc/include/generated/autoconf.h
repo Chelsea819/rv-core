@@ -12,6 +12,7 @@
 #define CONFIG_MSIZE 0x8000000
 #define CONFIG_CC_O2 1
 #define CONFIG_MODE_SYSTEM 1
+#define CONFIG_ETRACE 1
 #define CONFIG_ITRACE 1
 #define CONFIG_DIFFTEST 1
 #define CONFIG_ISA_riscv 1
