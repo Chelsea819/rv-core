@@ -25,6 +25,16 @@ SECTIONS {
   . = ORIGIN(flash);
   _start_addr = .;
 
+  .fsbl : {
+    _fsbl_start = .;
+    *(entry)  
+    *(.fsbl.text*)
+    . = ALIGN(4);
+    _fsbl_end = .;
+  } > REGION_BOOTLOADER : fsbl
+  efsbl = .;
+  _efsbl = .;
+
 .bootloader : {
     _bootloader_start = .;
     *(entry)  
@@ -32,8 +42,10 @@ SECTIONS {
     . = ALIGN(4);
     _bootloader_end = .;
   } > REGION_BOOTLOADER : bootloader
+  _bootloader_load_start = LOADADDR(.bootloader);
   ebootloader = .;
   _ebootloader = .;
+  _bootloader_size = SIZEOF(.bootloader);
 
   .text : { 
     _text_start = .; 
