@@ -30,7 +30,7 @@ static inline word_t host_read(void *addr, int len) {
 }
 
 static inline void host_write(void *addr, int len, word_t data) {
-  printf("addr = %p, data = 0x%08x\n",(uint8_t  *)addr, data);
+  // printf("addr = %p, data = 0x%08x\n",(uint8_t  *)addr, data);
   switch (len) {
     case 1: *(uint8_t  *)addr = data >> 24; return;
     case 2: *(uint16_t *)addr = data >> 16; return;
