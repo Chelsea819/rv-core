@@ -26,7 +26,7 @@ static uint8_t *pmem = NULL;
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 //{}使用聚合初始化把数组初始化为0
 #endif
-
+void sdram_read_sdb(int32_t addr, int32_t *data, int len);
 extern TOP_NAME *dut; extern VerilatedFstC *tfp;
 uint8_t* guest_to_host(paddr_t paddr) { 
   // printf("pmem: 0x%08x\n",pmem);
@@ -221,6 +221,21 @@ vaddr_t paddr_read(paddr_t addr,int len) {
     Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+    #endif
+    switch (len) {
+      case 1: return rdata & 0xff000000;
+      case 2: return rdata & 0xffff0000;
+      case 4: return rdata;
+      IFDEF(CONFIG_ISA64, case 8: return rdata & 0xffffffffffffffff;);
+      default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
+    }
+  } else if (likely(in_sdram(addr))) {
+    addr = addr & 0x03ffffff;
+    int32_t rdata = 0;
+    sdram_read_sdb(addr,&rdata,len);
+    Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
+    #ifdef CONFIG_MTRACE
+      // Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
     switch (len) {
       case 1: return rdata & 0xff000000;
