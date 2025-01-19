@@ -1,37 +1,73 @@
 ENTRY(_start)
-PHDRS { text PT_LOAD; data PT_LOAD; }
+PHDRS {
+    text PT_LOAD;
+    rodata PT_LOAD;
+    data PT_LOAD;
+    fsbl PT_LOAD;
+    bootloader PT_LOAD;
+}
 
 MEMORY {
   /* mrom : ORIGIN = 0x20000000, LENGTH = 4K */
   flash : ORIGIN = 0x30000000, LENGTH = 16M
   psram : ORIGIN = 0x80000000, LENGTH = 4M
+  sram : ORIGIN = 0x0f000000, LENGTH = 8K
+  sdram : ORIGIN = 0xa0000000, LENGTH = 32M
 }
 
-REGION_ALIAS("REGION_TEXT", flash);
-REGION_ALIAS("REGION_RODATA", flash);
-REGION_ALIAS("REGION_DATA", psram);
-REGION_ALIAS("REGION_BSS", psram);
+REGION_ALIAS("REGION_TEXT", sdram);
+REGION_ALIAS("REGION_RODATA", sdram);
+REGION_ALIAS("REGION_DATA", sdram);
+REGION_ALIAS("REGION_BSS", sdram);
+REGION_ALIAS("REGION_BOOTLOADER", flash);
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
   /* . = _pmem_start + _entry_offset; */
   . = ORIGIN(flash);
+  _start_addr = .;
+
+  .fsbl : {
+    _fsbl_start = .;
+    *(entry)  
+    *(.fsbl.text*)
+    . = ALIGN(4);
+    _fsbl_end = .;
+  } > REGION_BOOTLOADER : fsbl
+  efsbl = .;
+  _efsbl = .;
+
+.bootloader : {
+    _bootloader_start = .;
+    *(entry)  
+    *(.bootloader.text*)
+    . = ALIGN(4);
+    _bootloader_end = .;
+  } > REGION_BOOTLOADER : bootloader
+  _bootloader_load_start = LOADADDR(.bootloader);
+  ebootloader = .;
+  _ebootloader = .;
+  _bootloader_size = SIZEOF(.bootloader);
+
   .text : { 
-    *(entry)
+    _text_start = .; 
     *(.text*)
     . = ALIGN(4);
-  } > REGION_TEXT : text 
-  
+  } > REGION_TEXT AT> flash : text 
+  _text_load_start = LOADADDR(.text);
   etext = .;
   _etext = .;
+  _text_size = SIZEOF(.text);
   
 
   .rodata : {
+    _rodata_start = .;
     *(.rodata*)
     *(.srodata*)
-    rodata_end = .;
     . = ALIGN(4);
-  } > REGION_RODATA : text 
+  } > REGION_RODATA AT> flash : rodata 
+  _rodata_load_start = LOADADDR(.rodata);
+  _rodata_size = SIZEOF(.rodata);
 
   .data : {
     _data_start = .;
@@ -44,7 +80,6 @@ SECTIONS {
   edata = .;
   _data = .;
   _data_size = SIZEOF(.data);
-
 
   /* .bss : {
     _bss_start = .;
@@ -69,11 +104,14 @@ SECTIONS {
   _heap_start = .;
   . =  . + 0x200000;
   _heap_end = .;
-  
-  . = ALIGN(4);
-  . = . + 0x200000; /* 根据需要调整大小 */
+
+  . = 0x0f000000;
+  . = . + 0x2000; /* 根据需要调整大小 */
   _stack_top = .;
   _stack_pointer = _stack_top;
   end = .;
   _end = .;
+
+
+  
 }

@@ -11,6 +11,7 @@
 #include "common.h"
 #include "reg.h"
 #include "config.h"
+#include "verilated_fst_c.h"
 
 #ifdef CONFIG_WAVE
 extern VerilatedFstC *tfp;
