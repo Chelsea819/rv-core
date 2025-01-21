@@ -40,8 +40,8 @@ static inline bool in_pmem(paddr_t addr) {
 #define SDRAM_SIZE 0x03ffffff
 #define SDRAM_ADDR 0xa0000000
 
-#define SDRAM_LEFT  ((paddr_t)PSRAM_ADDR)
-#define SDRAM_RIGHT ((paddr_t)PSRAM_ADDR + PSRAM_SIZE - 1)
+#define SDRAM_LEFT  ((paddr_t)SDRAM_ADDR)
+#define SDRAM_RIGHT ((paddr_t)SDRAM_ADDR + SDRAM_SIZE - 1)
 
 #define PSRAM_SIZE 0x1fffffff
 #define PSRAM_ADDR 0x80000000

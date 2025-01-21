@@ -3,7 +3,6 @@ PHDRS {
     text PT_LOAD;
     rodata PT_LOAD;
     data PT_LOAD;
-    fsbl PT_LOAD;
     bootloader PT_LOAD;
 }
 
@@ -15,10 +14,10 @@ MEMORY {
   sdram : ORIGIN = 0xa0000000, LENGTH = 32M
 }
 
-REGION_ALIAS("REGION_TEXT", psram);
-REGION_ALIAS("REGION_RODATA", psram);
-REGION_ALIAS("REGION_DATA", psram);
-REGION_ALIAS("REGION_BSS", psram);
+REGION_ALIAS("REGION_TEXT", sdram);
+REGION_ALIAS("REGION_RODATA", sdram);
+REGION_ALIAS("REGION_DATA", sdram);
+REGION_ALIAS("REGION_BSS", sdram);
 REGION_ALIAS("REGION_BOOTLOADER", flash);
 
 SECTIONS {
@@ -26,16 +25,7 @@ SECTIONS {
   /* . = _pmem_start + _entry_offset; */
   . = ORIGIN(flash);
   _start_addr = .;
-
-  .fsbl : {
-    _fsbl_start = .;
-    *(entry)  
-    *(.fsbl.text*)
-    . = ALIGN(4);
-    _fsbl_end = .;
-  } > REGION_BOOTLOADER : fsbl
-  efsbl = .;
-  _efsbl = .;
+  
 
 .bootloader : {
     _bootloader_start = .;
@@ -44,10 +34,8 @@ SECTIONS {
     . = ALIGN(4);
     _bootloader_end = .;
   } > REGION_BOOTLOADER : bootloader
-  _bootloader_load_start = LOADADDR(.bootloader);
   ebootloader = .;
   _ebootloader = .;
-  _bootloader_size = SIZEOF(.bootloader);
 
   .text : { 
     _text_start = .; 
@@ -73,8 +61,38 @@ SECTIONS {
     _data_start = .;
     *(.data*)
     *(.sdata*)
+    
+     /* section information for finsh shell */
+    __fsymtab_start = .;
+    KEEP(*(FSymTab))
+    __fsymtab_end = .;
+    . = ALIGN(8);
+    __vsymtab_start = .;
+    KEEP(*(VSymTab))
+    __vsymtab_end = .;
+    . = ALIGN(8);
+
+    /* section information for initial. */
+    . = ALIGN(8);
+    __rt_init_start = .;
+    KEEP(*(SORT(.rti_fn*)))
+    __rt_init_end = .;
+    . = ALIGN(8);
+
+    __rt_utest_tc_tab_start = .;
+    KEEP(*(UtestTcTab))
+    __rt_utest_tc_tab_end = .;
+
+    . = ALIGN(8);
+    __am_apps_data_start = .;
+    *(__am_apps.data*)
+    *(__am_apps.sdata*)
+    __am_apps_data_end = .;
+    . = ALIGN(8);
+
     _data_end = .;
     . = ALIGN(4);
+
   } > REGION_DATA AT> flash : data 
   _data_load_start = LOADADDR(.data);
   edata = .;
@@ -93,6 +111,12 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
+    . = ALIGN(8);
+    __am_apps_bss_start = .;
+    *(__am_apps.bss*)
+    *(__am_apps.sbss*)
+    *(__am_apps.scommon*)
+    __am_apps_bss_end = .;
     . = ALIGN(4);
     _bss_end = .;
   } > REGION_BSS
