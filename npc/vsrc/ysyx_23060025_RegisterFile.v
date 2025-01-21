@@ -5,7 +5,7 @@
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
 
- module ysyx_23060025_RegisterFile #(parameter ADDR_WIDTH = 16, DATA_WIDTH = 32)(
+module ysyx_23060025_RegisterFile #(parameter ADDR_WIDTH = 16, DATA_WIDTH = 32)(
 	input								clock		,
 	input		[DATA_WIDTH - 1:0]		wdata	,
 	input	    [4:0]					rsc1	,

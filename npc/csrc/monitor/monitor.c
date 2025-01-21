@@ -34,6 +34,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
 void init_isa();
+void init_sdram();
 int init_ftrace(Ftrace_file *file_header, Ftrace_file *file_cur);
 void init_disasm(const char *triple);
 
@@ -163,7 +164,7 @@ void init_npc_monitor(int argc,char *argv[]){
 
     init_psram();
 
-    // init_flash();
+    init_sdram();
 
     /* Initialize devices. */
     IFDEF(CONFIG_DEVICE, init_device());
