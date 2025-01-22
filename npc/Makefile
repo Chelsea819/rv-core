@@ -1,6 +1,13 @@
 DIR = ./obj_dir
 EXE = $(BUILD_DIR)/$(TOPNAME)
 WAVE = waveform.fst
+NXDC_FILES = constr/ysyx_23060025_top.nxdc
+
+
+# constraint file
+SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
+$(SRC_AUTO_BIND): $(NXDC_FILES)
+	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # SO = -so
 # NAME = riscv32-npc
@@ -29,10 +36,14 @@ DIRS-BLACKLIST-y += $(DIRS-BLACKLIST)
 CSRCS-BLACKLIST-y += $(CSRCS-BLACKLIST) $(shell find -L $(DIRS-BLACKLIST-y) -name "*.c")
 CSRCS-y += $(shell find -L $(DIRS-y) -name "*.c")
 CSRCS = $(filter-out $(CSRCS-BLACKLIST-y),$(CSRCS-y))
+CSRCS += $(SRC_AUTO_BIND)
 
 # Include rules for menuconfig
 include $(NPC_HOME)/scripts/config.mk
 include $(NPC_HOME)/scripts/difftest.mk
+
+# rules for NVBoard
+include $(NVBOARD_HOME)/scripts/nvboard.mk
 
 # project source
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.v") $(shell find -L $(YSYXSOC_HOME)/perip -name "*.v") $(YSYXSOC_HOME)/build/ysyxSoCFull.v
@@ -91,7 +102,7 @@ LDFLAGS += -lreadline -ldl -lSDL2  -pie $(LIBS) #-fsanitize=address
 override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt  #--ftrace=$(BUILD_DIR)/$(ALL)-$(ARCH).elf
 override ARGS += $(ARGS_DIFF) #--batch
 
-$(BIN): $(SRCS) $(VSRCS) 
+$(BIN): $(SRCS) $(VSRCS)  $(NVBOARD_ARCHIVE)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ $(addprefix -CFLAGS , $(CFLAGS)) \
 		$(addprefix -LDFLAGS , $(LDFLAGS)) \

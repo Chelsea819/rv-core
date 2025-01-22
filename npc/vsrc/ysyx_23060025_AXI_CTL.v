@@ -116,7 +116,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// 设备：UART
 	import "DPI-C" function void diff_skip();
 	always @(*) begin
-		if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L) begin
+		if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+			data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L || data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H) begin
 			diff_skip();
 		end
 	end

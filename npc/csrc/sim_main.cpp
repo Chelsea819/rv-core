@@ -17,9 +17,12 @@
 #include <config.h>
 #include <cpu/cpu.h>
 #include <memory/paddr.h>
+#include <nvboard.h>
 int is_exit_status_bad();
 void init_npc_monitor(int argc, char *argv[]);
 void engine_start();
+
+void nvboard_bind_all_pins(TOP_NAME *top);
 
 vluint64_t sim_time = 0;
 VerilatedContext *contextp = new VerilatedContext;
@@ -74,6 +77,9 @@ int main(int argc, char **argv, char **env) {
   dut->trace(tfp, 5);
   tfp->open("waveform.fst");
 #endif
+
+  nvboard_bind_all_pins(dut);
+  nvboard_init();
   reset_cycle();
   //   dut->reset = 1;
   //   dut->eval();
@@ -98,6 +104,7 @@ int main(int argc, char **argv, char **env) {
   tfp->close(); //关闭波形跟踪文件
 #endif
   delete dut;
+  nvboard_quit();
   // exit(EXIT_SUCCESS);
   return is_exit_status_bad();
 }

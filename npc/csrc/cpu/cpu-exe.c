@@ -10,6 +10,7 @@
 #include <config.h>
 #include "sdb.h"
 #include "verilated_fst_c.h"
+#include <nvboard.h>
 
 #define OPCODE_JAL  0b1101111
 #define OPCODE_JALR 0b1100111
@@ -339,6 +340,7 @@ void per_inst_cycle(){
   // printf("dut.pc = [0x%08x]!\n",cpu.pc);
   do {
     // printf("dut.pc = [0x%08x]!\n",cpu.pc);
+    nvboard_update();
     per_clk_cycle();
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
