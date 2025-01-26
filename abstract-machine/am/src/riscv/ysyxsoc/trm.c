@@ -1,7 +1,6 @@
 #include <am.h>
-#include <stddef.h>
-#include <string.h>
 #include <ysyxsoc.h>
+#include <klib.h>
 
 extern char _heap_start;
 extern char _heap_end;
@@ -36,8 +35,8 @@ void __am_uart_init() {
   outb(UART_LCR_REG, lcr);
 
   // 写Divisor Latch
-  outb(UART_DIVISOR_LATCH_MSB, (0x6f >> 8) & 0xff);
-  outb(UART_DIVISOR_LATCH_LSB, 0x6f & 0xff);
+  outb(UART_DIVISOR_LATCH_MSB, (0x10 >> 8) & 0xff);
+  outb(UART_DIVISOR_LATCH_LSB, 0x10 & 0xff);
 
   // 写线控制寄存器
   // lcr &= 0x7f;
@@ -58,16 +57,6 @@ Area heap = RANGE(&_heap_start, &_heap_end);
 #define MAINARGS ""
 #endif
 static const char mainargs[] = MAINARGS;
-// uint8_t count = 0;
-// void putch(char ch) {
-//     volatile uint8_t receive_buffer = 0;
-//     if(count == 16){while ((inb(UART_LSR_REG) & 0b01100000) == 0 && count > 10) {
-//         receive_buffer = inb(SERIAL_PORT);count--;
-//     } 
-//     }
-//     *(volatile uint8_t  *)SERIAL_PORT = ch;
-//     count ++;
-// }
 
 void putch(char ch) {
     // volatile uint8_t receive_buffer = 0;
@@ -138,24 +127,24 @@ void _trm_init() {
         :              // 无clobbered寄存器
     );
     **/
-  /*
-  uint32_t ventorid = 0;
-  uint32_t marchid = 0;
-
-  asm volatile("csrrs %0, mvendorid, x0" : "=r" (ventorid));
-  asm volatile("csrrs %0, marchid, x0" : "=r" (marchid));
-
-  char vendor_id[5] = {0};
-  for (int i = 0; i < 4; i ++) {
-    vendor_id[i] = BITS(ventorid, (3-i)*8+7, (3-i)*8);
-  }
-  vendor_id[4] = '\0';
   
-  printf("[--TRM--]\n");
-  printf("VENDOR_ID: [%s]\n",vendor_id);
-  printf("ARCH_ID: [%u]\n",marchid);
-  printf("[--TRM--]\n");
-  */ 
+  // uint32_t ventorid = 0;
+  // uint32_t marchid = 0;
+
+  // asm volatile("csrrs %0, mvendorid, x0" : "=r" (ventorid));
+  // asm volatile("csrrs %0, marchid, x0" : "=r" (marchid));
+
+  // char vendor_id[5] = {0};
+  // for (int i = 0; i < 4; i ++) {
+  //   vendor_id[i] = BITS(ventorid, (3-i)*8+7, (3-i)*8);
+  // }
+  // vendor_id[4] = '\0';
+  
+  // printf("[--TRM--]\n");
+  // printf("VENDOR_ID: [%s]\n",vendor_id);
+  // printf("ARCH_ID: [%u]\n",marchid);
+  // printf("[--TRM--]\n");
+  
 
   // bootloader_extend();
   

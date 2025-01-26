@@ -81,6 +81,9 @@ word_t* csr_reg_match(int csr_index){
     case CSR_MARCHID:
       csr_val = &CSR_MARCHID_REG;
       break;
+    case CSR_MSTATUS:
+      csr_val = &CSR_MSTATUS_REG;
+      break;
     default:
       Assert(0, "Unvalid csr-register index: [0x%x]\n", csr_index);
   }

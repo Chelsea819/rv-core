@@ -86,9 +86,9 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[DATA_LEN - 1:0]	inst		;
 
 	// 检测到ebreak
-    import "DPI-C" function void clk_cycle_plus();
-    always @(posedge clock)
-        clk_cycle_plus();
+    // import "DPI-C" function void clk_cycle_plus();
+    // always @(posedge clock)
+    //     clk_cycle_plus();
 
 	// IFU-AXI
 	// Addr Read

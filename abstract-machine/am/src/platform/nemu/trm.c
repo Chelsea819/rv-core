@@ -25,11 +25,11 @@ void putch(char ch) {
   outb(SERIAL_PORT, ch);
 }
 
-void copy_data(){
-  if (_data_start != _data_load_start) {
-    memcpy(_data_start, _data_load_start, (size_t)_data_size);
-  }
-}
+// void copy_data(){
+//   if (_data_start != _data_load_start) {
+//     memcpy(_data_start, _data_load_start, (size_t)_data_size);
+//   }
+// }
 
 //用于结束程序的运行
 void halt(int code) {
@@ -41,7 +41,7 @@ void halt(int code) {
 
 //用于进行TRM相关的初始化工作
 void _trm_init() {
-  copy_data();
+  // copy_data();
   if (heap.start == 0) {
     halt(1);
   }

@@ -15,4 +15,23 @@
 // }
 
 
+/*
+Data Ready (DR) indicator. 
+  ‘0’ – No characters in the FIFO 
+  ‘1’ – At least one character has been received and is in the 
+FIFO.
+*/
+
+
+void __am_uart_rx(AM_UART_RX_T *recv) {
+  if ((inb(UART_LSR_REG) & 0b00000001) == 0) {
+    recv->data = 0xff;
+  } else {
+    recv->data = (inb(SERIAL_PORT));
+  }
+  
+}
+
+
+
 

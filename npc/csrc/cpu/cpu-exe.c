@@ -34,6 +34,14 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 bool ifbreak = false;
 
+uint64_t ifu_p_counter = 0;
+uint64_t lsu_p_counter = 0;
+uint64_t exu_p_counter = 0;
+
+extern "C" void ifu_p_counter_update(){
+  ifu_p_counter ++;
+}
+
 extern "C" void pc_get(int pc, int dnpc){
   // printf("pc = %x dpc = %x\n",pc,dnpc);
   cpu.pc = dnpc;
@@ -323,6 +331,7 @@ void finish_get(char finish){
 #ifndef CONFIG_ISA_loongarch32r
 void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
 #endif
+uint64_t clk_cycle = 0;
 
 void per_clk_cycle(){
   do {
@@ -334,6 +343,7 @@ void per_clk_cycle(){
     #endif
     
   }while(dut->clock == 1);
+  clk_cycle += 1;
   // printf("clk = %d\n",dut->clock);
 }
 void per_inst_cycle(){
@@ -346,8 +356,6 @@ void per_inst_cycle(){
   }while(inst_finish == 0);
   // printf("finished dut.pc = [0x%08x]!\n",cpu.pc);
 }
-
-
 
 /* let CPU conduct current command and renew PC */
 static void exec_once()
@@ -536,11 +544,11 @@ static void execute(uint64_t n) {
   }
 }
 
-uint64_t clk_cycle = 0;
 
-void clk_cycle_plus(){
-  clk_cycle += 2;
-}
+
+// void clk_cycle_plus(){
+//   clk_cycle += 1;
+// }
 
 // static void statistic_sim() {
 //   Log("simulation frequency = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer); 
@@ -548,13 +556,17 @@ void clk_cycle_plus(){
 
 static void statistic()
 {
+  // g_nr_guest_inst：执行的指令数
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
   Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
   if (g_timer > 0){
     Log("simulation frequency = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
-    Log("simulation frequency = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);} 
+    Log("IPC = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
+    Log("CPI = " NUMBERIC_FMT " cycle/inst", clk_cycle / g_nr_guest_inst); 
+    Log("simulation frequency = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
+  } 
   else
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }

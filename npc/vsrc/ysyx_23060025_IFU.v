@@ -134,6 +134,13 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			inst_invalid_get({7'b0, inst_invalid});
 		end
 
+	import "DPI-C" function void ifu_p_counter_update();
+	always @(posedge clock) begin
+		if (con_state == IFU_WAIT_READY) begin
+			ifu_p_counter_update();
+		end
+	end
+
 	parameter [1:0] IFU_WAIT_ADDR_PASS = 2'b00, IFU_WAIT_READY = 2'b01, IFU_WAIT_FINISH = 2'b10, IFU_WAIT_INST_LOAD = 2'b11;
 
 	// state trans
