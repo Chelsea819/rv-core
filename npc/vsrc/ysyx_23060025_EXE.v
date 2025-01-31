@@ -56,9 +56,12 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	assign csr_mcause_o  = 32'hb;
 
 
-	// always @(*) begin
-	// 	$display("mem_wen_o = [%h] mem_wen_o = [%b]",mem_wen_o,mem_wen_o);
-	// end
+	import "DPI-C" function void exu_p_counter_update();
+	always @(posedge clock) begin
+		if (con_state == EXU_WAIT_WB_READY) begin
+			exu_p_counter_update();
+		end
+	end
 
 	reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;

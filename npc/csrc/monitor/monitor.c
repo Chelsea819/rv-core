@@ -99,12 +99,10 @@ static long load_img() {
   //ftell()可以获取文件当前的读写位置偏移量
   long size = ftell(fp);
 
-  printf("The image is %s!\nThe size = %ld!\n", img_file, size);
-
   fseek(fp, 0, SEEK_SET);
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
   //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
-  printf("size = 0x%08lx\n",size);
+  printf("Load img size = 0x%08lx\n",size);
   //fread()可以高效地从文件流中读取大块的二进制数据,放入指定的内存缓冲区中
   // printf("ret = %d\n");
   assert(ret == 1);

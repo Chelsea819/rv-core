@@ -1,4 +1,6 @@
 #include <cpu/decode.h>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <isa.h>
 #include <elf.h>
@@ -34,12 +36,99 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 bool ifbreak = false;
 
+#define INST_TYPE_NUM       5
+#define TYPE_COUNT          0  
+#define TYPE_MEM            1
+#define TYPE_JMP            2
+#define TYPE_CSR            3
+#define TYPE_STATE_TRANS    4
+
 uint64_t ifu_p_counter = 0;
 uint64_t lsu_p_counter = 0;
+uint64_t lsu_delay_counter = 0;
 uint64_t exu_p_counter = 0;
+
+uint64_t idu_count_p_counter = 0;
+uint64_t idu_memory_p_counter = 0;
+uint64_t idu_jmp_p_counter = 0;
+uint64_t idu_csr_p_counter = 0;
+uint64_t idu_state_trans_p_counter = 0;
+
+// 当前执行的指令是哪种指令
+bool type_flag[INST_TYPE_NUM] = {0};
+// 每种指令运行的周期总数
+uint64_t inst_type_cycle[INST_TYPE_NUM] = {0};
 
 extern "C" void ifu_p_counter_update(){
   ifu_p_counter ++;
+}
+extern "C" void exu_p_counter_update(){
+  exu_p_counter ++;
+}
+extern "C" void lsu_p_counter_update(){
+  lsu_p_counter ++;
+}
+extern "C" void lsu_delay_counter_update(){
+  lsu_delay_counter ++;
+}
+
+#define TYPE_R_OPCODE       0b0110011
+#define TYPE_I_BASE_OPCODE  0b0010011
+#define TYPE_I_JALR_OPCODE  0b1100111
+#define TYPE_U_LUI_OPCODE   0b0110111 
+#define TYPE_U_AUIPC_OPCODE 0b0010111
+#define TYPE_B_OPCODE       0b1100011
+#define TYPE_J_JAL_OPCODE   0b1101111
+#define TYPE_S_OPCODE       0b0100011
+#define TYPE_I_CSR_OPCODE   0b1110011
+#define TYPE_I_LOAD_OPCODE  0b0000011
+#define TYPE_I_ECALL_FUNC3  0b000
+
+
+extern "C" void idu_p_counter_update(char opcode, char func3){
+  switch (opcode) {
+    // 计算
+    case TYPE_I_BASE_OPCODE:
+    case TYPE_U_LUI_OPCODE:
+    case TYPE_U_AUIPC_OPCODE:
+    case TYPE_R_OPCODE:
+      idu_count_p_counter ++;
+      type_flag[TYPE_COUNT] = true;
+      break;
+
+    // 访存
+    case TYPE_S_OPCODE:
+    case TYPE_I_LOAD_OPCODE:
+      idu_memory_p_counter ++;
+      type_flag[TYPE_MEM] = true;
+      break;
+
+    // 跳转
+    case TYPE_B_OPCODE:
+    case TYPE_J_JAL_OPCODE:
+    case TYPE_I_JALR_OPCODE:
+      idu_jmp_p_counter ++;
+      type_flag[TYPE_JMP] = true;
+      break;
+
+    
+    case TYPE_I_CSR_OPCODE:
+      if (func3 == TYPE_I_ECALL_FUNC3) {
+        // 状态转移
+        // ebreak -- opcod
+        // ecall -- opcode
+        // mret
+        type_flag[TYPE_STATE_TRANS] = true;
+        idu_state_trans_p_counter ++;
+      } else {
+        // csr指令
+        type_flag[TYPE_CSR] = true;
+        idu_csr_p_counter ++;
+      }
+      break;
+    default: 
+      break;
+  }
 }
 
 extern "C" void pc_get(int pc, int dnpc){
@@ -180,7 +269,7 @@ void device_update();
 
 void ifebreak_func(int inst){
 	// printf("while key = 0x%08x\n",inst);printf("ebreak-called: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst)
-	if(inst == 1048691) {ifbreak = true; } 
+	if(inst == 1048691) { ifbreak = true; } 
 }
 
 void resp_check(char resp){
@@ -346,14 +435,32 @@ void per_clk_cycle(){
   clk_cycle += 1;
   // printf("clk = %d\n",dut->clock);
 }
+
+
+
 void per_inst_cycle(){
   // printf("dut.pc = [0x%08x]!\n",cpu.pc);
+  uint32_t inst_cycle = clk_cycle;
   do {
     // printf("dut.pc = [0x%08x]!\n",cpu.pc);
     nvboard_update();
     per_clk_cycle();
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
+  size_t i = 0;
+  while (1) {
+    if(i >= INST_TYPE_NUM){dut->final();
+        #ifdef CONFIG_WAVE
+        tfp->close();	//关闭波形跟踪文件
+        #endif 
+        panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
+    if (type_flag[i]) {
+      inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
+      type_flag[i] = false;
+      break;
+    }
+    i ++;
+  }
   // printf("finished dut.pc = [0x%08x]!\n",cpu.pc);
 }
 
@@ -545,14 +652,14 @@ static void execute(uint64_t n) {
 }
 
 
-
-// void clk_cycle_plus(){
-//   clk_cycle += 1;
-// }
-
-// static void statistic_sim() {
-//   Log("simulation frequency = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer); 
-// }
+// uint64_t ifu_p_counter = 0;
+// uint64_t lsu_p_counter = 0;
+// uint64_t exu_p_counter = 0;
+// uint64_t idu_count_p_counter = 0;
+// uint64_t idu_memory_p_counter = 0;
+// uint64_t idu_jmp_p_counter = 0;
+// uint64_t idu_csr_p_counter = 0;
+// uint64_t idu_state_trans_p_counter = 0;
 
 static void statistic()
 {
@@ -562,10 +669,21 @@ static void statistic()
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
   Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
   if (g_timer > 0){
-    Log("simulation frequency = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
-    Log("IPC = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
-    Log("CPI = " NUMBERIC_FMT " cycle/inst", clk_cycle / g_nr_guest_inst); 
-    Log("simulation frequency = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
+    Log("simulation frequency       = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
+    Log("IPC                        = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
+    Log("CPI                        = %f cycle/inst", (float)clk_cycle / g_nr_guest_inst); 
+
+    Log("ifu_p_counter              = %lu\tinst", ifu_p_counter); 
+    Log("lsu_p_counter              = %lu\tinst", lsu_p_counter); 
+    Log("lsu_avg_delay_counter      = %f\tcycle", (float)lsu_delay_counter/lsu_p_counter); 
+    Log("exu_p_counter              = %lu\tinst", exu_p_counter); 
+    Log("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
+    Log("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
+    Log("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
+    Log("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
+    Log("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
+
+    Log("simulation frequency       = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
   } 
   else
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");

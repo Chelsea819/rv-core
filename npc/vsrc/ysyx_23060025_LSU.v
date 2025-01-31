@@ -239,7 +239,19 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     // always @(*)
 	// 	dtrace_func(addr_w_addr_o);
 
+	import "DPI-C" function void lsu_p_counter_update();
+	always @(posedge clock) begin
+		if (con_state == LSU_WAIT_WB_READY) begin
+			lsu_p_counter_update();
+		end
+	end
 
+	import "DPI-C" function void lsu_delay_counter_update();
+	always @(posedge clock) begin
+		if (con_state == LSU_WAIT_LSU_VALID) begin
+			lsu_delay_counter_update();
+		end
+	end
 
 	assign {w_strb_o, w_data_o} = (addr_w_addr_o[1:0] == 2'b00 || aligned_store == 1'b0) ? {w_strb, w_data} :
 					(addr_w_addr_o[1:0] == 2'b01 ) ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :

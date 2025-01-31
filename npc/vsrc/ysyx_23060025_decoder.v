@@ -69,6 +69,13 @@ module ysyx_23060025_decoder(
 			con_state <= next_state;
 	end
 
+    import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
+	always @(posedge clock) begin
+		if (con_state == IDU_WAIT_IDU_VALID && next_state == IDU_WAIT_EXU_READY) begin
+			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
+		end
+	end
+
 	// next_state
 	always @(*) begin
 		case(con_state) 
