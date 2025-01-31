@@ -1,0 +1,75 @@
+#include <isa.h>
+#include <common.h>
+#include <debug.h>
+#define FLASH_SIZE 1024
+#define FLASH_ADDR 0x30000000
+static void out_of_bound_flash(paddr_t addr) {
+  panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+      addr, FLASH_ADDR, FLASH_ADDR + FLASH_SIZE, cpu.pc);
+}
+static uint8_t flash_space[1024] PG_ALIGN = {};
+
+// 小端存储 0x37050100->读出之后0x00010537
+static const uint32_t flash_data [] = {
+  0x37050100,  // lui	a0,0x10
+  0x13050501,  // auipc t0,0
+  0x37050100,  // addi    x[1] = 0 + 1
+  0x13050501,  // auipc t0,0
+  0x93001000,  // addi    x[1] = 0 + 1
+  0x13044401,          	// addi	s0,s0,20  1
+  0x93871700,          	// addi	a5,a5,1
+  0x13050000,          	// li	a0,0			f000028
+  0x73001000  // ebreak (used ass npc_trap)
+};
+
+static inline bool in_flash(paddr_t addr) {
+  return addr < FLASH_SIZE;
+}
+
+uint8_t* guest_to_host_flash(paddr_t paddr) { 
+  // printf("pmem: 0x%08x\n",pmem);
+  // printf("paddr: 0x%08x\n",paddr);
+  // printf("CONFIG_MBASE: 0x%08x\n",CONFIG_MBASE);
+  return (uint8_t*)flash_space + paddr; 
+}
+
+void flash_data_fill() {
+  /* Load built-in image. */
+  memcpy(guest_to_host_flash(0), flash_data, sizeof(flash_data));
+}
+
+void init_flash(){
+    uint32_t *p = (uint32_t *)flash_space;
+    int i;
+    for (i = 0; i < (int) (FLASH_SIZE / sizeof(p[0])); i ++) {
+        flash_space[i] = 0;
+    }
+    flash_data_fill();
+	return ;
+}
+
+static inline word_t flash_data_get(void *addr, int len) {
+  switch (len) {
+    case 1: return *(uint8_t  *)addr;
+    case 2: return *(uint16_t *)addr;
+    case 4: return *(uint32_t *)addr;
+    IFDEF(CONFIG_ISA64, case 8: return *(uint64_t *)addr);
+    default: MUXDEF(CONFIG_RT_CHECK, assert(0), return 0);
+  }
+}
+
+static word_t pflash_read(paddr_t addr,int len) {
+  word_t ret = flash_data_get(guest_to_host_flash(addr), len);
+  return ret;
+}
+
+extern "C" void flash_read(int32_t addr, int32_t *data){
+  if (likely(in_flash(addr))) {
+    *data = pflash_read(addr,4);
+    // printf("NPC: flash_read ---  [addr: 0x%08x data: 0x%08x PC: 0x%08x]\n",addr + FLASH_ADDR,*data,cpu.pc);
+    // #ifdef CONFIG_MTRACE
+    // #endif
+    return;
+  }
+  out_of_bound_flash(addr);
+}
