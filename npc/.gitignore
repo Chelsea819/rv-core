@@ -7,8 +7,6 @@
 !*.v
 !*.cc
 !*.cpp
-!Kconfig
-!*.h
 !.gitignore
 !README.md
 build/

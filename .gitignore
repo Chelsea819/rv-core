@@ -13,4 +13,5 @@ npc/vsrc_ok
 /npc/include/config/rve.h
 /npc/include/config/wave.h
 /nemu/.history
+/npc/.history/
 /npc/vsrc.bnk
