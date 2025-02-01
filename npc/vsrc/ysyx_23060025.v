@@ -182,7 +182,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		[1:0]				clint_r_resp_i	;	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	wire		                	clint_r_valid_i	;
 	wire		                	clint_r_ready_o	;
-
+`ifdef N_YOSYS_STA_CHECK
 	// 检测到ebreak
     import "DPI-C" function void ifebreak_func(int inst);
     always @(*)
@@ -203,7 +203,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
         inst_get(inst);
 		// $display("io_master_awaddr = %x",io_master_awaddr);
 	end
-
+`endif
 
 	ysyx_23060025_cpu#(
 		.DATA_LEN            ( 32 ),

@@ -128,6 +128,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 					 (inst_i == `TYPE_I_MRET)  | 
 					 (inst_i == `TYPE_I_EBREAK));
 
+`ifdef N_YOSYS_STA_CHECK
 	import "DPI-C" function void inst_invalid_get(byte invalid);
 		always @(*) begin
 			// $display("pc = %x dpc = %x\n",pc,pc_next);
@@ -140,6 +141,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			ifu_p_counter_update();
 		end
 	end
+`endif
 
 	parameter [1:0] IFU_WAIT_ADDR_PASS = 2'b00, IFU_WAIT_READY = 2'b01, IFU_WAIT_FINISH = 2'b10, IFU_WAIT_INST_LOAD = 2'b11;
 

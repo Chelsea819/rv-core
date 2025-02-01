@@ -42,9 +42,12 @@ module ysyx_23060025_counter #(parameter ADDR_LEN = 32)(
 			pc <= pc_next;
 	end
 	
+`ifdef N_YOSYS_STA_CHECK
 	import "DPI-C" function void pc_get(int pc, int dnpc);
-		always @(*) begin
-			// $display("pc = %x dpc = %x",pc,pc_next);
-			pc_get(pc, pc_next);
-		end
+	always @(*) begin
+		// $display("pc = %x dpc = %x",pc,pc_next);
+		pc_get(pc, pc_next);
+	end
+`endif	
+	
 endmodule

@@ -2,6 +2,10 @@
 // DECODER
 `define PC_RESET_VAL    32'h3000_0000
 
+// if need yosys-sta check, delete dpi-c function
+// `define N_YOSYS_STA_CHECK 1'b1
+
+
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
 `define TYPE_R_SUB_FUNC  10'b000_010_0000

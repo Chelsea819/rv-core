@@ -112,6 +112,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
 	assign axi_w_last_o = `AXI_W_LAST_TRUE;
 
+`ifdef N_YOSYS_STA_CHECK
 	// 访问部分设备时。跳过ref的difftest检查
 	// 设备：UART
 	import "DPI-C" function void diff_skip();
@@ -121,6 +122,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			diff_skip();
 		end
 	end
+`endif
 
 
 	always @(*) begin

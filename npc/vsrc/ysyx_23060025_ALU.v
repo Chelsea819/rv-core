@@ -46,14 +46,17 @@ module ysyx_23060025_ALU #(parameter DATA_LEN = 32)(
 	Sub = 1 表示减法运算，此时CF = ~Cout
 	Sub = 0 表示加法运算，此时CF = Cout
 	 */
-
 	wire [31:0] get_second_cout;
-	assign get_second_cout = {1'b0, src1[30:0]} + (~{1'b1, src2[30:0]} + 1); // get the count to bit-31th
-	assign alu_zero_o = (sub_result == 32'b0);
-	assign result = result_tmp;
 	assign s_compare_result =  {{31{1'b0}}, ((get_second_cout[31] ^ sub_cout) != sub_result[31]) & ~alu_zero_o}; 
 	assign u_compare_result = {{31{1'b0}}, ~sub_cout};
+
 	assign {sub_cout, sub_result} = {1'b0, src1} + (~{1'b1, src2} + 1);
+	
+	assign get_second_cout = ({1'b0, src1[30:0]} + (~{1'b1, src2[30:0]} + 1)); // get the count to bit-31th
+	assign alu_zero_o = (sub_result == 32'b0);
+	assign result = result_tmp;
+	
+	
 	assign alu_less_o = (alu_control == `ALU_OP_LESS_SIGNED) ? s_compare_result[0] : 
 						(alu_control == `ALU_OP_LESS_UNSIGNED) ? u_compare_result[0] : 
 						result_tmp[31];

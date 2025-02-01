@@ -55,13 +55,14 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	assign pc_o  = pc_i;
 	assign csr_mcause_o  = 32'hb;
 
-
+`ifdef N_YOSYS_STA_CHECK
 	import "DPI-C" function void exu_p_counter_update();
 	always @(posedge clock) begin
 		if (con_state == EXU_WAIT_WB_READY) begin
 			exu_p_counter_update();
 		end
 	end
+`endif
 
 	reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
