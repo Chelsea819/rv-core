@@ -661,29 +661,45 @@ static void execute(uint64_t n) {
 // uint64_t idu_csr_p_counter = 0;
 // uint64_t idu_state_trans_p_counter = 0;
 
+// host time spent = 58,649,453 us
+// total guest instructions = 721,836
+// simulation frequency       = 12,307 inst/s
+// IPC                        = 0.035862 inst/cycle
+// CPI                        = 27.884979 cycle/inst
+// ifu_p_counter              = 721836	    inst
+// lsu_p_counter              = 182100	    inst
+// lsu_avg_delay_counter      = 15.769006	    cycle
+// exu_p_counter              = 721835	    inst
+// idu_count_p_counter        = 355176	    inst --	820627	     cycle/inst] --	204529%] [49.204529%]
+// idu_memory_p_counter       = 182100	    inst --	455673	     cycle/inst] --	227339%] [25.227339%]
+// idu_jmp_p_counter          = 184559	    inst --	195385	     cycle/inst] --	567997%] [25.567997%]
+// idu_csr_p_counter          = 0	    inst --	n	le/inst] --	00000%]                    [0.000000%]
+// idu_state_trans_p_counter  = 1	    inst --	.000000	     cycle/inst] --	00139%]      [0.000139%]
+// simulation frequency       = 343,198 cycle/s
+
 static void statistic()
 {
   // g_nr_guest_inst：执行的指令数
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
-  Log("host time spent = " NUMBERIC_FMT " us", g_timer);
-  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
+  printf("host time spent = " NUMBERIC_FMT " us", g_timer);
+  printf("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
   if (g_timer > 0){
-    Log("simulation frequency       = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
-    Log("IPC                        = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
-    Log("CPI                        = %f cycle/inst", (float)clk_cycle / g_nr_guest_inst); 
+    printf("simulation frequency       = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
+    printf("IPC                        = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
+    printf("CPI                        = %f cycle/inst", (float)clk_cycle / g_nr_guest_inst); 
 
-    Log("ifu_p_counter              = %lu\tinst", ifu_p_counter); 
-    Log("lsu_p_counter              = %lu\tinst", lsu_p_counter); 
-    Log("lsu_avg_delay_counter      = %f\tcycle", (float)lsu_delay_counter/lsu_p_counter); 
-    Log("exu_p_counter              = %lu\tinst", exu_p_counter); 
-    Log("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
-    Log("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
-    Log("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
-    Log("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
-    Log("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
+    printf("ifu_p_counter              = %lu\tinst", ifu_p_counter); 
+    printf("lsu_p_counter              = %lu\tinst", lsu_p_counter); 
+    printf("lsu_avg_delay_counter      = %f\tcycle", (float)lsu_delay_counter/lsu_p_counter); 
+    printf("exu_p_counter              = %lu\tinst", exu_p_counter); 
+    printf("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
+    printf("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
+    printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
+    printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
+    printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
 
-    Log("simulation frequency       = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
+    printf("simulation frequency       = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
   } 
   else
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");
