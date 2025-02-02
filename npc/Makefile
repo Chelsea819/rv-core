@@ -114,6 +114,8 @@ $(shell mkdir -p $(BUILD_DIR))
 
 IMG ?= char-test.bin
 
+PERF_IMG ?= $(WORK_DIR)/img/add-riscv32e-ysyxsoc.bin
+
 # riscv64-linux-gnu-gcc -fno-pic -march=rv32e_zicsr -mabi=ilp32e -mcmodel=medany -mstrict-align  -c char-test.c -o char-test.o
 # ld 
 # riscv64-linux-gnu-objcopy -S --set-section-flags .bss=alloc,contents -O binary char-test.o char-test.bin
@@ -126,6 +128,11 @@ run:$(BIN)
 gdb:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!
 	gdb -s $(EXE) --args $(EXE) $(ARGS) $(IMG)
+
+perf:$(BIN)
+	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!
+	$(EXE)  $(ARGS) $(PERF_IMG)
+
 
 .PHONY:wave clean sim default all run $(DIFF_REF_SO)
 

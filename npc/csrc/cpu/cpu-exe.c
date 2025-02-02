@@ -684,6 +684,7 @@ static void statistic()
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
   printf("host time spent = " NUMBERIC_FMT " us\n", g_timer);
   printf("total guest instructions = " NUMBERIC_FMT "\n", g_nr_guest_inst);
+  printf("total cycle = " NUMBERIC_FMT "\n", clk_cycle);
   if (g_timer > 0){
     printf("simulation frequency       = " NUMBERIC_FMT " inst/s\n", g_nr_guest_inst * 1000000 / g_timer);
     printf("IPC                        = %f inst/cycle  \n", (float)g_nr_guest_inst / clk_cycle); 
