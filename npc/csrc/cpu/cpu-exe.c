@@ -682,24 +682,24 @@ static void statistic()
   // g_nr_guest_inst：执行的指令数
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
-  printf("host time spent = " NUMBERIC_FMT " us", g_timer);
-  printf("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
+  printf("host time spent = " NUMBERIC_FMT " us\n", g_timer);
+  printf("total guest instructions = " NUMBERIC_FMT "\n", g_nr_guest_inst);
   if (g_timer > 0){
-    printf("simulation frequency       = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
-    printf("IPC                        = %f inst/cycle", (float)g_nr_guest_inst / clk_cycle); 
-    printf("CPI                        = %f cycle/inst", (float)clk_cycle / g_nr_guest_inst); 
+    printf("simulation frequency       = " NUMBERIC_FMT " inst/s\n", g_nr_guest_inst * 1000000 / g_timer);
+    printf("IPC                        = %f inst/cycle  \n", (float)g_nr_guest_inst / clk_cycle); 
+    printf("CPI                        = %f cycle/inst  \n", (float)clk_cycle / g_nr_guest_inst); 
 
-    printf("ifu_p_counter              = %lu\tinst", ifu_p_counter); 
-    printf("lsu_p_counter              = %lu\tinst", lsu_p_counter); 
-    printf("lsu_avg_delay_counter      = %f\tcycle", (float)lsu_delay_counter/lsu_p_counter); 
-    printf("exu_p_counter              = %lu\tinst", exu_p_counter); 
-    printf("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
-    printf("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
-    printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
-    printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
-    printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
+    printf("ifu_p_counter              = %lu\tinst\n", ifu_p_counter); 
+    printf("lsu_p_counter              = %lu\tinst\n", lsu_p_counter); 
+    printf("lsu_avg_delay_counter      = %f\tcycle\n", (float)lsu_delay_counter/lsu_p_counter); 
+    printf("exu_p_counter              = %lu\tinst\n", exu_p_counter); 
+    printf("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
+    printf("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
+    printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
+    printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
+    printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
 
-    printf("simulation frequency       = " NUMBERIC_FMT " cycle/s", clk_cycle * 1000000 / g_timer);
+    printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", clk_cycle * 1000000 / g_timer);
   } 
   else
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");

@@ -223,14 +223,6 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		.pc_new ( pc_plus_4  )
 	);
 
-	// always @(*) begin
-	// 	if(reset)
-	// 		addr_r_addr_o = 0;
-	// 	else if(addr_r_valid_o)
-	// 		addr_r_addr_o = pc;
-	// 	else 
-	// 		addr_r_addr_o = 0;
-	// end
 	assign addr_r_addr_o = pc;
 	assign id_inst_i = inst_i;
 

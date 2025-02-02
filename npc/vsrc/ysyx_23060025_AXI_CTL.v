@@ -269,9 +269,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		case(next_state)
 			AXI_CTL_IDLE: begin
 				if(con_state == AXI_CTL_BUSY_DATA) begin
-					data_r_data_o = axi_r_data_i;		
+					data_r_data_o <= axi_r_data_i;		
 				end else if(con_state == AXI_CTL_BUSY_INST) begin
-					inst_r_data_o = axi_r_data_i;
+					inst_r_data_o <= axi_r_data_i;
 				end
 			end
 			default: begin	
