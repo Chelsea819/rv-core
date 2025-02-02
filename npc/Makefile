@@ -114,7 +114,7 @@ $(shell mkdir -p $(BUILD_DIR))
 
 IMG ?= char-test.bin
 
-PERF_IMG ?= $(WORK_DIR)/img/add-riscv32e-ysyxsoc.bin
+PERF_IMG ?= $(WORK_DIR)/img/microbench-riscv32e-ysyxsoc.bin
 
 # riscv64-linux-gnu-gcc -fno-pic -march=rv32e_zicsr -mabi=ilp32e -mcmodel=medany -mstrict-align  -c char-test.c -o char-test.o
 # ld 
