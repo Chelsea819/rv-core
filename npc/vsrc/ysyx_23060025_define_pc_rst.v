@@ -1,0 +1,1 @@
+`define PC_RESET_VAL    32'h3000_0000
