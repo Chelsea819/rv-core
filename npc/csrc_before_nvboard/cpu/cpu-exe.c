@@ -362,7 +362,7 @@ static void exec_once()
     printf("\nebreak!\n");
     // printf("ebreak: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst);
     // set_npc_state(NPC_STOP, cpu.pc, 0);ifbreak = false;
-    NPCTRAP(cpu.pc, dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_RegisterFile__DOT__rf[10]);
+    NPCTRAP(cpu.pc, R(10));
   }
 
   #if (defined CONFIG_TRACE) || (defined CONFIG_TRACE)

@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "reg.h"

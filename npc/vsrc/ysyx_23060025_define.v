@@ -1,6 +1,5 @@
 `include "ysyx_23060025_define_axi.v"
-// DECODER
-`define PC_RESET_VAL    32'h3000_0000
+`include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
 `define N_YOSYS_STA_CHECK 1'b1

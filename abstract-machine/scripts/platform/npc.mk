@@ -12,14 +12,14 @@ AM_SRCS := riscv/npc/start.S \
 ALL ?= $(NAME)
 BUILD_DIR = $(shell dirname $(IMAGE).elf)
 CFLAGS    += -fdata-sections -ffunction-sections
-LDFLAGS   += -T $(AM_HOME)/scripts/linker.ld \
-						 --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
+LDFLAGS   += -T $(AM_HOME)/scripts/linker-npc.ld \
+						 --defsym=_pmem_start=0x80000000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 
 NPCFLAGS += --log=$(shell dirname $(IMAGE).elf)/npc-log.txt #--batch
 NPCFLAGS += $(ARGS_DIFF)
-NPCFLAGS += --ftrace=$(shell dirname $(IMAGE).elf)/$(ALL)-$(ARCH).elf --diff=$(NPC_HOME)/diff-ref/riscv32-nemu-interpreter-so
+NPCFLAGS += --ftrace=$(shell dirname $(IMAGE).elf)/$(ALL)-$(ARCH).elf --diff=$(NPC_RARE_HOME)/diff-ref/riscv32-nemu-interpreter-so
 
 CFLAGS += -I$(AM_HOME)/am/include -I$(AM_HOME)/am/src/riscv/npc/libgcc -I$(AM_HOME)/am/src/riscv/npc/include
 
@@ -28,16 +28,14 @@ CFLAGS += -I$(AM_HOME)/am/include -I$(AM_HOME)/am/src/riscv/npc/libgcc -I$(AM_HO
 image: $(IMAGE).elf
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S -O binary $(IMAGE).elf $(IMAGE).bin
-# @$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 gdb: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) gdb ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin  BUILD_DIR="$(BUILD_DIR)"
+	$(MAKE) -C $(NPC_RARE_HOME) ISA=$(ISA) gdb ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin  BUILD_DIR="$(BUILD_DIR)"
 
 run: image
-# $(info DIFF_REF_SO:$(DIFF_REF_SO))
-# $(info ARGS_DIFF:$(ARGS_DIFF)) 
-# $(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
-	bear --output ~/ysyx-workbench/.vscode/compile_commands.json -- $(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
-# bear --output ~/ysyx-workbench/npc/build/compile_commands.json -- $(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
-
+	$(info DIFF_REF_SO:$(DIFF_REF_SO))
+	$(info ARGS_DIFF:$(ARGS_DIFF)) 
+# $(MAKE) -C $(NPC_RARE_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_RARE_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+# bear --output ~/ysyx-workbench/npc/build/compile_commands.json -- $(MAKE) -C $(NPC_RARE_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin

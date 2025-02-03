@@ -41,3 +41,10 @@ run: image
 	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
 # bear --output ~/ysyx-workbench/npc/build/compile_commands.json -- $(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
 
+$(shell dirname $(IMAGE).elf)/ysyxsoc-log_analysis.png: image
+	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	python3 $(AM_HOME)/mtrace.py $(shell dirname $(IMAGE).elf)/ysyxsoc-log.txt
+
+
+mtrace: $(shell dirname $(IMAGE).elf)/ysyxsoc-log_analysis.png
+	xdg-open $(shell dirname $(IMAGE).elf)/ysyxsoc-log_analysis.png

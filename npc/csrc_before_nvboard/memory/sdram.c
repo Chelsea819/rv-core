@@ -34,9 +34,6 @@ void init_sdram() {
 extern "C" void sdram_read(int32_t addr, int32_t *data, char mask) {
     addr = addr & 0x03ffffff;
     *data = host_read(guest_to_sdram(addr), 2);
-    // uint32_t tmp = *data;
-    // *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
-    // Log("sdram_read ---  [addr: 0x%08x rdata: 0x%08x pc: 0x%08x]", addr, *data, cpu.pc);
 #ifdef CONFIG_MTRACE
     Log("sdram_read ---  [addr: 0x%08x rdata: 0x%08x pc: 0x%08x]", addr, *data, cpu.pc);
 #endif
@@ -46,10 +43,6 @@ extern "C" void sdram_write(int32_t addr, int32_t data, char mask) {
     // d = 0b1101
     addr = addr & 0x03ffffff;
     uint8_t mask_t = (uint8_t)mask;
-    // uint32_t tmp = data;
-    // printf("len = %d", (int)(len));
-    // data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
-    // Log("sdram_write ---  [addr: 0x%08x data: 0x%08x pc: 0x%08x mask: %x]", addr, data, cpu.pc, mask_t);
 #ifdef CONFIG_MTRACE
     Log("sdram_write ---  [addr: 0x%08x data: 0x%08x pc: 0x%08x mask: %x]", addr, data, cpu.pc, mask_t);
 #endif

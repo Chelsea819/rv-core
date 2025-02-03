@@ -52,7 +52,6 @@ VSRCS = $(shell find $(abspath ./vsrc) -name "*.v") $(shell find -L $(YSYXSOC_HO
 SRCS = $(CXXSRC) $(CSRCS)
 
 
-NXDC_FILES = constr/ysyx_23060025_top.nxdc
 INC_PATH += $(NPC_HOME)/include 
 
 VERILATOR_INC_PATH = $(NPC_HOME)/vsrc/  $(YSYXSOC_HOME)/perip/uart16550/rtl $(YSYXSOC_HOME)/perip/spi/rtl

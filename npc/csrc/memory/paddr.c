@@ -65,51 +65,17 @@ extern "C" int pmem_read_task(int raddr, char wmask) {
   #endif
   return vaddr_read((paddr_t)raddr, 4);
 }
-// extern "C" void pmem_write_task(int waddr, int wdata, char wmask) {
-//   // 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
-//   // `wmask`中每比特表示`wdata`中1个字节的掩码,
-//   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
-//   // printf("pmem_write_task pc = 0x%08x\n",cpu.pc);
-//   // printf("wmask = 0x%01u\n",wmask);
-//   // printf("waddr = 0x%08x\n",(paddr_t)waddr);
-//   // printf("wdata = 0x%08x\n",(paddr_t)wdata);
-//   if (wmask == 0) {
-//       return;
-//     }
-//   #ifdef CONFIG_DEVICE
-//     #ifdef CONFIG_SERIAL_MMIO 
-//       if(waddr == CONFIG_SERIAL_MMIO) {
-//       // assert(0);
-//     // Log("Write device --- [addr: 0x%08x data: 0x%08x]",waddr,wdata);
-//     // putchar(wdata);
-//     }
-//     #endif
-//   #endif
-//   // else {
-//     int len = 0; 
-//     switch (wmask){
-//       case 0x1: len = 1; break;
-//       case 0x2: len = 2; break;
-//       case 0x4: len = 4; break;
-//       IFDEF(CONFIG_ISA64, case 0x8: len = 8; return);
-//       IFDEF(CONFIG_RT_CHECK, default: assert(0));
-//     }
-//     vaddr_write((vaddr_t)waddr, (vaddr_t)len, (word_t)wdata);
-//   // }
-// }
+
 
 static word_t pmem_read(paddr_t addr,int len) {
   word_t ret = host_read(guest_to_host(addr), len);
   return ret;
 }
 
-// static void pmem_write(paddr_t addr, int len, word_t data) {
-//   host_write(guest_to_host(addr), len, data);
-// }
 
 static void out_of_bound(paddr_t addr) {
-  // panic("address = " FMT_PADDR " is out of bound of psram [" FMT_PADDR ", " FMT_PADDR "] or flash [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
-  //     addr, PSRAM_LEFT, PSRAM_RIGHT, FLASH_LEFT, FLASH_RIGHT, cpu.pc);
+  panic("address = " FMT_PADDR " is out of bound of psram [" FMT_PADDR ", " FMT_PADDR "] or flash [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+      addr, PSRAM_LEFT, PSRAM_RIGHT, FLASH_LEFT, FLASH_RIGHT, cpu.pc);
 }
 
 static void out_of_bound_flash(paddr_t addr) {
@@ -131,16 +97,12 @@ void init_mem(){
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 
 
-extern "C" void flash_read(int32_t addr, int32_t *data) {
+void flash_read(int32_t addr, int32_t *data) {
   // printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
-    // uint32_t tmp = *data;
-    // printf("flash_read [0x%08x\n",tmp);
-    // *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
-    // printf("flash_read ---  [addr: 0x%08x rdata: 0x%08x]\n", addr, *data);
 #ifdef CONFIG_MTRACE
-    
+      Log("flash_read ---  [addr: 0x%08x rdata: 0x%08x pc: 0x%08x]", addr, *data, cpu.pc);
 #endif
     return;
   }
@@ -149,16 +111,8 @@ extern "C" void flash_read(int32_t addr, int32_t *data) {
 }
 
 void flash_read_sdb(int32_t addr, int32_t *data, int len) {
-  // printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, len);
-    // uint32_t tmp = *data;
-    // printf("flash_read [0x%08x\n",tmp);
-    // *data = (BITS(tmp,7,0) << 24) | (BITS(tmp,15,8) << 16) | (BITS(tmp,23,16) << 8) | (BITS(tmp,31,24));
-    // printf("flash_read ---  [addr: 0x%08x rdata: 0x%08x]\n", addr, *data);
-#ifdef CONFIG_MTRACE
-    
-#endif
     return;
   }
   out_of_bound_flash(addr);
@@ -179,22 +133,6 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
   return;
 }
 
-// vaddr_t paddr_read(paddr_t addr,int len) {
-//   printf("paddr_read\n");
-// 	if (likely(in_pmem(addr))) {
-//     word_t rdata = pmem_read(addr,len);
-//     Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
-//     #ifdef CONFIG_MTRACE
-//       // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
-//     #endif
-//     return rdata;
-//   }
-//   // printf("read device\n");
-//   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
-//   // printf("read device---out of bound\n");
-//   out_of_bound(addr);
-//   return 0;
-// }
 void psram_read(int32_t addr, int32_t *data);
 void psram_read_sdb(int32_t addr, int32_t *data, int len);
 vaddr_t paddr_read(paddr_t addr,int len) {
@@ -203,9 +141,9 @@ vaddr_t paddr_read(paddr_t addr,int len) {
     addr = addr & 0x1fffffff;
     int32_t rdata = 0;
     psram_read_sdb(addr,&rdata,len);
-    Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+    // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
-      // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+      Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
     switch (len) {
       case 1: return rdata & 0x000000ff;
@@ -218,9 +156,9 @@ vaddr_t paddr_read(paddr_t addr,int len) {
     addr = addr & 0x03ffffff;
     int32_t rdata = 0;
     sdram_read_sdb(addr,&rdata,len);
-    Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
+    // Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
-      // Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+      Log("sdram_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
     switch (len) {
       case 1: return rdata & 0xff000000;
@@ -233,9 +171,9 @@ vaddr_t paddr_read(paddr_t addr,int len) {
     addr = addr & 0x0fffffff;
     int32_t rdata = 0;
     flash_read_sdb(addr,&rdata,len);
-    Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
+    // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%x]",addr,len,rdata);
     #ifdef CONFIG_MTRACE
-      // Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
+      Log("paddr_read ---  [addr: 0x%08x len: %d rdata: 0x%08x]",addr,len,rdata);
     #endif
     switch (len) {
       case 1: return rdata & 0xff000000;
@@ -252,16 +190,3 @@ vaddr_t paddr_read(paddr_t addr,int len) {
   return 0;
 }
 
-// void paddr_write(vaddr_t addr, vaddr_t len, word_t data) {
-//   printf("write device\n");
-//   #ifdef CONFIG_MTRACE
-//   // Log("paddr_write --- [addr: 0x%08x len: %d data: 0x%08x]",addr,len,data);
-//   #endif
-//   if (likely(in_pmem(addr))) { return pmem_write(addr, len, data);}
-//   // printf("write device\n");
-
-//   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
-//   // printf("paddr_write device---out of bound\n");
-
-//   out_of_bound(addr);
-// }

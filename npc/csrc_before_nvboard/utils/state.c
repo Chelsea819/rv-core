@@ -13,7 +13,6 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <cstdio>
 #include <utils.h>
 
 NPCState npc_state = { .state = NPC_STOP };
