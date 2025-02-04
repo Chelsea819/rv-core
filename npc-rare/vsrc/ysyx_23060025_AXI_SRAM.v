@@ -17,7 +17,7 @@ module ysyx_23060025_AXI_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		                		addr_r_ready_o,
 
 	// Read data
-	output	reg	[DATA_LEN - 1:0]		r_data_o	,
+	output		[DATA_LEN - 1:0]		r_data_o	,
 	output		[1:0]					r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		r_valid_o	,
 	input		                		r_ready_i	,
@@ -112,14 +112,7 @@ module ysyx_23060025_AXI_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		.mem_rdata_usigned_o (  r_data	)
 	);
 
-	always @(*) begin
-		if(~rstn) begin
-			r_data_o = 0;
-		end else if(con_state == STATE_READ && next_state == STATE_IDLE) begin
-			r_data_o = r_data;
-		end else 
-			r_data_o = 0;
-	end
+	assign r_data_o = r_data;
 
 	
 

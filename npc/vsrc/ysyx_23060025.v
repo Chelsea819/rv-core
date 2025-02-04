@@ -201,39 +201,81 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	end
 `endif
 
-	ysyx_23060025_cpu#(
-		.DATA_LEN            ( 32 ),
-		.ADDR_LEN 	         ( 32 )
-	)ysyx_23060025_cpu(
-		.clock               ( clock                 ),
-		.reset               ( reset                 ),
-		.inst_addr_r_addr_o	 ( inst_addr_r_addr_o  ),
-		.inst_addr_r_valid_o ( inst_addr_r_valid_o ),
-		.inst_addr_r_ready_i ( inst_addr_r_ready_i ),
-		.inst_r_resp_i       ( inst_r_resp_i       ),
-		.inst_r_valid_i      ( inst_r_valid_i      ),
-		.inst_r_ready_o      ( inst_r_ready_o      ),
-		.data_addr_r_addr_o  ( data_addr_r_addr_o  ),
-		.data_addr_r_valid_o ( data_addr_r_valid_o ),
-		.data_addr_r_size_o  ( data_addr_r_size_o  ),
-		.data_addr_r_ready_i ( data_addr_r_ready_i ),
-		.data_r_data_i       ( data_r_data_i       ),
-		.data_r_resp_i       ( data_r_resp_i       ),
-		.data_r_valid_i      ( data_r_valid_i      ),
-		.data_r_ready_o      ( data_r_ready_o      ),
-		.data_addr_w_addr_o  ( data_addr_w_addr_o  ),
-		.data_addr_w_valid_o ( data_addr_w_valid_o ),
-		.data_addr_w_ready_i ( data_addr_w_ready_i ),
-		.data_addr_w_size_o  ( data_addr_w_size_o  ),
-		.data_w_data_o       ( data_w_data_o       ),
-		.data_w_strb_o       ( data_w_strb_o       ),
-		.data_w_valid_o      ( data_w_valid_o      ),
-		.data_w_ready_i      ( data_w_ready_i      ),
-		.data_bkwd_resp_i    ( data_bkwd_resp_i    ),
-		.data_bkwd_valid_i   ( data_bkwd_valid_i   ),
-		.data_bkwd_ready_o   ( data_bkwd_ready_o   ),
-		.inst_i              ( inst              )
+	// ysyx_23060025_cpu#(
+	// 	.DATA_LEN            ( 32 ),
+	// 	.ADDR_LEN 	         ( 32 )
+	// )ysyx_23060025_cpu(
+	// 	.clock               ( clock                 ),
+	// 	.reset               ( reset                 ),
+	// 	.inst_addr_r_addr_o	 ( inst_addr_r_addr_o  ),
+	// 	.inst_addr_r_valid_o ( inst_addr_r_valid_o ),
+	// 	.inst_r_valid_i      ( inst_r_valid_i      ),
+	// 	.inst_r_ready_o      ( inst_r_ready_o      ),
+
+	// 	.data_addr_r_addr_o  ( data_addr_r_addr_o  ),
+	// 	.data_addr_r_valid_o ( data_addr_r_valid_o ),
+	// 	.data_addr_r_size_o  ( data_addr_r_size_o  ),
+	// 	.data_addr_r_ready_i ( data_addr_r_ready_i ),
+	// 	.data_r_data_i       ( data_r_data_i       ),
+	// 	.data_r_resp_i       ( data_r_resp_i       ),
+	// 	.data_r_valid_i      ( data_r_valid_i      ),
+	// 	.data_r_ready_o      ( data_r_ready_o      ),
+	// 	.data_addr_w_addr_o  ( data_addr_w_addr_o  ),
+	// 	.data_addr_w_valid_o ( data_addr_w_valid_o ),
+	// 	.data_addr_w_ready_i ( data_addr_w_ready_i ),
+	// 	.data_addr_w_size_o  ( data_addr_w_size_o  ),
+	// 	.data_w_data_o       ( data_w_data_o       ),
+	// 	.data_w_strb_o       ( data_w_strb_o       ),
+	// 	.data_w_valid_o      ( data_w_valid_o      ),
+	// 	.data_w_ready_i      ( data_w_ready_i      ),
+	// 	.data_bkwd_resp_i    ( data_bkwd_resp_i    ),
+	// 	.data_bkwd_valid_i   ( data_bkwd_valid_i   ),
+	// 	.data_bkwd_ready_o   ( data_bkwd_ready_o   ),
+	// 	.inst_i              ( inst              )
+	// );
+
+	// outports wire
+	wire                	inst_addr_rlast_i;
+	wire [7:0]          	inst_addr_rlen_o;
+	wire [2:0]          	inst_addr_rsize_o;
+
+	ysyx_23060025_cpu #(
+		.DATA_LEN 	( 32  ),
+		.ADDR_LEN 	( 32  ))
+	ysyx_23060025_cpu(
+		.clock               	( clock                ),
+		.reset               	( reset                ),
+		.inst_addr_r_addr_o  	( inst_addr_r_addr_o   ),
+		.inst_addr_r_valid_o 	( inst_addr_r_valid_o  ),
+		.inst_addr_rlast_i   	( inst_addr_rlast_i    ),
+		.inst_addr_rready_i   	( inst_addr_r_ready_i    ),
+		.inst_addr_rlen_o    	( inst_addr_rlen_o     ),
+		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
+		.inst_r_valid_i      	( inst_r_valid_i       ),
+		.inst_r_ready_o      	( inst_r_ready_o       ),
+
+		.data_addr_r_addr_o  	( data_addr_r_addr_o   ),
+		.data_addr_r_valid_o 	( data_addr_r_valid_o  ),
+		.data_addr_r_ready_i 	( data_addr_r_ready_i  ),
+		.data_addr_r_size_o  	( data_addr_r_size_o   ),
+		.data_r_data_i       	( data_r_data_i        ),
+		.data_r_resp_i       	( data_r_resp_i        ),
+		.data_r_valid_i      	( data_r_valid_i       ),
+		.data_r_ready_o      	( data_r_ready_o       ),
+		.data_addr_w_addr_o  	( data_addr_w_addr_o   ),
+		.data_addr_w_valid_o 	( data_addr_w_valid_o  ),
+		.data_addr_w_ready_i 	( data_addr_w_ready_i  ),
+		.data_addr_w_size_o  	( data_addr_w_size_o   ),
+		.data_w_data_o       	( data_w_data_o        ),
+		.data_w_strb_o       	( data_w_strb_o        ),
+		.data_w_valid_o      	( data_w_valid_o       ),
+		.data_w_ready_i      	( data_w_ready_i       ),
+		.data_bkwd_resp_i    	( data_bkwd_resp_i     ),
+		.data_bkwd_valid_i   	( data_bkwd_valid_i    ),
+		.data_bkwd_ready_o   	( data_bkwd_ready_o    ),
+		.inst_i              	( inst		           )
 	);
+
 
 	ysyx_23060025_AXI_CTL#(
 		.ADDR_LEN            ( 32 ),
@@ -244,6 +286,10 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_r_addr_i  ( inst_addr_r_addr_o  ),
 		.inst_addr_r_valid_i ( inst_addr_r_valid_o ),
 		.inst_addr_r_ready_o ( inst_addr_r_ready_i ),
+		.inst_addr_rlast_i   ( inst_addr_rlast_i    ),
+		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
+		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
+
 		.inst_r_data_o       ( inst       		   ),
 		.inst_r_resp_o       ( inst_r_resp_i       ),
 		.inst_r_valid_o      ( inst_r_valid_i      ),

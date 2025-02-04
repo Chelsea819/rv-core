@@ -108,14 +108,14 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	always @(*) begin
 		case(con_state) 
 			WAIT_ADDR: begin
-				if (addr_r_ready_o & addr_r_valid_i) begin
+				if (addr_r_valid_i) begin
 					next_state = WAIT_DATA_GET;
 				end else begin 
 					next_state = WAIT_ADDR;
 				end
 			end
 			WAIT_DATA_GET: begin
-				if (r_ready_i & r_valid_o & ~|r_resp_o) begin
+				if (r_ready_i) begin
 					next_state = WAIT_ADDR;
 				end else begin 
 					next_state = WAIT_DATA_GET;

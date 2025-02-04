@@ -24,7 +24,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 
 	// Read data
-	output	reg	[DATA_LEN - 1:0]		axi_ctl_r_data_o	,
+	output		[DATA_LEN - 1:0]		axi_ctl_r_data_o	,
 	output		[1:0]					axi_ctl_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		axi_ctl_r_valid_o	,
 	input		                		axi_ctl_r_ready_i	,

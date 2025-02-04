@@ -1,6 +1,6 @@
 *.*
 *
-npc/vsrc_ok
+/npc/vsrc_ok
 /fceux-am
 /nvboard
 /am-kernels
@@ -15,3 +15,10 @@ npc/vsrc_ok
 /nemu/.history
 /npc/.history/
 /npc/vsrc.bnk
+/npc/include/generated/
+/npc/obj_dir/
+/npc/vsrc_ok/
+/npc/vsrc.bnk/
+/npc/vsrc-0203/
+/npc/vsrc-0204-aftermodify/
+/npc/.gitignore

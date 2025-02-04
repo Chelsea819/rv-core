@@ -5,7 +5,6 @@
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-/* verilator lint_off UNOPTFLAT */
 /* 当多个master同时访问同一个slave时, 获得访问权的master将得到放行, 可以成功访问slave; 
  其他master的请求将阻塞在仲裁器, 等待获得访问权的master访问结束后, 它们才能获得接下来的访问权. */
 `include "ysyx_23060025_define.v"
@@ -18,6 +17,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		[ADDR_LEN - 1:0]		inst_addr_r_addr_i,
 	input		                		inst_addr_r_valid_i,
 	output		                		inst_addr_r_ready_o,
+	output		       					inst_addr_rlast_i	,
+	input		[7:0]  					inst_addr_rlen_o	,
+	input		[2:0]  					inst_addr_rsize_o	,
 	// input		[3:0]                	inst_addr_r_id_i,	// 谁发出的读请求
 
 	// Read data
@@ -104,11 +106,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	reg 				 					axi_device_tmp;
 
 	assign axi_addr_r_len_o = 0;
-	assign axi_addr_r_size_o = `AXI_ADDR_SIZE_4;
 	assign axi_addr_r_burst_o = `AXI_ADDR_BURST_FIXED;
 	
 	assign axi_addr_w_len_o = 0;
-	assign axi_addr_w_size_o = `AXI_ADDR_SIZE_4;
 	assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
 	assign axi_w_last_o = `AXI_W_LAST_TRUE;
 
@@ -232,7 +232,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			= (next_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i,
 													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i,
 													data_w_valid_i} : 
-				(next_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, `AXI_ADDR_SIZE_4,
+				(next_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o,
 													1'b0, 4'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;
@@ -244,21 +244,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		axi_w_strb_o		= 0;
 		case(next_state)
 			AXI_CTL_BUSY_INST: begin
-				if(con_state == STATE_IDLE) begin
-					axi_addr_r_addr_o	= inst_addr_r_addr_i;
-					axi_addr_w_addr_o	= 0;
-					axi_w_data_o		= 0;
-					axi_w_strb_o		= 0;
-				end
+				axi_addr_r_addr_o	= inst_addr_r_addr_i;
 			end
-
 			AXI_CTL_BUSY_DATA: begin
-				if(con_state == STATE_IDLE) begin
-					axi_addr_r_addr_o	= data_addr_r_addr_i;
-					axi_addr_w_addr_o	= data_addr_w_addr_i;
-					axi_w_data_o		= data_w_data_i;
-					axi_w_strb_o		= data_w_strb_i;
-				end
+				axi_addr_r_addr_o	= data_addr_r_addr_i;
+				axi_addr_w_addr_o	= data_addr_w_addr_i;
+				axi_w_data_o		= data_w_data_i;
+				axi_w_strb_o		= data_w_strb_i;
 			end
 			default: begin 
 			end
@@ -269,4 +261,3 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign inst_r_data_o = axi_r_data_i;
 
 endmodule
-/* verilator lint_on UNOPTFLAT */

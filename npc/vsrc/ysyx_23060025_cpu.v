@@ -7,11 +7,15 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// Addr Read
 	output		[ADDR_LEN - 1:0]		inst_addr_r_addr_o,
 	output		                		inst_addr_r_valid_o,
-	input		                		inst_addr_r_ready_i,
+	input		       					inst_addr_rlast_i	,
+	input		       					inst_addr_rready_i,
+	output		[7:0]  					inst_addr_rlen_o	,
+	output		[2:0]  					inst_addr_rsize_o	,
+	// input		                		inst_addr_r_ready_i,
 
 	// Read data
 	// input		[DATA_LEN - 1:0]		inst_r_data_i	,
-	input		[1:0]					inst_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
+	// input		[1:0]					inst_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		inst_r_valid_i	,
 	output		                		inst_r_ready_o	,
 
@@ -175,36 +179,89 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	end
 `endif 
 
-ysyx_23060025_IFU#(
-    .ADDR_WIDTH       ( 32 ),
-    .DATA_WIDTH       ( 32 )
-)ysyx_23060025_IFU(
-    .clock              ( clock              ),
-    .reset              ( reset              ),
-	.addr_r_addr_o    ( inst_addr_r_addr_o              ),		
-    .addr_r_valid_o   ( inst_addr_r_valid_o              ),
-    .addr_r_ready_i   ( inst_addr_r_ready_i              ),
-    // .r_data_i         ( inst_i              ),
-    .r_resp_i         ( inst_r_resp_i              ),
-    .r_valid_i        ( inst_r_valid_i              ),
-    .r_ready_o        ( inst_r_ready_o              ),
+
+// ysyx_23060025_IFU#(
+//     .ADDR_WIDTH       ( 32 ),
+//     .DATA_WIDTH       ( 32 )
+// )ysyx_23060025_IFU(
+//     .clock              ( clock              ),
+//     .reset              ( reset              ),
+// 	.addr_r_addr_o    ( inst_addr_r_addr_o              ),		
+//     .addr_r_valid_o   ( inst_addr_r_valid_o              ),
+//     .addr_r_ready_i   ( inst_addr_r_ready_i              ),
+//     // .r_data_i         ( inst_i              ),
+//     .r_resp_i         ( inst_r_resp_i              ),
+//     .r_valid_i        ( inst_r_valid_i              ),
+//     .r_ready_o        ( inst_r_ready_o              ),
 	
 
-    .valid            ( ifu_valid_o           ),
-    .last_finish      ( if_last_finish_i    ),
-    // .ready            ( idu_ready_o 			),
-    .branch_request_i ( if_branch_request_i ),
-	.branch_target_i  ( if_branch_target_i  ),
-	.branch_flag_i    ( |if_branch_type_i    ),
-	.jmp_flag_i  	  ( if_jmp_flag_i  ),
-	.jmp_target_i     ( if_jmp_target_i    ),
-	.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
-	.csr_pc_i         ( if_csr_pc_i      ),
-	.addr_r_data_i           ( inst_i           ),
-	.id_inst_i        ( id_inst_i           ),
-    // .inst_invalid_o   ( invalid           ),
-    .pc               ( id_pc_i             )
-);
+//     .valid            ( ifu_valid_o           ),
+//     .last_finish      ( if_last_finish_i    ),
+//     // .ready            ( idu_ready_o 			),
+//     .branch_request_i ( if_branch_request_i ),
+// 	.branch_target_i  ( if_branch_target_i  ),
+// 	.branch_flag_i    ( |if_branch_type_i    ),
+// 	.jmp_flag_i  	  ( if_jmp_flag_i  ),
+// 	.jmp_target_i     ( if_jmp_target_i    ),
+// 	.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
+// 	.csr_pc_i         ( if_csr_pc_i      ),
+// 	.addr_r_data_i           ( inst_i           ),
+// 	.id_inst_i        ( id_inst_i           ),
+//     // .inst_invalid_o   ( invalid           ),
+//     .pc               ( id_pc_i             )
+// );
+
+	// outports wire
+	wire [DATA_LEN-1:0] 	icache_r_data;
+	wire [ADDR_LEN-1:0] 	icache_addr_r_addr;
+	wire                  	icache_addr_r_sel;
+	wire                  	icache_r_ready;
+
+	ysyx_23060025_IFU #(
+		.ADDR_WIDTH       ( 32 ),
+    	.DATA_WIDTH       ( 32 ))
+	u_ysyx_23060025_IFU(
+		.clock            	( clock             ),
+		.reset            	( reset             ),
+		.last_finish      	( if_last_finish_i       ),
+		.valid            	( ifu_valid_o             ),
+
+		.branch_request_i ( if_branch_request_i ),
+		.branch_target_i  ( if_branch_target_i  ),
+		.branch_flag_i    ( |if_branch_type_i    ),
+		.jmp_flag_i  	  ( if_jmp_flag_i  ),
+		.jmp_target_i     ( if_jmp_target_i    ),
+		.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
+		.csr_pc_i         ( if_csr_pc_i      ),
+
+		.id_inst_i        	( id_inst_i         ),
+		.pc               	( id_pc_i           ),
+
+		.out_paddr    		( icache_addr_r_addr     ),
+		.out_psel   		( icache_addr_r_sel    ),
+		.out_pready   		( icache_r_ready    ),
+		.out_prdata         ( icache_r_data          )
+	);
+
+
+	ysyx_23060025_icache u_ysyx_23060025_icache(
+		.clock       	( clock        ),
+		.reset       	( reset        ),
+		.in_paddr    	( icache_addr_r_addr     ),
+		.in_psel     	( icache_addr_r_sel      ),
+		.in_pready   	( icache_r_ready    ),
+		.in_prdata   	( icache_r_data    ),
+		.out_araddr  	( inst_addr_r_addr_o   ),
+		.out_arvalid 	( inst_addr_r_valid_o  ),
+		.out_arlast  	( inst_addr_rlast_i   ),
+		.out_arready  	( inst_addr_rready_i   ),
+		.out_arlen   	( inst_addr_rlen_o    ),
+		.out_arsize  	( inst_addr_rsize_o   ),
+		.out_rvalid  	( inst_r_valid_i   ),
+		.out_rdata   	( inst_i    ),
+		.out_rready  	( inst_r_ready_o   )
+	);
+
 
 
 	ysyx_23060025_RegisterFile ysyx_23060025_RegisterFile(
