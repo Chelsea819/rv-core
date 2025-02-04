@@ -10,9 +10,7 @@
 module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									clock				,
 	input									reset				,
-
     // hand signal
-	// input									ready			,
 	input									last_finish		,
 	output	reg								valid	        ,
 
@@ -24,13 +22,10 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
     input       [31:0]                   	jmp_target_i    ,
 	input									csr_jmp_i	    ,
 	input		[ADDR_WIDTH - 1:0]			csr_pc_i	    ,
-	// input 		[DATA_WIDTH - 1:0]			inst_i		,
 
     // get instruction
-	// output									ce		,
-    input		[DATA_WIDTH - 1:0]			inst_i	,
-    // output reg								inst_invalid_o	,
-    output reg	[DATA_WIDTH - 1:0]			id_inst_i	,
+    input		[DATA_WIDTH - 1:0]			addr_r_data_i	,
+    output 		[DATA_WIDTH - 1:0]			id_inst_i	,
 	output reg	[ADDR_WIDTH - 1:0]			pc			,
 
 	// IFU-AXI
@@ -40,7 +35,6 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input		                		addr_r_ready_i,
 
 	// Read data
-	// input		[DATA_WIDTH - 1:0]		r_data_i	,
 	input		[1:0]					r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		r_valid_i	,
 	output		                		r_ready_o	
@@ -48,9 +42,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	wire		[ADDR_WIDTH - 1:0]	        pc_plus_4	;
 	reg			[1:0]				        con_state	;
 	reg			[1:0]			        	next_state	;
-	wire									r_inst_en	;
 	wire									inst_invalid;
-	reg			[31:0]						jmp_target_reg;
+	reg 		[DATA_WIDTH - 1:0]			inst_reg	;
 
 	// delay test
 `ifdef DELAY_TEST
@@ -69,7 +62,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		always @(posedge clock ) begin
 			if (reset) 
 				RANDOM_DELAY <= 4'b1;
-			else if((con_state == IFU_WAIT_FINISH && next_state == IFU_WAIT_ADDR_PASS) || (con_state == IFU_WAIT_ADDR_PASS && next_state == IFU_WAIT_INST_LOAD))
+			else if((con_state == IFU_WAIT_FINISH && next_state == STATE_IDLE) || (con_state == STATE_IDLE && next_state == STATE_READ))
 				RANDOM_DELAY <= delay_num;
 		end
 
@@ -83,52 +76,55 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg			[3:0]		addr_r_valid_delay;
 	reg			[3:0]		r_ready_delay;
 
-	// assign addr_r_valid_o = (con_state == IFU_WAIT_ADDR_PASS) & ~reset & (addr_r_valid_delay == RANDOM_DELAY);
-	assign addr_r_valid_o = (con_state == IFU_WAIT_ADDR_PASS) & ~reset;
-	assign r_ready_o = (con_state == IFU_WAIT_INST_LOAD) & (r_ready_delay == RANDOM_DELAY);
+	// assign addr_r_valid_o = (con_state == STATE_IDLE) & ~reset & (addr_r_valid_delay == RANDOM_DELAY);
+	assign addr_r_valid_o = (con_state == STATE_IDLE) & ~reset;
+	assign r_ready_o = (con_state == STATE_READ) & (r_ready_delay == RANDOM_DELAY);
 
 	// r addr delay
 	always @(posedge clock ) begin
-		if (next_state == IFU_WAIT_ADDR_PASS && (addr_r_valid_delay != RANDOM_DELAY || addr_r_valid_delay == 0))
+		if (next_state == STATE_IDLE && (addr_r_valid_delay != RANDOM_DELAY || addr_r_valid_delay == 0))
 			addr_r_valid_delay <= addr_r_valid_delay + 1;
-		else if(next_state == IFU_WAIT_ADDR_PASS && addr_r_valid_delay == RANDOM_DELAY)
+		else if(next_state == STATE_IDLE && addr_r_valid_delay == RANDOM_DELAY)
 			addr_r_valid_delay <= addr_r_valid_delay;
 		else 
 			addr_r_valid_delay <= 4'b0;
 	end
 
 	always @(posedge clock ) begin
-		if (next_state == IFU_WAIT_INST_LOAD && ((r_ready_delay != RANDOM_DELAY || r_ready_delay == 0)))
+		if (next_state == STATE_READ && ((r_ready_delay != RANDOM_DELAY || r_ready_delay == 0)))
 			r_ready_delay <= r_ready_delay + 1;
-		else if(next_state == IFU_WAIT_INST_LOAD && r_ready_delay == RANDOM_DELAY)
+		else if(next_state == STATE_READ && r_ready_delay == RANDOM_DELAY)
 			r_ready_delay <= r_ready_delay;
 		else  
 			r_ready_delay <= 4'b0;
 	end
 // no delay
 `else
-	assign addr_r_valid_o = (con_state == IFU_WAIT_ADDR_PASS) & ~reset;
-	assign r_ready_o = (con_state == IFU_WAIT_INST_LOAD);
+	assign addr_r_valid_o = (con_state == STATE_IDLE) & ~reset;
+	assign r_ready_o = (con_state == STATE_READ);
 `endif
-	// assign ce = r_inst_en;
-	assign r_inst_en = (con_state == IFU_WAIT_READY && next_state == IFU_WAIT_FINISH);
-	assign valid = (con_state == IFU_WAIT_INST_LOAD && next_state == IFU_WAIT_READY);
+	assign valid = (con_state == STATE_READ && next_state == IFU_WAIT_READY);
 
-	assign inst_invalid = ~((inst_i[6:0] == `TYPE_U_LUI_OPCODE) | (inst_i[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc lui
-					 (inst_i[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
-				     ({inst_i[14:12], inst_i[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
-					 ({inst_i[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
-					 ((inst_i[6:0] == `TYPE_I_LOAD_OPCODE) & (inst_i[14:12] == `TYPE_I_LB_FUNC3 | inst_i[14:12] == `TYPE_I_LH_FUNC3 | inst_i[14:12] == `TYPE_I_LW_FUNC3 | inst_i[14:12] == `TYPE_I_LBU_FUNC3 | inst_i[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
-					 ((inst_i[6:0] == `TYPE_I_CSR_OPCODE) & (inst_i[14:12] == `TYPE_I_CSRRW_FUNC3 | inst_i[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
-					 ((inst_i[6:0] == `TYPE_S_OPCODE) & (inst_i[14:12] == `TYPE_S_SB_FUNC3 | inst_i[14:12] == `TYPE_S_SH_FUNC3 | inst_i[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
-					 ((inst_i[6:0] == `TYPE_I_BASE_OPCODE) & (inst_i[14:12] == `TYPE_I_SLTI_FUNC3 || inst_i[14:12] == `TYPE_I_SLTIU_FUNC3 || inst_i[14:12] == `TYPE_I_ADDI_FUNC3 || inst_i[14:12] == `TYPE_I_XORI_FUNC3 || inst_i[14:12] == `TYPE_I_ORI_FUNC3 || inst_i[14:12] == `TYPE_I_ANDI_FUNC3 || 
-					 										{inst_i[14:12], inst_i[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {inst_i[14:12], inst_i[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
-					 (inst_i[6:0] == `TYPE_R_OPCODE) | //R
-					 (inst_i == `TYPE_I_ECALL) | 
-					 (inst_i == `TYPE_I_MRET)  | 
-					 (inst_i == `TYPE_I_EBREAK));
+	assign inst_invalid = ~((inst_reg[6:0] == `TYPE_U_LUI_OPCODE) | (inst_reg[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc lui
+					 (inst_reg[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
+				     ({inst_reg[14:12], inst_reg[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
+					 ({inst_reg[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
+					 ((inst_reg[6:0] == `TYPE_I_LOAD_OPCODE) & (inst_reg[14:12] == `TYPE_I_LB_FUNC3 | inst_reg[14:12] == `TYPE_I_LH_FUNC3 | inst_reg[14:12] == `TYPE_I_LW_FUNC3 | inst_reg[14:12] == `TYPE_I_LBU_FUNC3 | inst_reg[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
+					 ((inst_reg[6:0] == `TYPE_I_CSR_OPCODE) & (inst_reg[14:12] == `TYPE_I_CSRRW_FUNC3 | inst_reg[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
+					 ((inst_reg[6:0] == `TYPE_S_OPCODE) & (inst_reg[14:12] == `TYPE_S_SB_FUNC3 | inst_reg[14:12] == `TYPE_S_SH_FUNC3 | inst_reg[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
+					 ((inst_reg[6:0] == `TYPE_I_BASE_OPCODE) & (inst_reg[14:12] == `TYPE_I_SLTI_FUNC3 || inst_reg[14:12] == `TYPE_I_SLTIU_FUNC3 || inst_reg[14:12] == `TYPE_I_ADDI_FUNC3 || inst_reg[14:12] == `TYPE_I_XORI_FUNC3 || inst_reg[14:12] == `TYPE_I_ORI_FUNC3 || inst_reg[14:12] == `TYPE_I_ANDI_FUNC3 || 
+					 										{inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
+					 (inst_reg[6:0] == `TYPE_R_OPCODE) | //R
+					 (inst_reg == `TYPE_I_ECALL) | 
+					 (inst_reg == `TYPE_I_MRET)  | 
+					 (inst_reg == `TYPE_I_EBREAK));
 
 `ifdef N_YOSYS_STA_CHECK
+	// 检测到ebreak
+    import "DPI-C" function void ifebreak_func(int inst);
+    always @(*)
+        ifebreak_func(inst_reg);
+
 	import "DPI-C" function void inst_invalid_get(byte invalid);
 		always @(*) begin
 			// $display("pc = %x dpc = %x\n",pc,pc_next);
@@ -143,52 +139,44 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 `endif
 
-	parameter [1:0] IFU_WAIT_ADDR_PASS = 2'b00, IFU_WAIT_READY = 2'b01, IFU_WAIT_FINISH = 2'b10, IFU_WAIT_INST_LOAD = 2'b11;
+	parameter [1:0] STATE_IDLE = 2'b00, IFU_WAIT_READY = 2'b01, IFU_WAIT_FINISH = 2'b10, STATE_READ = 2'b11;
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= IFU_WAIT_ADDR_PASS;
+			con_state <= STATE_IDLE;
 		else 
 			con_state <= next_state;
 	end
 
-	always @(posedge clock ) begin
-		if(reset)
-			jmp_target_reg <= 0;
-		else if (con_state == IFU_WAIT_READY && next_state == IFU_WAIT_FINISH) 
-			jmp_target_reg <= jmp_target_i;
-	end
-
 	// next_state
 	always @(*) begin
+		next_state = con_state;
 		case(con_state) 
-			IFU_WAIT_ADDR_PASS: begin
-				if (addr_r_ready_i == 1'b1 && addr_r_valid_o == 1'b1) begin
-					next_state = IFU_WAIT_INST_LOAD;
-				end else begin 
-					next_state = IFU_WAIT_ADDR_PASS;
+			STATE_IDLE: begin
+				if (addr_r_ready_i == 1'b1) begin
+					next_state = STATE_READ;
 				end
 			end
-			IFU_WAIT_INST_LOAD: begin
-				if (r_ready_o == 1'b1 && r_valid_i == 1'b1 && r_resp_i == 2'b00) begin
+			// TODO: 这里的设计很不优雅，由于r_ready_o依赖于STATE_READ，如果进行delay测试，结果应该为：
+			// STATE_READ: begin
+			// 	if (r_ready_delay == RANDOM_DELAY) && r_valid_i == 1'b1 && r_resp_i == 2'b00) begin
+			// 		next_state = IFU_WAIT_READY;
+			// 	end 
+			// end
+			STATE_READ: begin
+				if (r_valid_i == 1'b1 && r_resp_i == 2'b00) begin
 					next_state = IFU_WAIT_READY;
-				end else begin 
-					next_state = IFU_WAIT_INST_LOAD;
-				end
+				end 
 			end
 			IFU_WAIT_READY: begin 
-				// if (ready == 1'b0) begin
-				// 	next_state = IFU_WAIT_READY;
-				// end else begin 
-					next_state = IFU_WAIT_FINISH;
-				// end
+				next_state = IFU_WAIT_FINISH;
 			end
 			IFU_WAIT_FINISH: begin 
 				if (last_finish == 1'b0) begin
 					next_state = IFU_WAIT_FINISH;
 				end else begin 
-					next_state = IFU_WAIT_ADDR_PASS;
+					next_state = STATE_IDLE;
 				end
 			end
 			default:
@@ -207,25 +195,25 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
         .branch_flag_i    ( branch_flag_i    ),
         .pc_plus_4        ( pc_plus_4        ),
         .jmp_flag_i       ( jmp_flag_i       ),
-        .jmp_target_i     ( jmp_target_reg     ),
+        .jmp_target_i     ( jmp_target_i     ),
         .csr_jmp_i        ( csr_jmp_i        ),
         .csr_pc_i         ( csr_pc_i         ),
 		.con_state        ( con_state        ),
-        .last_finish      ( last_finish      ),
         .pc               ( pc               )
     );
 
-	ysyx_23060025_pcPlus#(
-		.DATA_LEN ( 32 )
-	)u_ysyx_23060025_pcPlus(
-		.pc_old ( pc ),
-		.reset    ( reset    ),
-		.pc_new ( pc_plus_4  )
-	);
 
+	always @(posedge clock) begin
+		if(reset) begin
+			inst_reg <= 0;
+		end else if(next_state == IFU_WAIT_READY) begin
+			inst_reg <= addr_r_data_i;
+		end
+	end
+
+	assign pc_plus_4 = pc + 32'b100;
 	assign addr_r_addr_o = pc;
-	assign id_inst_i = inst_i;
+	assign id_inst_i = inst_reg;
 
-	// assign inst_invalid_o = inst_invalid;
 
 endmodule

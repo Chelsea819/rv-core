@@ -17,13 +17,12 @@ module ysyx_23060025_counter #(parameter ADDR_LEN = 32)(
 	input									csr_jmp_i	,
 	input		[ADDR_LEN - 1:0]			csr_pc_i	,
 	input		[1:0]						con_state	,
-	input									last_finish	,
 	// input	[ADDR_LEN - 1:0]			ce		,
 	output reg	[ADDR_LEN - 1:0]			pc
 );	
 	wire 		[ADDR_LEN - 1:0]			pc_next;
 
-	parameter IFU_WAIT_FINISH = 2'b10;
+	parameter IFU_WAIT_READY = 2'b01;
 
 	// always @(*) begin
 	// 	$display("csr_jmp_i = [%b] ",csr_jmp_i);
@@ -38,7 +37,7 @@ module ysyx_23060025_counter #(parameter ADDR_LEN = 32)(
 	always @ (posedge clock) begin
 		if(reset)
 			pc <= `PC_RESET_VAL;
-		else if (con_state == IFU_WAIT_FINISH && last_finish == 1'b1) 
+		else if (con_state == IFU_WAIT_READY) 
 			pc <= pc_next;
 	end
 	

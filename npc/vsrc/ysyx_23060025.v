@@ -183,10 +183,6 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		                	clint_r_valid_i	;
 	wire		                	clint_r_ready_o	;
 `ifdef N_YOSYS_STA_CHECK
-	// 检测到ebreak
-    import "DPI-C" function void ifebreak_func(int inst);
-    always @(*)
-        ifebreak_func(inst);
 
 	// 检测resp
 	import "DPI-C" function void resp_check(byte resp);

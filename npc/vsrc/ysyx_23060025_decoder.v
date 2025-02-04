@@ -9,7 +9,6 @@ module ysyx_23060025_decoder(
     input                                         ifu_valid                 ,
     // input                                         exu_ready                 ,
     // output                                        idu_ready_o               ,
-    // output  reg                                   idu_valid_o               ,
     output          [3:0]                         aluop_o                   ,
     output          [3:0]                         alusel_o                  ,
     output          [31:0]                        pc_o                      ,
@@ -32,7 +31,6 @@ module ysyx_23060025_decoder(
     wire            [6:0]                          func7;
     wire            [2:0]                          func3;
     wire            [6:0]                          opcode;
-    reg                                            idu_valid_o;
 
     assign func3 = inst_i[14:12];
     assign func7 = inst_i[31:25];
@@ -45,21 +43,12 @@ module ysyx_23060025_decoder(
     assign reg2_addr_o = inst_i[24:20];
     assign branch_target_o = pc_i + imm_o;
     assign csr_addr_o = inst_i[31:20];
-    // assign idu_ready_o = 1'b1;
-    // assign idu_valid_o = 1'b1;
-    // always @(*) begin
-	// 	$display("pc = [%x]",pc_o);
-	// end
+
+
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
     parameter [1:0] IDU_WAIT_IFU_VALID = 2'b00, IDU_WAIT_IDU_VALID = 2'b01, IDU_WAIT_EXU_READY = 2'b10;
 
-    always @(posedge clock ) begin
-		if(next_state == IDU_WAIT_IDU_VALID)
-			idu_valid_o <= 1'b1;
-		else 
-			idu_valid_o <= 1'b0;
-	end
 
 	// state trans
 	always @(posedge clock ) begin
@@ -80,22 +69,17 @@ module ysyx_23060025_decoder(
 
 	// next_state
 	always @(*) begin
+        next_state = con_state;
 		case(con_state) 
             // 等待ifu取指，下一个时钟周期开始译码
 			IDU_WAIT_IFU_VALID: begin
-				if (ifu_valid == 1'b0) begin
-					next_state = IDU_WAIT_IFU_VALID;
-				end else begin 
+				if (ifu_valid == 1'b1) begin
 					next_state = IDU_WAIT_IDU_VALID;
 				end
 			end
             // 等待idu完成译码
 			IDU_WAIT_IDU_VALID: begin 
-				if (idu_valid_o == 1'b0) begin
-					next_state = IDU_WAIT_IDU_VALID;
-				end else begin 
-					next_state = IDU_WAIT_EXU_READY;
-				end
+				next_state = IDU_WAIT_EXU_READY;
 			end
             // 等待exu空闲，下个时钟周期传递信息
             IDU_WAIT_EXU_READY: begin 

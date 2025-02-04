@@ -267,14 +267,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	reg			[1:0]			        	next_state	;
     parameter [1:0] LSU_WAIT_IFU_VALID = 2'b00, LSU_WAIT_LSU_VALID = 2'b01, LSU_WAIT_WB_READY = 2'b10, LSU_WAIT_ADDR_PASS = 2'b11;
 
-	// always @(*) begin
-	// 	if(next_state == LSU_WAIT_LSU_VALID || next_state == LSU_WAIT_WB_READY)
-	// 		lsu_valid_o = 1'b1;
-	// 	else 
-	// 		lsu_valid_o = 1'b0;
-	// end
-
-    assign lsu_valid_o = (con_state == LSU_WAIT_WB_READY);
+    assign lsu_valid_o = (next_state == LSU_WAIT_WB_READY);
 
 	// state trans
 	always @(posedge clock ) begin
@@ -299,9 +292,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 			LSU_WAIT_ADDR_PASS: begin 
                 if(~(mem_to_reg | mem_wen_i)) begin 
                     next_state = LSU_WAIT_IFU_VALID; 
-                end else if (addr_r_valid_o & addr_r_ready_i) begin // read
+                end else if (mem_to_reg & addr_r_ready_i) begin // read
 					next_state = LSU_WAIT_LSU_VALID;
-                end else if (addr_w_valid_o & addr_w_ready_i & w_ready_i & w_valid_o) begin // read
+                end else if (mem_wen_i & addr_w_ready_i & w_ready_i & mem_wen_i) begin // read
 					next_state = LSU_WAIT_LSU_VALID;
 				end else begin 
 					next_state = LSU_WAIT_ADDR_PASS;
@@ -309,19 +302,15 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 			end
             // 等待idu完成译码
 			LSU_WAIT_LSU_VALID: begin 
-				if ((r_valid_i & r_ready_o) | (~|bkwd_resp_i & bkwd_valid_i & bkwd_ready_o)) begin
+				if (r_valid_i | (~|bkwd_resp_i & bkwd_valid_i)) begin
 					next_state = LSU_WAIT_WB_READY;
 				end else begin 
 					next_state = LSU_WAIT_LSU_VALID;
 				end
 			end
             // 等待exu空闲，下个时钟周期传递信息
-            LSU_WAIT_WB_READY: begin 
-				// if (wb_ready_o == 1'b0) begin
-				// 	next_state = LSU_WAIT_WB_READY;
-				// end else begin 
+            LSU_WAIT_WB_READY: begin
 				next_state = LSU_WAIT_IFU_VALID;
-				// end
 			end
             default: begin 
 				next_state = 2'b11;
@@ -329,23 +318,11 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		endcase
 	end
 
-    // always @(*) begin
-	// 	$display("load_type_i = [%b] mem_to_reg: [%d] rmask: [%d] mem_raddr: [%x] con_state: [%d] next_state: [%d]",load_type_i, mem_to_reg,mem_rmask, mem_raddr, con_state, next_state);
-	// end
-
     always @(posedge clock) begin
         if(next_state == LSU_WAIT_LSU_VALID & con_state == LSU_WAIT_ADDR_PASS) begin				
             addr_unaligned <= alu_result_i[1:0];
         end
 	end
-
-	// always @(*) begin
-    //     if (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H) begin
-	// 		aligned_store = 1'b1;				
-	// 	end else begin
-	// 		aligned_store = 1'b0;	           
-    //     end
-	// end
 
 	assign aligned_store = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H) || 
 							(alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H) ||

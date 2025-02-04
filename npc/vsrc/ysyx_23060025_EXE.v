@@ -25,7 +25,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	input                               ifu_valid    ,
     // input                                         isu_ready                 ,
     // output                                        exu_ready_o                 ,
-    // output  reg                                   exu_valid_o                 ,
 	output  reg    [2:0]                load_type_o 	,
 	output  reg    [1:0]				store_type_o	,
 	output	reg							branch_request_o,	
@@ -39,9 +38,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	output	reg	[DATA_LEN - 1:0]		pc_o			,
     output	reg	[DATA_LEN - 1:0]		alu_result_o
 );
-	// assign exu_ready_o = 1'b1;
-	// assign exu_valid_o = 1'b1;
-	reg                                   exu_valid_o    ;
+
 	wire [31:0] src1;
 	wire [31:0] src2;
 	wire 		alu_zero;
@@ -68,12 +65,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	reg			[1:0]			        	next_state	;
     parameter [1:0] EXU_WAIT_IDU_VALID = 2'b00, EXU_WAIT_EXU_VALID = 2'b01, EXU_WAIT_WB_READY = 2'b10;
 
-	always @(posedge clock ) begin
-		if(next_state == EXU_WAIT_EXU_VALID)
-			exu_valid_o <= 1'b1;
-		else 
-			exu_valid_o <= 1'b0;
-	end
 
 	// state trans
 	always @(posedge clock ) begin
@@ -85,29 +76,24 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 
 	// next_state
 	always @(*) begin
+		next_state = con_state;
 		case(con_state) 
             // 等待ifu取指，下一个时钟周期开始译码
 			EXU_WAIT_IDU_VALID: begin
-				if (ifu_valid == 1'b0) begin
-					next_state = EXU_WAIT_IDU_VALID;
-				end else begin 
+				if (ifu_valid == 1'b1) begin
 					next_state = EXU_WAIT_EXU_VALID;
 				end
 			end
             // 等待idu完成译码
 			EXU_WAIT_EXU_VALID: begin 
-				if (exu_valid_o == 1'b0) begin
-					next_state = EXU_WAIT_EXU_VALID;
-				end else begin 
-					next_state = EXU_WAIT_WB_READY;
-				end
+				next_state = EXU_WAIT_WB_READY;
 			end
             // 等待exu空闲，下个时钟周期传递信息
             EXU_WAIT_WB_READY: begin 
 				// if (isu_ready == 1'b0) begin
 				// 	next_state = EXU_WAIT_WB_READY;
 				// end else begin 
-					next_state = EXU_WAIT_IDU_VALID;
+				next_state = EXU_WAIT_IDU_VALID;
 				// end
 			end
             default: begin 

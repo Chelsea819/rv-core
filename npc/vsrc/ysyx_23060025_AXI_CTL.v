@@ -97,7 +97,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		                		axi_bkwd_ready_o,	// 主设备已准备好接收写回复信号
 	input		[3:0]                	axi_bkwd_id_i		// 写响应ID，该信号用于标识写响应传输
 );	
-	parameter [1:0] AXI_CTL_IDLE = 2'b00, AXI_CTL_BUSY_DATA = 2'b01, AXI_CTL_BUSY_INST = 2'b10;
+	parameter [1:0] STATE_IDLE = 2'b00, AXI_CTL_BUSY_DATA = 2'b01, AXI_CTL_BUSY_INST = 2'b10;
 
 	reg				[1:0]			        con_state	;
 	reg				[1:0]		        	next_state	;
@@ -126,7 +126,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 
 	always @(*) begin
-		if (con_state == AXI_CTL_IDLE) begin
+		if (con_state == STATE_IDLE) begin
 			if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
 				axi_device = `AXI_XBAR_CLINT;
 			end else begin
@@ -153,7 +153,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= AXI_CTL_IDLE;
+			con_state <= STATE_IDLE;
 		else 
 			con_state <= next_state;
 	end
@@ -161,10 +161,10 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// next_state
 	always @(*) begin
 		case(con_state) 
-			AXI_CTL_IDLE: begin
+			STATE_IDLE: begin
 				// sram busy
 				if (~axi_addr_r_ready_i & ~axi_addr_w_ready_i) begin
-					next_state = AXI_CTL_IDLE;
+					next_state = STATE_IDLE;
 				// data write
 				end else if(axi_addr_w_ready_i & data_addr_w_valid_i & data_w_valid_i & axi_w_ready_i) begin 
 					next_state = AXI_CTL_BUSY_DATA;
@@ -175,16 +175,16 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 				end else if(axi_addr_r_ready_i & inst_addr_r_valid_i) begin
 					next_state = AXI_CTL_BUSY_INST;
 				end else begin 
-					next_state = AXI_CTL_IDLE;
+					next_state = STATE_IDLE;
 				end
 			end
 			AXI_CTL_BUSY_DATA: begin
 				// finish write
 				if (axi_bkwd_valid_i & ~|axi_bkwd_resp_i & data_bkwd_ready_i) begin
-					next_state = AXI_CTL_IDLE;			
+					next_state = STATE_IDLE;			
 				// finish read
 				end else if (axi_r_valid_i & ~|axi_r_resp_i & data_r_ready_i) begin 
-					next_state = AXI_CTL_IDLE;
+					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_DATA;
 				end
@@ -192,7 +192,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			AXI_CTL_BUSY_INST: begin				
 				// finish inst read
 				if (axi_r_valid_i & ~|axi_r_resp_i & inst_r_ready_i) begin 
-					next_state = AXI_CTL_IDLE;
+					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_INST;
 				end
@@ -205,17 +205,17 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// finish data read or write
 	assign {data_r_resp_o, data_r_valid_o, 
 			data_bkwd_resp_o, data_bkwd_valid_o} 
-			= (con_state == AXI_CTL_BUSY_DATA && next_state == AXI_CTL_IDLE) ? {axi_r_resp_i, axi_r_valid_i,
+			= (con_state == AXI_CTL_BUSY_DATA && next_state == STATE_IDLE) ? {axi_r_resp_i, axi_r_valid_i,
 																				axi_bkwd_resp_i, axi_bkwd_valid_i} : 
 																				0;
 	// finish inst read
 	assign {inst_r_resp_o, inst_r_valid_o} 
-			= (con_state == AXI_CTL_BUSY_INST && next_state == AXI_CTL_IDLE) ? {axi_r_resp_i, axi_r_valid_i} : 
+			= (con_state == AXI_CTL_BUSY_INST) ? {axi_r_resp_i, axi_r_valid_i} : 
 																				0;
 	// finish data read or write OR finish inst read
 	assign {axi_r_ready_o, axi_bkwd_ready_o} 
-			= (con_state == AXI_CTL_BUSY_DATA && next_state == AXI_CTL_IDLE) ? {data_r_ready_i, data_bkwd_ready_i} : 
-				(con_state == AXI_CTL_BUSY_INST && next_state == AXI_CTL_IDLE) ? {inst_r_ready_i, 1'b0} : 0;
+			= (con_state == AXI_CTL_BUSY_DATA && next_state == STATE_IDLE) ? {data_r_ready_i, data_bkwd_ready_i} : 
+				(con_state == AXI_CTL_BUSY_INST && next_state == STATE_IDLE) ? {inst_r_ready_i, 1'b0} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_DATA
 	assign {data_addr_r_ready_o, data_addr_w_ready_o, data_w_ready_o} 
@@ -244,7 +244,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		axi_w_strb_o		= 0;
 		case(next_state)
 			AXI_CTL_BUSY_INST: begin
-				if(con_state == AXI_CTL_IDLE) begin
+				if(con_state == STATE_IDLE) begin
 					axi_addr_r_addr_o	= inst_addr_r_addr_i;
 					axi_addr_w_addr_o	= 0;
 					axi_w_data_o		= 0;
@@ -253,7 +253,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 
 			AXI_CTL_BUSY_DATA: begin
-				if(con_state == AXI_CTL_IDLE) begin
+				if(con_state == STATE_IDLE) begin
 					axi_addr_r_addr_o	= data_addr_r_addr_i;
 					axi_addr_w_addr_o	= data_addr_w_addr_i;
 					axi_w_data_o		= data_w_data_i;
@@ -265,18 +265,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		endcase
 	end
 
-	always @(posedge clock) begin
-		case(next_state)
-			AXI_CTL_IDLE: begin
-				if(con_state == AXI_CTL_BUSY_DATA) begin
-					data_r_data_o <= axi_r_data_i;		
-				end else if(con_state == AXI_CTL_BUSY_INST) begin
-					inst_r_data_o <= axi_r_data_i;
-				end
-			end
-			default: begin	
-			end
-		endcase
-	end
+	assign data_r_data_o = axi_r_data_i;
+	assign inst_r_data_o = axi_r_data_i;
+
 endmodule
 /* verilator lint_on UNOPTFLAT */

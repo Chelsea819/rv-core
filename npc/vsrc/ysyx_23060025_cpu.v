@@ -200,7 +200,7 @@ ysyx_23060025_IFU#(
 	.jmp_target_i     ( if_jmp_target_i    ),
 	.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
 	.csr_pc_i         ( if_csr_pc_i      ),
-	.inst_i           ( inst_i           ),
+	.addr_r_data_i           ( inst_i           ),
 	.id_inst_i        ( id_inst_i           ),
     // .inst_invalid_o   ( invalid           ),
     .pc               ( id_pc_i             )
