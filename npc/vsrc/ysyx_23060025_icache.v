@@ -49,6 +49,25 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire [2:0] 			  	load_rsize = 3'b010;
 	wire [7:0] 				load_rlen  = 8'b1;
 
+	`ifdef N_YOSYS_STA_CHECK
+		// hit_percent: total_load, hit_load, miss_load
+		// access_time: 
+		import "DPI-C" function void cache_cycle_statistic(byte state);
+		always @(posedge clock) begin
+			if (next_state != STATE_IDLE) begin
+				cache_cycle_statistic({6'b0, next_state});
+			end
+		end
+
+		import "DPI-C" function void cache_hit_statistic();
+		always @(posedge clock) begin
+			if (con_state == STATE_CHECK && next_state == STATE_PASS) begin
+				cache_hit_statistic();
+			end
+		end
+
+	`endif
+
 	always @(posedge clock) begin
 		if (reset) begin
 			con_state <= 0;
@@ -86,10 +105,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			end
 		endcase
 	end
-
+	integer i, j;
 	always @(posedge clock) begin
 		if (reset) begin
-			integer i;
 			for (i = 0; i < CACHE_LINE_NUM; i = i + 1) begin
 				cache_reg[i] <= 0; // 使用非阻塞赋值
 			end
@@ -100,7 +118,6 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	always @(posedge clock) begin
 		if (reset) begin
-			integer j;
 			for (j = 0; j < CACHE_LINE_NUM; j = j + 1) begin
 				cache_tag[j] <= 0; // 使用非阻塞赋值
 			end
