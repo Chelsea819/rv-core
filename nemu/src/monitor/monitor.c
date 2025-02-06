@@ -156,12 +156,14 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize memory. */
   init_mem();
-  
+
+  #ifdef  CONFIG_SOC
   // init_flash();
 
   init_psram();
 
   init_sdram();
+  #endif
 
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());

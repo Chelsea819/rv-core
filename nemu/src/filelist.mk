@@ -14,8 +14,11 @@
 #**************************************************************************************/
 
 SRCS-y += src/nemu-main.c
+# TODO: less elegent
+SRCS-$(CONFIG_MODE_SYSTEM) += src/memory/paddr.c src/memory/vaddr.c
 DIRS-y += src/cpu src/monitor src/utils
-DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
+SRCS-$(CONFIG_SOC) += src/memory/psram.c src/memory/sdram.c src/memory/sram.c
+# DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
 DIRS-BLACKLIST-$(CONFIG_TARGET_AM) += src/monitor/sdb
 
 SHARE = $(if $(CONFIG_TARGET_SHARE),1,0)

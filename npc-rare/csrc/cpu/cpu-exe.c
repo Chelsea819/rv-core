@@ -647,6 +647,35 @@ static void execute(uint64_t n) {
     IFDEF(CONFIG_DEVICE, device_update());
   }
 }
+  uint64_t access_cycle = 0;
+  uint64_t penalty_cycle = 0;
+  uint64_t cache_hit = 0;
+
+  void cache_cycle_statistic(char state){
+    switch (state){
+      // STATE_CHECK STATE_PASS
+      case 0b01:
+      case 0b11:
+        access_cycle ++;
+        break;
+
+      // STATE_LOAD
+      case 0b10:
+        penalty_cycle ++;
+        break;
+      default:
+        dut->final();
+        #ifdef CONFIG_WAVE
+        tfp->close();	//关闭波形跟踪文件
+        #endif
+        Assert(0, "Invalid state!");
+        break;
+    }
+  }
+
+  void cache_hit_statistic(){
+    cache_hit ++;
+  }
 
 
 // uint64_t ifu_p_counter = 0;
@@ -696,8 +725,14 @@ static void statistic()
     printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
     printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
     printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
-
-    printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", clk_cycle * 1000000 / g_timer);
+    // access_time--cache接收访存请求到得出命中结果所需的时间
+    // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
+    uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;
+    float hit_percent = (float)cache_hit/ifu_p_counter;
+    float access_time = (float)access_cycle / cycle_per_sec / ifu_p_counter * 1000;
+    float miss_penalty = (float)penalty_cycle / cycle_per_sec / ifu_p_counter * 1000;
+    printf("Average Memory Access Time: %f ms ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);
+    printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", cycle_per_sec);
   } 
   else
     Log("Finish running in less than 1 us and can not calculate the simulation frequency");

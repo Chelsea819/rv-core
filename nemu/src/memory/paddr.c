@@ -17,6 +17,8 @@
 #include <memory/paddr.h>
 #include <device/mmio.h>
 #include <isa.h>
+
+#ifdef CONFIG_SOC
 void psram_write(int32_t addr, int len, int32_t data);
 word_t psram_read(int32_t addr, int len);
 word_t sram_addr_read(paddr_t addr, int len);
@@ -24,6 +26,8 @@ void sram_addr_write(paddr_t addr, int len, word_t data);
 void flash_read(uint32_t addr, uint32_t *data);
 void sdram_write(int32_t addr, int len, int32_t data);
 word_t sdram_read(int32_t addr, int len);
+#endif
+
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
@@ -84,9 +88,13 @@ void init_mem() {
 // 物理地址访问
 word_t paddr_read(paddr_t addr, int len) {
   if (likely(in_pmem(addr))) return pmem_read(addr, len); // 地址落在物理内存空间
+  #ifdef  CONFIG_SOC
   if (likely(in_psram(addr))) return psram_read(addr, len); // 地址落在物理内存空间
   if (likely(in_sram(addr))) {return sram_addr_read(addr, len); }
   if (likely(in_sdram(addr))) {return sdram_read(addr, len); }
+  if (addr == 0x10000003) return 0;
+  if (addr == 0x10000005) return 0b00100000;
+  #endif
   // if (likely(in_flash(addr))) {uint32_t data = 0; flash_read(addr, &data); return data;} // 地址落在物理内存空间
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));  // 地址落在设备空间
   // printf("end\n");
@@ -98,10 +106,14 @@ word_t paddr_read(paddr_t addr, int len) {
 void paddr_write(paddr_t addr, int len, word_t data) {
   // printf("paddr_write addr = %x len = %d data = %x\n",addr,len,data);
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  #ifdef  CONFIG_SOC
   if (likely(in_psram(addr))) { psram_write(addr, len, data); return; }
   if (likely(in_sram(addr))) { sram_addr_write(addr, len, data); return; }
   if (likely(in_sdram(addr))) { sdram_write(addr, len, data); return; }
-
+  if (addr == 0x10000003) return;
+  if (addr == 0x10000001) return;
+  if (addr == 0x10000000) return;
+  #endif
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   // printf("end\n");
   out_of_bound(addr);

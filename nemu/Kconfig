@@ -64,9 +64,21 @@ config TARGET_NATIVE_ELF
   bool "Executable on Linux Native"
 config TARGET_SHARE
   bool "Shared object (used as REF for differential testing)"
+  
 config TARGET_AM
   bool "Application on Abstract-Machine (DON'T CHOOSE)"
 endchoice
+
+config DUT_NPC_WITH_SOC
+  depends on TARGET_SHARE
+  bool "NPC with SoC."
+  default y
+
+
+config SOC
+  bool "Enable SoC"
+  default y if DUT_NPC_WITH_SOC
+  default n
 
 menu "Build Options"
 choice
@@ -148,6 +160,11 @@ config ITRACE
   depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
   bool "Enable instruction tracer"
   default y
+
+config ITRACE_SIMPLE
+  depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
+  bool "Enable instruction simple"
+  default n
 
 config ITRACE_COND
   depends on ITRACE

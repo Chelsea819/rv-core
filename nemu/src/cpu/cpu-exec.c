@@ -260,6 +260,10 @@ static void exec_once(Decode *s, vaddr_t pc)
 
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
+  
+  #ifdef CONFIG_ITRACE_SIMPLE
+    p += snprintf(p, sizeof(s->logbuf), FMT_WORD, s->pc);
+  #elif
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;
   int i;
@@ -276,14 +280,15 @@ static void exec_once(Decode *s, vaddr_t pc)
   memset(p, ' ', space_len);
   p += space_len;
 
-#ifndef CONFIG_ISA_loongarch32r
-  void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-  disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-              MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
-#else
-  p[0] = '\0'; // the upstream llvm does not support loongarch32r
-#endif
+  #ifndef CONFIG_ISA_loongarch32r
+    void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+    disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
+                MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
+  #else
+    p[0] = '\0'; // the upstream llvm does not support loongarch32r
+  #endif
 
+  #endif
 #endif
 
 #ifdef CONFIG_FTRACE
