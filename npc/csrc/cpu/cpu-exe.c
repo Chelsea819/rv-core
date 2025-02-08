@@ -654,13 +654,15 @@ static void execute(uint64_t n) {
   void cache_cycle_statistic(char state){
     switch (state){
       // STATE_CHECK STATE_PASS
-      case 0b01:
-      case 0b11:
+      case 0b001:
+      case 0b100:
         access_cycle ++;
         break;
 
       // STATE_LOAD
-      case 0b10:
+      case 0b010:
+      case 0b011:
+      case 0b101:
         penalty_cycle ++;
         break;
       default:
@@ -730,7 +732,7 @@ static void statistic()
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;
     float hit_percent = (float)cache_hit/ifu_p_counter;
     float access_time = (float)access_cycle / cycle_per_sec / ifu_p_counter * 1000;
-    float miss_penalty = (float)penalty_cycle / cycle_per_sec / ifu_p_counter * 1000;
+    float miss_penalty = (float)penalty_cycle / cycle_per_sec / (ifu_p_counter - cache_hit) * 1000;
     printf("Average Memory Access Time: %f ms ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);
     printf("Miss Penalty Time: %f ms\n", miss_penalty);
     printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", cycle_per_sec);

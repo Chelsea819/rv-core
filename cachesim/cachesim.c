@@ -14,6 +14,7 @@
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
 #define CACHE_SIZE 128
 #define READ_FILE_BUFFER 16
+#define DEFAUT_CACHE_NUM 5
 
 size_t cache_set = 0;
 size_t cache_way = 0;
@@ -59,7 +60,7 @@ typedef struct cache{
 
 
 Cache *cache_ptr;
-Cache cache_batch[4];
+Cache cache_batch[DEFAUT_CACHE_NUM];
 Cache cache_spec;
 
 uint32_t string_to_uint(const char * str){
@@ -103,18 +104,20 @@ void cache_init(){
   // default batch cache flag test
   // Cache_config *config = NULL;
   if(batch_flag){
-    for(int i = 0; i < 4; i ++){
+    for(int i = 0; i < DEFAUT_CACHE_NUM; i ++){
       cache_batch[i].config = (Cache_config *)malloc(sizeof(Cache_config));
     }
-    *(cache_batch[0].config) = (Cache_config){32,1,4};
-    *(cache_batch[1].config) = (Cache_config){16,2,4};
-    *(cache_batch[2].config) = (Cache_config){8,4,4};
-    *(cache_batch[3].config) = (Cache_config){4,8,4};
-    for(int i = 0; i < 4; i ++){
+    *(cache_batch[0].config) = (Cache_config){16,1,16};
+    *(cache_batch[1].config) = (Cache_config){8,1,16};
+    *(cache_batch[2].config) = (Cache_config){64,1,4};
+    *(cache_batch[3].config) = (Cache_config){16,1,8};
+    *(cache_batch[4].config) = (Cache_config){32,1,8};
+    // *(cache_batch[5].config) = (Cache_config);
+    for(int i = 0; i < DEFAUT_CACHE_NUM; i ++){
       cache_area_init(&cache_batch[i]);
       cache_tag_arithem_init(&cache_batch[i]);
       cache_batch[i].log = (Report *)malloc(sizeof(Report));
-      if(i < 3)
+      if(i < DEFAUT_CACHE_NUM-1)
         cache_batch[i].next = &cache_batch[i+1];
       else 
         cache_batch[i].next = NULL;
@@ -316,7 +319,7 @@ int main(int argc, char *argv[]){
     open_log();
 
     // 不同cache配置，最外层循环
-    printf("Cache\tset_num\tway_num\tcacheline_size\thit_percent\t\n");
+    printf("Cache\tset_num\tway_num\tcache_line\tcache_size\thit_percent\t\n");
     int index = 0;
     Cache * cache_con = cache_ptr;
     while(cache_con != NULL){
@@ -330,7 +333,7 @@ int main(int argc, char *argv[]){
         cache_func(cache_con, pc);
       }
       cache_con->log->hit_percent = (float)cache_con->log->hit_time / cache_con->log->total_time * 100;
-      printf("%d\t%ld\t%ld\t%ld\t%f%%\n", index++, cache_con->config->cache_set, cache_con->config->cache_way, cache_con->config->cache_line, cache_con->log->hit_percent);
+      printf("%d\t%ld\t%ld\t%ld\t%ldB\t%f%%\n", index++, cache_con->config->cache_set, cache_con->config->cache_way, cache_con->config->cache_line, cache_con->config->cache_line*cache_con->config->cache_way*cache_con->config->cache_set, cache_con->log->hit_percent);
       cache_con = cache_con->next;
     }
 

@@ -10,7 +10,7 @@ CSRC = cachesim.c
 INC_PATH = $(WORK_DIR)/
 INCLUDES = $(addprefix -I, $(INC_PATH))
 
-CFLAGS = $(INCLUDES) -Wall -Werror -j4
+CFLAGS = $(INCLUDES) -Wall -Werror
 # OBJS = $(CSRC:%.c=$(OBJ_DIR)/%.o)
 
 # $(OBJ_DIR)/%.o: %.c
