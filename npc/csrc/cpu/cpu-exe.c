@@ -732,6 +732,7 @@ static void statistic()
     float access_time = (float)access_cycle / cycle_per_sec / ifu_p_counter * 1000;
     float miss_penalty = (float)penalty_cycle / cycle_per_sec / ifu_p_counter * 1000;
     printf("Average Memory Access Time: %f ms ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);
+    printf("Miss Penalty Time: %f ms\n", miss_penalty);
     printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", cycle_per_sec);
   } 
   else

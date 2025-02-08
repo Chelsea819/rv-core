@@ -10,7 +10,7 @@ CSRC = cachesim.c
 INC_PATH = $(WORK_DIR)/
 INCLUDES = $(addprefix -I, $(INC_PATH))
 
-CFLAGS = $(INCLUDES) -Wall -Werror
+CFLAGS = $(INCLUDES) -Wall -Werror -j4
 # OBJS = $(CSRC:%.c=$(OBJ_DIR)/%.o)
 
 # $(OBJ_DIR)/%.o: %.c
@@ -24,7 +24,7 @@ $(BINARY): $(CSRC)
 # @echo + LD $@
 # @ld -o $@ $(OBJS) 
 
-LOG ?= $(NEMU_HOME)/../cachesim/nemu-log.txt
+LOG ?= $(NEMU_HOME)/../cachesim/nemu-log-train.txt
 
 mainargs ?= -b
 
