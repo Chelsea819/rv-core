@@ -6,7 +6,7 @@
  ************************************************************************/
 `include "ysyx_23060025_define.v"
  /* verilator lint_off WIDTHEXPAND */
-module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 4, CACHE_LINE_OFF_ADDR_W = 3)(
+module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 4, CACHE_LINE_OFF_ADDR_W = 4)(
 	input         		clock,
 	input         		reset,
 	// IFU
@@ -139,7 +139,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				cache_reg[i] <= 0; // 使用非阻塞赋值
 			end
 		end if(con_state == STATE_LOAD && out_rvalid) begin
-			cache_reg[addr_index] <= {out_rdata, cache_reg[addr_index][CACHE_LINE_W-1:CACHE_LINE_W-1-31]};
+			cache_reg[addr_index] <= cache_reg[addr_index] >> 32 | {out_rdata, {(CACHE_LINE_W-32){1'b0}}};
 		end
 	end
 
