@@ -95,6 +95,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	[ADDR_LEN - 1:0]			inst_addr_r_addr_o;
 	wire	                			inst_addr_r_valid_o;
 	wire	                			inst_addr_r_ready_i;
+	wire		[1:0]					inst_addr_r_burst_o;
 
 	// Read data
 	// wire		[DATA_LEN - 1:0]		inst_r_data_i	;
@@ -181,6 +182,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		[DATA_LEN - 1:0]	clint_r_data_i	;
 	wire		[1:0]				clint_r_resp_i	;	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	wire		                	clint_r_valid_i	;
+	wire		                	clint_r_last_i;
 	wire		                	clint_r_ready_o	;
 `ifdef N_YOSYS_STA_CHECK
 
@@ -235,7 +237,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// );
 
 	// outports wire
-	wire                	inst_addr_rlast_i;
+	wire                	inst_r_last_i;
 	wire [7:0]          	inst_addr_rlen_o;
 	wire [2:0]          	inst_addr_rsize_o;
 
@@ -247,8 +249,9 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reset               	( reset                ),
 		.inst_addr_r_addr_o  	( inst_addr_r_addr_o   ),
 		.inst_addr_r_valid_o 	( inst_addr_r_valid_o  ),
-		.inst_addr_rlast_i   	( inst_addr_rlast_i    ),
+		.inst_r_last_i   	( inst_r_last_i    ),
 		.inst_addr_rready_i   	( inst_addr_r_ready_i    ),
+		.inst_addr_rburst_i   	( inst_addr_r_burst_o    ),
 		.inst_addr_rlen_o    	( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
 		.inst_r_valid_i      	( inst_r_valid_i       ),
@@ -286,7 +289,8 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_r_addr_i  ( inst_addr_r_addr_o  ),
 		.inst_addr_r_valid_i ( inst_addr_r_valid_o ),
 		.inst_addr_r_ready_o ( inst_addr_r_ready_i ),
-		.inst_addr_rlast_i   ( inst_addr_rlast_i    ),
+		.inst_addr_r_burst_i ( inst_addr_r_burst_o ),		
+		.inst_r_last_i   	 ( inst_r_last_i    ),
 		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
 
@@ -440,6 +444,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.clint_r_data_o         ( clint_r_data_i         ),
 		.clint_r_resp_o         ( clint_r_resp_i         ),
 		.clint_r_valid_o        ( clint_r_valid_i        ),
+		.clint_r_last_o        ( clint_r_last_i        ),
 		.clint_r_ready_i        ( clint_r_ready_o        )
 	);
 
@@ -455,6 +460,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.r_data_o       ( clint_r_data_i       ),
 		.r_resp_o       ( clint_r_resp_i       ),
 		.r_valid_o      ( clint_r_valid_i      ),
+		.r_last_o      (  clint_r_last_i      ),
 		.r_ready_i      ( clint_r_ready_o      )
 	);
 

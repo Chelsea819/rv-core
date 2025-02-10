@@ -7,8 +7,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// Addr Read
 	output		[ADDR_LEN - 1:0]		inst_addr_r_addr_o,
 	output		                		inst_addr_r_valid_o,
-	input		       					inst_addr_rlast_i	,
 	input		       					inst_addr_rready_i,
+	output		[1:0]  					inst_addr_rburst_i,
+
 	output		[7:0]  					inst_addr_rlen_o	,
 	output		[2:0]  					inst_addr_rsize_o	,
 	// input		                		inst_addr_r_ready_i,
@@ -18,6 +19,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// input		[1:0]					inst_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		inst_r_valid_i	,
 	output		                		inst_r_ready_o	,
+	input		       					inst_r_last_i	,
 
 	// data AXI
 	 //Addr Read
@@ -253,8 +255,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.in_prdata   	( icache_r_data    ),
 		.out_araddr  	( inst_addr_r_addr_o   ),
 		.out_arvalid 	( inst_addr_r_valid_o  ),
-		.out_arlast  	( inst_addr_rlast_i   ),
+		.out_rlast  	( inst_r_last_i   ),
 		.out_arready  	( inst_addr_rready_i   ),
+		.out_arburst  	( inst_addr_rburst_i   ),
 		.out_arlen   	( inst_addr_rlen_o    ),
 		.out_arsize  	( inst_addr_rsize_o   ),
 		.out_rvalid  	( inst_r_valid_i   ),

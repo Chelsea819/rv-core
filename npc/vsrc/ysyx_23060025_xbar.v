@@ -104,6 +104,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input	reg	[DATA_LEN - 1:0]		clint_r_data_o	,
 	input		[1:0]					clint_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		clint_r_valid_o	,
+	input		                		clint_r_last_o	,
 	output		                		clint_r_ready_i	
 
 );	
@@ -118,7 +119,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			axi_ctl_addr_w_ready_o, 
 			axi_ctl_w_ready_o, 
 			axi_ctl_bkwd_resp_o, axi_ctl_bkwd_valid_o, axi_ctl_bkwd_id_o } = (axi_device == `AXI_XBAR_CLINT) ? {clint_addr_r_ready_o, 
-																							clint_r_data_o, clint_r_resp_o, clint_r_valid_o, 1'b0, 4'b0,
+																							clint_r_data_o, clint_r_resp_o, clint_r_valid_o, clint_r_last_o, 4'b0,
 																							1'b0, 1'b0,
 																							2'b0, 1'b0, 4'b0} :
 																							{axi_addr_r_ready_i, 

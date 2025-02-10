@@ -20,6 +20,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output	reg	[DATA_LEN - 1:0]		r_data_o	,
 	output		[1:0]					r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		r_valid_o	,
+	output		                		r_last_o	,
 	input		                		r_ready_i	
 
 );	
@@ -79,6 +80,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	reg			[3:0]		r_valid_delay;
 
 	assign r_valid_o = (con_state == WAIT_DATA_GET) && rstn && (r_valid_delay == RANDOM_DELAY);
+	assign r_last_o = r_valid_o;
 
   // r addr delay
 	always @(posedge clock ) begin
@@ -93,6 +95,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 // no delay
 `else
 	assign r_valid_o = (con_state == WAIT_DATA_GET) && rstn;
+	assign r_last_o = r_valid_o;
 `endif	
 
 

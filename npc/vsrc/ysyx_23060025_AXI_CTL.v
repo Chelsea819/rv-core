@@ -5,6 +5,7 @@
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
+/* verilator lint_off UNOPTFLAT */
 /* 当多个master同时访问同一个slave时, 获得访问权的master将得到放行, 可以成功访问slave; 
  其他master的请求将阻塞在仲裁器, 等待获得访问权的master访问结束后, 它们才能获得接下来的访问权. */
 `include "ysyx_23060025_define.v"
@@ -16,8 +17,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	//Addr Read
 	input		[ADDR_LEN - 1:0]		inst_addr_r_addr_i,
 	input		                		inst_addr_r_valid_i,
+	input		[1:0]            		inst_addr_r_burst_i,
 	output		                		inst_addr_r_ready_o,
-	output		       					inst_addr_rlast_i	,
 	input		[7:0]  					inst_addr_rlen_o	,
 	input		[2:0]  					inst_addr_rsize_o	,
 	// input		[3:0]                	inst_addr_r_id_i,	// 谁发出的读请求
@@ -27,6 +28,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		[1:0]					inst_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		inst_r_valid_o	,
 	input		                		inst_r_ready_i	,
+	output		       					inst_r_last_i	,
 
 	// data-AXI
 	//Addr Read
@@ -105,8 +107,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	reg				[1:0]		        	next_state	;
 	reg 				 					axi_device_tmp;
 
-	assign axi_addr_r_len_o = 0;
-	assign axi_addr_r_burst_o = `AXI_ADDR_BURST_FIXED;
+	// assign axi_addr_r_len_o = 0;
+	// assign axi_addr_r_burst_o = `AXI_ADDR_BURST_FIXED;
 	
 	assign axi_addr_w_len_o = 0;
 	assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
@@ -163,16 +165,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		case(con_state) 
 			STATE_IDLE: begin
 				// sram busy
-				if (~axi_addr_r_ready_i & ~axi_addr_w_ready_i) begin
-					next_state = STATE_IDLE;
-				// data write
-				end else if(axi_addr_w_ready_i & data_addr_w_valid_i & data_w_valid_i & axi_w_ready_i) begin 
+				if(data_addr_w_valid_i & data_w_valid_i) begin 
 					next_state = AXI_CTL_BUSY_DATA;
 				// data read
-				end else if(axi_addr_r_ready_i & data_addr_r_valid_i) begin
+				end else if(data_addr_r_valid_i) begin
 					next_state = AXI_CTL_BUSY_DATA;
 				// inst read
-				end else if(axi_addr_r_ready_i & inst_addr_r_valid_i) begin
+				end else if(inst_addr_r_valid_i) begin
 					next_state = AXI_CTL_BUSY_INST;
 				end else begin 
 					next_state = STATE_IDLE;
@@ -183,7 +182,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 				if (axi_bkwd_valid_i & ~|axi_bkwd_resp_i & data_bkwd_ready_i) begin
 					next_state = STATE_IDLE;			
 				// finish read
-				end else if (axi_r_valid_i & ~|axi_r_resp_i & data_r_ready_i) begin 
+				end else if (axi_r_valid_i & ~|axi_r_resp_i & data_r_ready_i & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_DATA;
@@ -191,7 +190,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 			AXI_CTL_BUSY_INST: begin				
 				// finish inst read
-				if (axi_r_valid_i & ~|axi_r_resp_i & inst_r_ready_i) begin 
+				if (axi_r_valid_i & ~|axi_r_resp_i & inst_r_ready_i & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_INST;
@@ -209,13 +208,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 																				axi_bkwd_resp_i, axi_bkwd_valid_i} : 
 																				0;
 	// finish inst read
-	assign {inst_r_resp_o, inst_r_valid_o} 
-			= (con_state == AXI_CTL_BUSY_INST) ? {axi_r_resp_i, axi_r_valid_i} : 
+	assign {inst_r_resp_o, inst_r_valid_o, inst_r_last_i} 
+			= (con_state == AXI_CTL_BUSY_INST) ? {axi_r_resp_i, axi_r_valid_i, axi_r_last_i} : 
 																				0;
 	// finish data read or write OR finish inst read
 	assign {axi_r_ready_o, axi_bkwd_ready_o} 
-			= (con_state == AXI_CTL_BUSY_DATA && next_state == STATE_IDLE) ? {data_r_ready_i, data_bkwd_ready_i} : 
-				(con_state == AXI_CTL_BUSY_INST && next_state == STATE_IDLE) ? {inst_r_ready_i, 1'b0} : 0;
+			= (con_state == AXI_CTL_BUSY_DATA) ? {data_r_ready_i, data_bkwd_ready_i} : 
+				(con_state == AXI_CTL_BUSY_INST) ? {inst_r_ready_i, 1'b0} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_DATA
 	assign {data_addr_r_ready_o, data_addr_w_ready_o, data_w_ready_o} 
@@ -226,13 +225,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			= (next_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i : 0;
 
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
-	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, 
+	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_burst_o, axi_addr_r_len_o,
 			axi_addr_w_valid_o, axi_addr_w_id_o, axi_addr_w_size_o, 
 			axi_w_valid_o} 
-			= (next_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i,
+			= (next_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0,
 													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i,
 													data_w_valid_i} : 
-				(next_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o,
+				(next_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
 													1'b0, 4'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;
@@ -261,3 +260,4 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign inst_r_data_o = axi_r_data_i;
 
 endmodule
+/* verilator lint_on UNOPTFLAT */

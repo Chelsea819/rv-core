@@ -18,11 +18,12 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	// icache access DRAM
 	output     [31:0]	out_araddr	,
 	output reg         	out_arvalid	,
-	input           	out_arlast	,
 	input           	out_arready	,
 	output reg  [7:0]  	out_arlen	,
 	output reg  [2:0]   out_arsize	,
+	output reg  [1:0]   out_arburst	,
 	input        		out_rvalid	,
+	input           	out_rlast	,
 	input   	[31:0] 	out_rdata	,
 	output reg         	out_rready	
 );
@@ -31,7 +32,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
 	parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
 	parameter	PASS_TIMES = (2 ** CACHE_LINE_OFF_ADDR_W) / 4;
-	parameter	PASS_TIMES_W = $clog2(PASS_TIMES);
+	// parameter	PASS_TIMES_W = $clog2(PASS_TIMES);
 	
 
 	reg	[2:0] con_state;
@@ -49,11 +50,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire [CACHE_LINE_W-1:0] cache_line_data	= cache_reg[addr_index] >> ({addr_off, 3'b0});
 	wire [DATA_WIDTH-1:0] 	prdata			= cache_line_data[DATA_WIDTH-1:0];
 
-	reg  [PASS_TIMES_W-1:0]	counter;
-
-	wire [ADDR_WIDTH-1:0] 	load_raddr = {addr_tag, addr_index, counter, 2'b0};
-	wire [2:0] 			  	load_rsize = 3'b010;
-	wire [7:0] 				load_rlen  = 8'b1;
+	wire [ADDR_WIDTH-1:0] 	load_raddr = {addr_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};
+	wire [2:0] 			  	load_rsize = `AXI_ADDR_SIZE_4;
+	wire [7:0] 				load_rlen  = PASS_TIMES - 1;
 
 	`ifdef N_YOSYS_STA_CHECK
 		// hit_percent: total_load, hit_load, miss_load
@@ -105,12 +104,10 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			end
 			STATE_LOAD: begin
 				// get data over
-				if(counter == (PASS_TIMES - 1) && out_rvalid) begin
+				if(out_rvalid && out_rlast) begin
 					next_state = STATE_UPDATE_REG;
 				// not get enough data and finish this time
-				end else if(out_rvalid)begin
-					next_state = STATE_ADDR_HAND_SHAK;
-				end
+				end 
 			end
 			STATE_UPDATE_REG: begin
 				next_state = STATE_PASS;
@@ -122,14 +119,6 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				
 			end
 		endcase
-	end
-
-	always @(posedge clock) begin
-		if(reset | next_state == STATE_IDLE) begin
-			counter <= 0;
-		end else if(con_state == STATE_LOAD && out_rvalid) begin
-			counter <= counter + 1;
-		end
 	end
 
 	integer i, j;
@@ -180,10 +169,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			end
 			STATE_ADDR_HAND_SHAK:  begin
 				out_arvalid	<=		1;
-				// out_arvalid	<=		out_arready  & ~counter_change_flag ? 0 : 1'b1 ;
-				// out_araddr	<=		load_raddr;
 				out_arsize	<=		load_rsize;
 				out_arlen	<=		load_rlen;
+				out_arburst <=		`AXI_ADDR_BURST_INCR;
 				out_rready	<=		0;
 			end
 			STATE_LOAD:  begin

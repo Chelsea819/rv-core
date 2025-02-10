@@ -654,15 +654,15 @@ static void execute(uint64_t n) {
   void cache_cycle_statistic(char state){
     switch (state){
       // STATE_CHECK STATE_PASS
-      case 0b001:
-      case 0b100:
+      case 0b001: // STATE_CHECK
+      case 0b100: // STATE_PASS
         access_cycle ++;
         break;
 
       // STATE_LOAD
-      case 0b010:
-      case 0b011:
-      case 0b101:
+      case 0b010: // STATE_ADDR_HAND_SHAK
+      case 0b011: // STATE_LOAD
+      case 0b101: // STATE_UPDATE_REG
         penalty_cycle ++;
         break;
       default:
