@@ -245,6 +245,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.out_prdata         ( icache_r_data          )
 	);
 
+	wire icache_fencei_flag;
 
 	ysyx_23060025_icache u_ysyx_23060025_icache(
 		.clock       	( clock        ),
@@ -253,6 +254,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.in_psel     	( icache_addr_r_sel      ),
 		.in_pready   	( icache_r_ready    ),
 		.in_prdata   	( icache_r_data    ),
+
+		.in_fence_flag   	( icache_fencei_flag    ),
+
 		.out_araddr  	( inst_addr_r_addr_o   ),
 		.out_arvalid 	( inst_addr_r_valid_o  ),
 		.out_rlast  	( inst_r_last_i   ),
@@ -286,6 +290,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reg1_data_i					(id_reg1_data_i),
 		.reg2_data_i					(id_reg2_data_i),
 		.pc_i       					(id_pc_i),	
+
+		.fencei_flag_o    					(icache_fencei_flag),	
 
 		.ifu_valid    					(ifu_valid_o),	
 		// .exu_ready   					(exu_ready_o),

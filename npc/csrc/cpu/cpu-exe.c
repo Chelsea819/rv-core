@@ -33,12 +33,13 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 bool ifbreak = false;
 
-#define INST_TYPE_NUM       5
+#define INST_TYPE_NUM       6
 #define TYPE_COUNT          0  
 #define TYPE_MEM            1
 #define TYPE_JMP            2
 #define TYPE_CSR            3
 #define TYPE_STATE_TRANS    4
+#define TYPE_FENCEI         5
 
 uint64_t ifu_p_counter = 0;
 uint64_t lsu_p_counter = 0;
@@ -50,6 +51,7 @@ uint64_t idu_memory_p_counter = 0;
 uint64_t idu_jmp_p_counter = 0;
 uint64_t idu_csr_p_counter = 0;
 uint64_t idu_state_trans_p_counter = 0;
+uint64_t idu_fence_p_counter = 0;
 
 // 当前执行的指令是哪种指令
 bool type_flag[INST_TYPE_NUM] = {0};
@@ -78,6 +80,7 @@ extern "C" void lsu_delay_counter_update(){
 #define TYPE_J_JAL_OPCODE   0b1101111
 #define TYPE_S_OPCODE       0b0100011
 #define TYPE_I_CSR_OPCODE   0b1110011
+#define TYPE_I_FENCEI_OPCODE 0b0001111
 #define TYPE_I_LOAD_OPCODE  0b0000011
 #define TYPE_I_ECALL_FUNC3  0b000
 
@@ -122,6 +125,11 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
         type_flag[TYPE_CSR] = true;
         idu_csr_p_counter ++;
       }
+      break;
+
+    case TYPE_I_FENCEI_OPCODE:
+      type_flag[TYPE_FENCEI] = true;
+      idu_fence_p_counter ++;
       break;
     default: 
       break;
@@ -665,6 +673,8 @@ static void execute(uint64_t n) {
       case 0b101: // STATE_UPDATE_REG
         penalty_cycle ++;
         break;
+      case 0b111:
+        break;
       default:
         dut->final();
         #ifdef CONFIG_WAVE
@@ -727,6 +737,7 @@ static void statistic()
     printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
     printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
     printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
+    printf("idu_fence_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_fence_p_counter, (float)inst_type_cycle[TYPE_FENCEI]/idu_fence_p_counter, (float)idu_fence_p_counter/g_nr_guest_inst*100); 
     // access_time--cache接收访存请求到得出命中结果所需的时间
     // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;

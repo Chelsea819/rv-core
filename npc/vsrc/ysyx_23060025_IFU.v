@@ -118,6 +118,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 					(inst_reg[6:0] == `TYPE_R_OPCODE) | //R
 					(inst_reg == `TYPE_I_ECALL) | 
 					(inst_reg == `TYPE_I_MRET)  | 
+					(inst_reg == `TYPE_I_FENCEI)  | 
 					(inst_reg == `TYPE_I_EBREAK));
 
 	import "DPI-C" function void inst_invalid_get(byte invalid);

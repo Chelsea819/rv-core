@@ -6,7 +6,7 @@
  ************************************************************************/
 `include "ysyx_23060025_define.v"
  /* verilator lint_off WIDTHEXPAND */
-module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 4, CACHE_LINE_OFF_ADDR_W = 5)(
+module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 1, CACHE_LINE_OFF_ADDR_W = 4)(
 	input         		clock,
 	input         		reset,
 	// IFU
@@ -14,6 +14,8 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input         		in_psel,	// IFU sel icache
 	output reg        	in_pready,	// icache read data ready
 	output reg [31:0] 	in_prdata,	// icache read data
+
+	input         		in_fence_flag,	// fence.i update
 
 	// icache access DRAM
 	output     [31:0]	out_araddr	,
@@ -27,10 +29,12 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input   	[31:0] 	out_rdata	,
 	output reg         	out_rready	
 );
-	localparam	[2:0]	STATE_IDLE = 3'b00, STATE_CHECK = 3'b01, STATE_ADDR_HAND_SHAK = 3'b10, STATE_LOAD = 3'b11, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100;
+	localparam	[2:0]	STATE_IDLE = 3'b00, STATE_CHECK = 3'b01, STATE_ADDR_HAND_SHAK = 3'b10, STATE_LOAD = 3'b11, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100, STATE_FENCE = 3'b111;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
 	parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
+	parameter	CACHE_VALID_W = 1;
+	// parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
 	parameter	PASS_TIMES = (2 ** CACHE_LINE_OFF_ADDR_W) / 4;
 	// parameter	PASS_TIMES_W = $clog2(PASS_TIMES);
 	
@@ -39,13 +43,13 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	reg	[2:0] next_state;
 
 	reg	[CACHE_LINE_W-1:0]	cache_reg	[CACHE_LINE_NUM-1:0];
-	reg	[TAG_W-1:0]			cache_tag	[CACHE_LINE_NUM-1:0];
+	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
 
 	wire [TAG_W-1:0]					addr_tag	= in_paddr[ADDR_WIDTH-1:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W];
 	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= in_paddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1:CACHE_LINE_OFF_ADDR_W];
 	wire [CACHE_LINE_OFF_ADDR_W-1:0]	addr_off	= in_paddr[CACHE_LINE_OFF_ADDR_W-1:0];
 
-	wire check_hit 					= (addr_tag == cache_tag[addr_index]);
+	wire check_hit 					= (addr_tag == cache_tag[addr_index][TAG_W-1:0] && cache_tag[addr_index][TAG_W+CACHE_VALID_W-1] == 1);
 
 	wire [CACHE_LINE_W-1:0] cache_line_data	= cache_reg[addr_index] >> ({addr_off, 3'b0});
 	wire [DATA_WIDTH-1:0] 	prdata			= cache_line_data[DATA_WIDTH-1:0];
@@ -87,6 +91,8 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			STATE_IDLE: begin
 				if(in_psel) begin
 					next_state = STATE_CHECK;
+				end else if(in_fence_flag) begin
+					next_state = STATE_FENCE;
 				end
 			end
 			STATE_CHECK: begin
@@ -115,6 +121,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			STATE_PASS: begin
 				next_state = STATE_IDLE;
 			end
+			STATE_FENCE: begin
+				next_state = STATE_IDLE;
+			end
 			default: begin
 				
 			end
@@ -127,7 +136,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			for (i = 0; i < CACHE_LINE_NUM; i = i + 1) begin
 				cache_reg[i] <= 0; // 使用非阻塞赋值
 			end
-		end if(con_state == STATE_LOAD && out_rvalid) begin
+		end else if(con_state == STATE_LOAD && out_rvalid) begin
 			cache_reg[addr_index] <= cache_reg[addr_index] >> 32 | {out_rdata, {(CACHE_LINE_W-32){1'b0}}};
 		end
 	end
@@ -137,10 +146,16 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			for (j = 0; j < CACHE_LINE_NUM; j = j + 1) begin
 				cache_tag[j] <= 0; // 使用非阻塞赋值
 			end
-		end if(next_state == STATE_UPDATE_REG) begin
-			cache_tag[addr_index] <= addr_tag;
+		end else if(next_state == STATE_UPDATE_REG) begin
+			// valid--1
+			cache_tag[addr_index] <= {1'b1, addr_tag};
+		end else if(next_state == STATE_FENCE) begin
+			for (j = 0; j < CACHE_LINE_NUM; j = j + 1) begin
+				cache_tag[j][TAG_W+CACHE_VALID_W-1] <= 0; // 使用非阻塞赋值
+			end
 		end
 	end
+
 
 	// output
 	always @(posedge clock) begin
@@ -152,35 +167,37 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			out_rready	<=		0;
 			out_arsize	<=		0;
 			out_arlen	<=		0;
+		end else begin
+			case (next_state)
+				STATE_IDLE:  begin
+					in_pready	<=		0;
+					in_prdata	<=		0;
+					// out_araddr	<=		0;
+					out_arvalid	<=		0;
+					out_rready	<=		0;
+					out_arsize	<=		0;
+					out_arlen	<=		0;
+				end
+				STATE_PASS:  begin
+					in_pready	<=		1'b1;
+					in_prdata	<=		prdata;
+				end
+				STATE_ADDR_HAND_SHAK:  begin
+					out_arvalid	<=		1;
+					out_arsize	<=		load_rsize;
+					out_arlen	<=		load_rlen;
+					out_arburst <=		`AXI_ADDR_BURST_INCR;
+					out_rready	<=		0;
+				end
+				STATE_LOAD:  begin
+					out_arvalid	<=		0;
+					out_rready	<=		1'b1;
+				end
+				default:  begin
+				end
+			endcase
 		end
-		case (next_state)
-			STATE_IDLE:  begin
-				in_pready	<=		0;
-				in_prdata	<=		0;
-				// out_araddr	<=		0;
-				out_arvalid	<=		0;
-				out_rready	<=		0;
-				out_arsize	<=		0;
-				out_arlen	<=		0;
-			end
-			STATE_PASS:  begin
-				in_pready	<=		1'b1;
-				in_prdata	<=		prdata;
-			end
-			STATE_ADDR_HAND_SHAK:  begin
-				out_arvalid	<=		1;
-				out_arsize	<=		load_rsize;
-				out_arlen	<=		load_rlen;
-				out_arburst <=		`AXI_ADDR_BURST_INCR;
-				out_rready	<=		0;
-			end
-			STATE_LOAD:  begin
-				out_arvalid	<=		0;
-				out_rready	<=		1'b1;
-			end
-			default:  begin
-			end
-		endcase
+		
 	end
 
 	assign out_araddr = load_raddr;

@@ -23,6 +23,7 @@ module ysyx_23060025_decoder(
     output          [1:0]                         store_type_o              ,
     output          [2:0]                         load_type_o              ,
     output                                        jmp_flag_o                ,
+    output                                        fencei_flag_o             ,
     output          [31:0]                        jmp_target_o              ,
     output          [11:0]                        csr_addr_o                ,
     output          [2:0]                         csr_flag_o                ,
@@ -94,6 +95,9 @@ module ysyx_23060025_decoder(
 			end
 		endcase
 	end
+
+    // TODO: if change to pipeline, fence.i logic should be modified
+    assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
     
 // controller look-up lut
 // inst: R-type: wd_o aluop_o alusel_o
@@ -109,6 +113,7 @@ assign {wd_o, aluop_o, alusel_o, store_type_o, load_type_o} = ({opcode, func3, f
                                                               ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SRA_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sra
                                                               ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLT_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-slt
                                                               ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLTU_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sltu
+                                                              ({inst_i}                     == {`TYPE_I_FENCEI})                          ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}} :        // R-sltu
                                                               ({inst_i}                     == {`TYPE_I_ECALL})                           ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :       // I-ecall
                                                               ({inst_i}                     == {`TYPE_I_MRET})                            ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :       // I-mret
                                                               ({opcode, func3}              == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRW_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :        // I-csrrw
