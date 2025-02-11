@@ -31,7 +31,7 @@ SECTIONS {
     _fsbl_start = .;
     *(entry)  
     *(.fsbl.text*)
-    . = ALIGN(4);
+    . = ALIGN(16);
     _fsbl_end = .;
   } > REGION_BOOTLOADER : fsbl
   efsbl = .;
@@ -41,7 +41,7 @@ SECTIONS {
     _bootloader_start = .;
     *(entry)  
     *(.bootloader.text*)
-    . = ALIGN(4);
+    . = ALIGN(16);
     _bootloader_end = .;
   } > REGION_BOOTLOADER : bootloader
   _bootloader_load_start = LOADADDR(.bootloader);
@@ -52,7 +52,7 @@ SECTIONS {
   .text : { 
     _text_start = .; 
     *(.text*)
-    . = ALIGN(4);
+    . = ALIGN(16);
   } > REGION_TEXT AT> flash : text 
   _text_load_start = LOADADDR(.text);
   etext = .;
