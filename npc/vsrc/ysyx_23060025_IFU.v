@@ -140,7 +140,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	`endif
 `endif
 
-	parameter [1:0] STATE_IDLE = 2'b00, STATE_WAIT_ID_READY = 2'b01, STATE_STOP = 2'b10;
+	parameter [1:0] STATE_IDLE = 2'b00, STATE_NOP = 2'b01, STATE_STOP = 2'b10;
 
 	// state trans
 	always @(posedge clock ) begin
@@ -158,11 +158,12 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			STATE_IDLE: begin
 				if (out_prdata == `TYPE_I_EBREAK) begin
 					next_state = STATE_STOP;
+				// idu busy
 				end else if (out_pready == 1'b1 & ~idu_ready_i) begin
-					next_state = STATE_WAIT_ID_READY;
-				end
+					next_state = STATE_NOP;
+				end 
 			end
-			STATE_WAIT_ID_READY: begin 
+			STATE_NOP: begin 
 				if(idu_ready_i) begin
 					next_state = STATE_IDLE;
 				end
@@ -206,7 +207,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 	assign out_paddr = pc;
 	always @(posedge clock) begin
-		if(reset | next_state == STATE_WAIT_ID_READY | next_state == STATE_STOP) begin
+		if(reset | next_state == STATE_NOP | next_state == STATE_STOP) begin
 			out_psel	<= 0;
 		end else if(next_state == STATE_IDLE) begin
 			out_psel	<= 1;

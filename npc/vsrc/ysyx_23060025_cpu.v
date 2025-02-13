@@ -326,6 +326,15 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.idu_valid_o           	( idu_valid_o             ),
 		.exu_ready_i           	(exu_ready_o              ),
 
+		// data_bypass
+		.exu_wd_i           	( ex_wd_o             ),
+		.exu_valid_i           	(exu_valid_o              ),
+		.exu_load_flag_i           	( |ex_load_type_o             ),
+		.exu_wreg_i           	(ex_wreg_o              ),
+		.exu_reg_wdata_i           	( ex_alu_result_o             ),
+		.lsu_valid_i           	(lsu_valid_o              ),
+		.lsu_reg_wdata_i           	(lsu_reg_wdata_o              ),
+
 
 		// .exu_ready   					(exu_ready_o),
 		// .idu_ready_o       				(idu_ready_o),
@@ -582,41 +591,41 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 
 	// output declaration of module ysyx_23060025_lsu_wb
-	wire t_wb_reg_wen_o;
-	wire [4:0] t_wb_wreg_o;
-	wire [DATA_LEN-1:0] t_wb_reg_wdata_o;
-	wire [DATA_LEN-1:0] t_wb_csr_wdata_o;
-	wire [2:0] t_wb_csr_type_o;
-	wire t_wb_memory_inst_o;
-	wire t_wb_lsu_valid_o;
-	wire t_wb_ebreak_flag_o;
+	// wire t_wb_reg_wen_o;
+	// wire [4:0] t_wb_wreg_o;
+	// wire [DATA_LEN-1:0] t_wb_reg_wdata_o;
+	// wire [DATA_LEN-1:0] t_wb_csr_wdata_o;
+	// wire [2:0] t_wb_csr_type_o;
+	// wire t_wb_memory_inst_o;
+	// wire t_wb_lsu_valid_o;
+	// wire t_wb_ebreak_flag_o;
 	
-	ysyx_23060025_lsu_wb #(
-		.ADDR_WIDTH 	(32  ),
-		.DATA_WIDTH 	(32  ))
-	u_ysyx_23060025_lsu_wb(
-		.clock               	(clock                ),
-		.reset               	(reset                ),
-		.f_lsu_reg_wen_i     	(lsu_reg_wen_o	  ),
-		.f_lsu_wreg_i        	(lsu_wreg_o		  ),
-		.f_lsu_reg_wdata_i   	(lsu_reg_wdata_o	  ),
-		.f_lsu_csr_wdata_i   	(lsu_csr_wdata_o	  ),
-		.f_lsu_csr_type_i    	(lsu_csr_type_o	  ),
-		.f_lsu_memory_inst_i 	(lsu_memory_inst_o  ),
-		.f_lsu_valid_i 			(lsu_valid_o  ),
-		.f_lsu_ebreak_flag_i 			(lsu_ebreak_flag_o  ),
-		.f_wb_ready_i 			(wbu_ready_o  ),
+	// ysyx_23060025_lsu_wb #(
+	// 	.ADDR_WIDTH 	(32  ),
+	// 	.DATA_WIDTH 	(32  ))
+	// u_ysyx_23060025_lsu_wb(
+	// 	.clock               	(clock                ),
+	// 	.reset               	(reset                ),
+	// 	.f_lsu_reg_wen_i     	(lsu_reg_wen_o	  	),
+	// 	.f_lsu_wreg_i        	(lsu_wreg_o		  	),
+	// 	.f_lsu_reg_wdata_i   	(lsu_reg_wdata_o	  ),
+	// 	.f_lsu_csr_wdata_i   	(lsu_csr_wdata_o	  ),
+	// 	.f_lsu_csr_type_i    	(lsu_csr_type_o	  	),
+	// 	.f_lsu_memory_inst_i 	(lsu_memory_inst_o  ),
+	// 	.f_lsu_valid_i 			(lsu_valid_o  			),
+	// 	.f_lsu_ebreak_flag_i 	(lsu_ebreak_flag_o  ),
+	// 	.f_wb_ready_i 			(wbu_ready_o  ),
 
 
-		.t_wb_reg_wen_o      	(t_wb_reg_wen_o       ),
-		.t_wb_wreg_o         	(t_wb_wreg_o          ),
-		.t_wb_reg_wdata_o    	(t_wb_reg_wdata_o     ),
-		.t_wb_csr_wdata_o    	(t_wb_csr_wdata_o     ),
-		.t_wb_csr_type_o     	(t_wb_csr_type_o      ),
-		.t_wb_memory_inst_o  	(t_wb_memory_inst_o   ),
-		.t_wb_ebreak_flag_o  	(t_wb_ebreak_flag_o   ),
-		.t_wb_lsu_valid_o  		(t_wb_lsu_valid_o  )
-	);
+	// 	.t_wb_reg_wen_o      	(t_wb_reg_wen_o       ),
+	// 	.t_wb_wreg_o         	(t_wb_wreg_o          ),
+	// 	.t_wb_reg_wdata_o    	(t_wb_reg_wdata_o     ),
+	// 	.t_wb_csr_wdata_o    	(t_wb_csr_wdata_o     ),
+	// 	.t_wb_csr_type_o     	(t_wb_csr_type_o      ),
+	// 	.t_wb_memory_inst_o  	(t_wb_memory_inst_o   ),
+	// 	.t_wb_ebreak_flag_o  	(t_wb_ebreak_flag_o   ),
+	// 	.t_wb_lsu_valid_o  		(t_wb_lsu_valid_o  )
+	// );
 	
 	wire wbu_ready_o;
 	ysyx_23060025_wb#(
@@ -625,16 +634,16 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reset          ( reset          ),
 		.clock          ( clock          ),
 
-		.wd_i         ( t_wb_reg_wen_o     ),
-		.wreg_i       ( t_wb_wreg_o        ),
-		.reg_wdata_i  ( t_wb_reg_wdata_o   ),
-		.csr_wdata_i  ( t_wb_csr_wdata_o   ),
-		.csr_type_i   ( t_wb_csr_type_o    ),
-		.memory_inst_i( t_wb_memory_inst_o  ),
-		.ebreak_flag_i( t_wb_ebreak_flag_o  ),
+		.wd_i         ( lsu_reg_wen_o	   ),
+		.wreg_i       ( lsu_wreg_o		   ),
+		.reg_wdata_i  ( lsu_reg_wdata_o ),
+		.csr_wdata_i  ( lsu_csr_wdata_o ),
+		.csr_type_i   ( lsu_csr_type_o	   ),
+		.memory_inst_i( lsu_memory_inst_o  ),
+		.ebreak_flag_i( lsu_ebreak_flag_o  ),
 
 		// lsu_wbu 
-		.lsu_valid_i    ( t_wb_lsu_valid_o	    ),
+		.lsu_valid_i    ( lsu_valid_o	    ),
 		.wbu_ready_o    ( 	wbu_ready_o    ),
 
 		.wd_o     	  ( reg_wen_i   ),

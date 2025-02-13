@@ -18,16 +18,24 @@
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
-static const uint32_t img [] = {
-  // 0x00010537,  // lui	a0,0x10
-  // 0x01050513,  // auipc t0,0
-  // 0x00010537,  // addi    x[1] = 0 + 1
-  // 0x01050513,  // auipc t0,0
-  0x00100093,  // addi    x[1] = 0 + 1
-  0x01440413,          	// addi	s0,s0,20
-  0x00178793,          	// addi	a5,a5,1
-  0x00f586b3,          	// add	a3,a1,a5
-  0x00100073  // ebreak (used ass npc_trap)
+// static const uint32_t img [] = {
+//   // 0x00010537,  // lui	a0,0x10
+//   // 0x01050513,  // auipc t0,0
+//   // 0x00010537,  // addi    x[1] = 0 + 1
+//   // 0x01050513,  // auipc t0,0
+//   0x00100093,  // addi    x[1] = 0 + 1
+//   0x01440413,          	// addi	s0,s0,20
+//   0x00178793,          	// addi	a5,a5,1
+//   0x00f586b3,          	// add	a3,a1,a5
+//   0x00100073  // ebreak (used ass npc_trap)
+// };
+
+static const uint32_t img[] = {
+    0x00100093,  // addi x1, x0, 1   # x1 = 0 + 1 = 1
+    0x00200113,  // addi x2, x0, 2   # x2 = 0 + 2 = 2
+    0x00308193,  // addi x3, x1, 3   # x3 = 1 + 3 = 4
+    0x00410213,  // addi x4, x2, 4   # x4 = 2 + 4 = 6
+    0x00100073  // ebreak           # 触发断点，停止执行
 };
 
 void init_isa() {

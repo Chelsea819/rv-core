@@ -19,15 +19,15 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	// icache access DRAM
 	output     [31:0]	out_araddr	,
-	output reg         	out_arvalid	,
+	output 	         	out_arvalid	,
 	input           	out_arready	,
-	output reg  [7:0]  	out_arlen	,
-	output reg  [2:0]   out_arsize	,
-	output reg  [1:0]   out_arburst	,
+	output 	  	[7:0]  	out_arlen	,
+	output 	  	[2:0]   out_arsize	,
+	output 	  	[1:0]   out_arburst	,
 	input        		out_rvalid	,
 	input           	out_rlast	,
 	input   	[31:0] 	out_rdata	,
-	output reg         	out_rready	
+	output 	         	out_rready	
 );
 	localparam	[2:0]	STATE_IDLE = 3'b00, STATE_CHECK = 3'b01, STATE_ADDR_HAND_SHAK = 3'b10, STATE_LOAD = 3'b11, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100, STATE_FENCE = 3'b111;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
@@ -119,7 +119,12 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				next_state = STATE_PASS;
 			end
 			STATE_PASS: begin
-				next_state = STATE_IDLE;
+				// 连续的访问请求
+				if(in_psel) begin
+					next_state = STATE_CHECK;
+				end else begin
+					next_state = STATE_IDLE;
+				end
 			end
 			STATE_FENCE: begin
 				next_state = STATE_IDLE;
@@ -157,49 +162,13 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	end
 
 
-	// output
-	always @(posedge clock) begin
-		if (reset) begin
-			in_pready	<=		0;
-			in_prdata	<=		0;
-			// out_araddr	<=		0;
-			out_arvalid	<=		0;
-			out_rready	<=		0;
-			out_arsize	<=		0;
-			out_arlen	<=		0;
-		end else begin
-			case (next_state)
-				STATE_IDLE:  begin
-					in_pready	<=		0;
-					in_prdata	<=		0;
-					// out_araddr	<=		0;
-					out_arvalid	<=		0;
-					out_rready	<=		0;
-					out_arsize	<=		0;
-					out_arlen	<=		0;
-				end
-				STATE_PASS:  begin
-					in_pready	<=		1'b1;
-					in_prdata	<=		prdata;
-				end
-				STATE_ADDR_HAND_SHAK:  begin
-					out_arvalid	<=		1;
-					out_arsize	<=		load_rsize;
-					out_arlen	<=		load_rlen;
-					out_arburst <=		`AXI_ADDR_BURST_INCR;
-					out_rready	<=		0;
-				end
-				STATE_LOAD:  begin
-					out_arvalid	<=		0;
-					out_rready	<=		1'b1;
-				end
-				default:  begin
-				end
-			endcase
-		end
-		
-	end
-
+	assign out_arsize = load_rsize;
+	assign out_arlen = load_rlen;
+	assign out_arvalid = (con_state == STATE_ADDR_HAND_SHAK);
+	assign out_rready = (con_state == STATE_LOAD);
+	assign in_pready = (con_state == STATE_PASS);
+	assign in_prdata = prdata;
+	assign out_arburst = `AXI_ADDR_BURST_INCR;
 	assign out_araddr = load_raddr;
 
 endmodule

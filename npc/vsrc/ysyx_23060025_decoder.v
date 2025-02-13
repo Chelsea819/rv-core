@@ -15,6 +15,18 @@ module ysyx_23060025_decoder(
     output                                        idu_valid_o               ,
     input                                         exu_ready_i               ,
 
+    // data bypass
+	// from exeu
+	input									exu_wd_i	    ,
+    // TODO: add exu valid logic, when exu not least one cycle
+	input									exu_valid_i	    ,
+	input									exu_load_flag_i	,
+	input		[4:0]						exu_wreg_i	    ,
+	input		[31:0]			            exu_reg_wdata_i	,
+	// from lsu
+	input									lsu_valid_i	    ,
+	input		[31:0]			            lsu_reg_wdata_i	,
+
     // input                                         exu_ready                 ,
     // output                                        idu_ready_o               ,
     output          [3:0]                         aluop_o                   ,
@@ -46,13 +58,17 @@ module ysyx_23060025_decoder(
     assign func7 = inst_i[31:25];
     assign opcode = inst_i[6:0];
     assign pc_o = pc_i;
-    assign reg1_o = reg1_data_i;
-    assign reg2_o = reg2_data_i;
+
+     wire [31:0] data_bypass = ((~exu_load_flag_i) ? exu_reg_wdata_i : lsu_reg_wdata_i);
+    assign reg1_o = (reg1_addr_o == exu_wreg_i) ? data_bypass : reg1_data_i;
+    assign reg2_o = (reg2_addr_o == exu_wreg_i) ? data_bypass : reg2_data_i;
     assign wreg_o = inst_i[11:7];
     assign reg1_addr_o = inst_i[19:15];
     assign reg2_addr_o = inst_i[24:20];
+    
     assign branch_target_o = pc_i + imm_o;
     assign csr_addr_o = inst_i[31:20];
+   
 
     assign idu_valid_o = ifu_valid_i;
     assign idu_ready_o = (con_state == STATE_RUN);
@@ -60,7 +76,7 @@ module ysyx_23060025_decoder(
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_RUN = 2'b00, STATE_WAIT_EXU_READY = 2'b10;
+    parameter [1:0] STATE_RUN = 2'b00, STATE_WAIT_EXU_READY = 2'b10, STATE_DATA_BYPASS = 2'b01;
 
 
 	// state trans
@@ -89,16 +105,23 @@ module ysyx_23060025_decoder(
 			STATE_RUN: begin
 				if (~exu_ready_i) begin
 					next_state = STATE_WAIT_EXU_READY;
+                // data bypass, wait for data from lsu
+				end else if (exu_wd_i & exu_load_flag_i & (exu_wreg_i == reg1_addr_o | exu_wreg_i == reg2_addr_o)) begin
+					next_state = STATE_DATA_BYPASS;
 				end
 			end
             // 等待exu空闲，下个时钟周期传递信息
             STATE_WAIT_EXU_READY: begin 
 				if (exu_ready_i) begin
 					next_state = STATE_RUN;
-				end
+				end 
+			end
+            STATE_DATA_BYPASS: begin 
+				if (lsu_valid_i) begin
+					next_state = STATE_RUN;
+				end 
 			end
             default: begin 
-				next_state = 2'b11;
 			end
 		endcase
 	end
