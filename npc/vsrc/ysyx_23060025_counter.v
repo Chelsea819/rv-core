@@ -29,10 +29,11 @@ module ysyx_23060025_counter #(parameter ADDR_LEN = 32)(
 	// 	$display("csr_pc_i = [%b]\n",csr_pc_i);
 	// end
 
-	assign pc_next = (branch_flag_i & branch_request_i) ? branch_target_i : 
-					 jmp_flag_i 						? jmp_target_i : 
-					 csr_jmp_i 							? csr_pc_i : 
-					 pc_plus_4;
+	assign pc_next = pc_plus_4;
+					// (branch_flag_i & branch_request_i) ? branch_target_i : 
+					//  jmp_flag_i 						? jmp_target_i : 
+					//  csr_jmp_i 							? csr_pc_i : 
+					//  pc_plus_4;
 	
 	always @ (posedge clock) begin
 		if(reset)

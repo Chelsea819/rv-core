@@ -19,17 +19,31 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     input       [1:0]                   store_type_i, 
     input       [DATA_LEN - 1:0]        csr_wdata_i	,
     input       [2:0]                   csr_type_i	,
-    input                               ifu_valid   , 
+
+
+	// exu_lsu
+    input                                         exu_valid_i               ,
+    output                                        lsu_ready_o               ,
+
+    // lsu_wbu
+    output                                        lsu_valid_o               ,
+    input                                         wbu_ready_i               ,
+
+	output                                        ebreak_flag_o               ,
+    input                                         ebreak_flag_i               ,
+
+
     // input                               wb_ready_o  ,
     // output                              lsu_ready_o ,
-    output                              memory_inst_o ,
-    output                              lsu_valid_o ,
+    
     output	   	                		wd_o		,
     output	   	[4:0]		            wreg_o		,
+	output     [DATA_LEN - 1:0]		    wdata_o,
     output      [DATA_LEN - 1:0]        csr_wdata_o	,
     output      [2:0]                   csr_type_o	,
+	output                              memory_inst_o ,
 
-    input	        [DATA_LEN - 1:0]    mem_rdata_rare_i	,
+    input	    [DATA_LEN - 1:0]    mem_rdata_rare_i	,
     // output		                		mem_ren_o	,
     // output	reg                		    mem_wen_o	,
 
@@ -61,9 +75,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// Backward
 	input		[1:0]					bkwd_resp_i,	// 写回复信号，写操作是否成功
 	input		                		bkwd_valid_i,	// 从设备给出的写回复信号是否有效
-	output		                		bkwd_ready_o,	// 主设备已准备好接收写回复信号
+	output		                		bkwd_ready_o	// 主设备已准备好接收写回复信号
     
-    output     [DATA_LEN - 1:0]		    wdata_o
+    
 );	
     wire [31:0] mem_rdata;
 	wire	 [DATA_LEN - 1:0]    mem_rdata_unaligned	;
@@ -74,6 +88,8 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     reg        mem_to_reg;
 	reg	[3:0]					w_strb	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	reg	[DATA_LEN - 1:0]		w_data	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
+
+	assign ebreak_flag_o = ebreak_flag_i;
 
 // delay test
 `ifdef DELAY_TEST
@@ -100,7 +116,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		always @(posedge clock ) begin
             if (~rstn) 
                 RANDOM_DELAY <= 4'b1;
-            else if((con_state == LSU_WAIT_IFU_VALID && next_state == LSU_WAIT_ADDR_PASS) || (con_state == LSU_WAIT_ADDR_PASS && next_state == LSU_WAIT_LSU_VALID))
+            else if((con_state == LSU_WAIT_IFU_VALID && next_state == LSU_WAIT_ADDR_PASS) || (con_state == LSU_WAIT_ADDR_PASS && next_state == STATE_RUN))
                 RANDOM_DELAY <= delay_num;
         end
 
@@ -127,7 +143,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	reg			[3:0]		bkwd_ready_delay;
 
     assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg & rstn & (addr_r_valid_delay == RANDOM_DELAY); // addr valid and load inst
-    assign r_ready_o = (con_state == LSU_WAIT_LSU_VALID) & (r_ready_delay == RANDOM_DELAY);
+    assign r_ready_o = (con_state == STATE_RUN) & (r_ready_delay == RANDOM_DELAY);
     assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (addr_w_valid_delay == RANDOM_DELAY);  // addr valid and store inst
     // assign addr_w_size_o = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
 	// 						(load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[15]}}, mem_rdata_unaligned[15:0]}: 
@@ -140,7 +156,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// 						(load_type_i == `LOAD_LHU_16) ? {{16{1'b0}}, mem_rdata_unaligned[15:0]}: 
 	// 						`AXI_ADDR_SIZE_4;
     assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (w_data_valid_delay == RANDOM_W_DATA_DELAY);
-    assign bkwd_ready_o = (con_state == LSU_WAIT_LSU_VALID) & rstn & (bkwd_ready_delay == RANDOM_DELAY);
+    assign bkwd_ready_o = (con_state == STATE_RUN) & rstn & (bkwd_ready_delay == RANDOM_DELAY);
 
 	// r addr delay
 	always @(posedge clock ) begin
@@ -169,28 +185,28 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	end
 
 	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_LSU_VALID && (r_ready_delay != RANDOM_DELAY || r_ready_delay == 0)) 
+		if (next_state == STATE_RUN && (r_ready_delay != RANDOM_DELAY || r_ready_delay == 0)) 
 			r_ready_delay <= r_ready_delay + 1;
-		else if(next_state == LSU_WAIT_LSU_VALID && r_ready_delay == RANDOM_DELAY)
+		else if(next_state == STATE_RUN && r_ready_delay == RANDOM_DELAY)
 			r_ready_delay <= r_ready_delay;
 		else  
 			r_ready_delay <= 4'b0;
 	end
 	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_LSU_VALID && (bkwd_ready_delay != RANDOM_DELAY || bkwd_ready_delay == 0)) 
+		if (next_state == STATE_RUN && (bkwd_ready_delay != RANDOM_DELAY || bkwd_ready_delay == 0)) 
 			bkwd_ready_delay <= bkwd_ready_delay + 1;
-		else if(next_state == LSU_WAIT_LSU_VALID && bkwd_ready_delay == RANDOM_DELAY)
+		else if(next_state == STATE_RUN && bkwd_ready_delay == RANDOM_DELAY)
 			bkwd_ready_delay <= bkwd_ready_delay;
 		else 
 			bkwd_ready_delay <= 4'b0;
 	end
 // no delay
 `else
-    assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg & rstn; // addr valid and load inst
-    assign r_ready_o = (con_state == LSU_WAIT_LSU_VALID);
-    assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn;  // addr valid and store inst
-    assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn;
-    assign bkwd_ready_o = (con_state == LSU_WAIT_LSU_VALID) & rstn;
+    // assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg & rstn; // addr valid and load inst
+    // assign r_ready_o = (con_state == STATE_RUN);
+    // assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn;  // addr valid and store inst
+    // assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn;
+    // assign bkwd_ready_o = (con_state == STATE_RUN) & rstn;
 
 `endif
 
@@ -206,26 +222,28 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
             addr_w_addr_o = 0;
             w_data = 0;
             w_strb = 0;
-        // end else if(con_state == LSU_WAIT_ADDR_PASS && next_state == LSU_WAIT_LSU_VALID) begin
-        end else if(con_state == LSU_WAIT_ADDR_PASS) begin
-            addr_r_addr_o = alu_result_i;
-            addr_w_addr_o = alu_result_i;
-			addr_r_size_o = (load_type_i == `LOAD_LB_8)  ? `AXI_ADDR_SIZE_1 : 
-							(load_type_i == `LOAD_LH_16) ? `AXI_ADDR_SIZE_2: 
-							(load_type_i == `LOAD_LBU_8) ? `AXI_ADDR_SIZE_1: 
-							(load_type_i == `LOAD_LHU_16) ? `AXI_ADDR_SIZE_2: 
-							// (load_type_i == `LOAD_LW_32) ? `AXI_ADDR_SIZE_4: 
-							`AXI_ADDR_SIZE_4;
-			addr_w_size_o = (store_type_i == `STORE_SB_8)? `AXI_ADDR_SIZE_1 :
-							(store_type_i == `STORE_SH_16) ? `AXI_ADDR_SIZE_2 :
-							// (store_type_i == `STORE_SW_32) ? `AXI_ADDR_SIZE_4 : 
-							`AXI_ADDR_SIZE_4;
-            w_data = mem_wdata_i;
-            w_strb = (store_type_i == `STORE_SB_8)? `AXI_W_STRB_8 :
-                    (store_type_i == `STORE_SH_16) ? `AXI_W_STRB_16 :
-                    (store_type_i == `STORE_SW_32) ? `AXI_W_STRB_32 : 
-                    0;
-		end else begin 
+        // end else if(con_state == LSU_WAIT_ADDR_PASS && next_state == STATE_RUN) begin
+        end 
+		// else if(con_state == LSU_WAIT_ADDR_PASS) begin
+        //     addr_r_addr_o = alu_result_i;
+        //     addr_w_addr_o = alu_result_i;
+		// 	addr_r_size_o = (load_type_i == `LOAD_LB_8)  ? `AXI_ADDR_SIZE_1 : 
+		// 					(load_type_i == `LOAD_LH_16) ? `AXI_ADDR_SIZE_2: 
+		// 					(load_type_i == `LOAD_LBU_8) ? `AXI_ADDR_SIZE_1: 
+		// 					(load_type_i == `LOAD_LHU_16) ? `AXI_ADDR_SIZE_2: 
+		// 					// (load_type_i == `LOAD_LW_32) ? `AXI_ADDR_SIZE_4: 
+		// 					`AXI_ADDR_SIZE_4;
+		// 	addr_w_size_o = (store_type_i == `STORE_SB_8)? `AXI_ADDR_SIZE_1 :
+		// 					(store_type_i == `STORE_SH_16) ? `AXI_ADDR_SIZE_2 :
+		// 					// (store_type_i == `STORE_SW_32) ? `AXI_ADDR_SIZE_4 : 
+		// 					`AXI_ADDR_SIZE_4;
+        //     w_data = mem_wdata_i;
+        //     w_strb = (store_type_i == `STORE_SB_8)? `AXI_W_STRB_8 :
+        //             (store_type_i == `STORE_SH_16) ? `AXI_W_STRB_16 :
+        //             (store_type_i == `STORE_SW_32) ? `AXI_W_STRB_32 : 
+        //             0;
+		// end 
+		else begin 
 			addr_r_addr_o = 0;
             addr_w_addr_o = 0;
 			addr_r_size_o = 0;
@@ -239,7 +257,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// import "DPI-C" function void dtrace_func(int addr);
     // always @(*)
 	// 	dtrace_func(addr_w_addr_o);
-
+`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void lsu_p_counter_update();
 	always @(posedge clock) begin
 		if (con_state == LSU_WAIT_WB_READY) begin
@@ -249,10 +267,11 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 	import "DPI-C" function void lsu_delay_counter_update();
 	always @(posedge clock) begin
-		if (con_state == LSU_WAIT_LSU_VALID) begin
+		if (con_state == STATE_RUN) begin
 			lsu_delay_counter_update();
 		end
 	end
+	`endif
 `endif
 
 	assign {w_strb_o, w_data_o} = (addr_w_addr_o[1:0] == 2'b00 || aligned_store == 1'b0) ? {w_strb, w_data} :
@@ -265,52 +284,34 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] LSU_WAIT_IFU_VALID = 2'b00, LSU_WAIT_LSU_VALID = 2'b01, LSU_WAIT_WB_READY = 2'b10, LSU_WAIT_ADDR_PASS = 2'b11;
+    parameter [1:0] STATE_RUN = 2'b01, LSU_WAIT_WB_READY = 2'b10;
 
-    assign lsu_valid_o = (next_state == LSU_WAIT_WB_READY);
+    assign lsu_valid_o = exu_valid_i;
+    assign lsu_ready_o = (con_state == STATE_RUN);
 
 	// state trans
 	always @(posedge clock ) begin
 		if(rstn)
             con_state <= next_state;
 		else 
-			con_state <= LSU_WAIT_IFU_VALID;
+			con_state <= STATE_RUN;
 	end
 
 	// next_state
 	always @(*) begin
+		next_state = con_state;
 		case(con_state) 
-            // 等待ifu取指，下一个时钟周期开始译码
-			LSU_WAIT_IFU_VALID: begin
-				if (ifu_valid == 1'b0) begin
-					next_state = LSU_WAIT_IFU_VALID;
-				end else begin 
-					next_state = LSU_WAIT_ADDR_PASS;
-				end
-			end
-            // 等待addr wdata握手
-			LSU_WAIT_ADDR_PASS: begin 
-                if(~(mem_to_reg | mem_wen_i)) begin 
-                    next_state = LSU_WAIT_IFU_VALID; 
-                end else if (mem_to_reg & addr_r_ready_i) begin // read
-					next_state = LSU_WAIT_LSU_VALID;
-                end else if (mem_wen_i & addr_w_ready_i & w_ready_i & mem_wen_i) begin // read
-					next_state = LSU_WAIT_LSU_VALID;
-				end else begin 
-					next_state = LSU_WAIT_ADDR_PASS;
-				end
-			end
             // 等待idu完成译码
-			LSU_WAIT_LSU_VALID: begin 
-				if (r_valid_i | (~|bkwd_resp_i & bkwd_valid_i)) begin
+			STATE_RUN: begin 
+				if (~wbu_ready_i) begin
 					next_state = LSU_WAIT_WB_READY;
-				end else begin 
-					next_state = LSU_WAIT_LSU_VALID;
 				end
 			end
             // 等待exu空闲，下个时钟周期传递信息
             LSU_WAIT_WB_READY: begin
-				next_state = LSU_WAIT_IFU_VALID;
+				if (wbu_ready_i) begin
+					next_state = STATE_RUN;
+				end
 			end
             default: begin 
 				next_state = 2'b11;
@@ -318,11 +319,11 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		endcase
 	end
 
-    always @(posedge clock) begin
-        if(next_state == LSU_WAIT_LSU_VALID & con_state == LSU_WAIT_ADDR_PASS) begin				
-            addr_unaligned <= alu_result_i[1:0];
-        end
-	end
+    // always @(posedge clock) begin
+    //     if(next_state == STATE_RUN & con_state == LSU_WAIT_ADDR_PASS) begin				
+    //         addr_unaligned <= alu_result_i[1:0];
+    //     end
+	// end
 
 	assign aligned_store = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H) || 
 							(alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H) ||
@@ -330,19 +331,19 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 							(alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H) ||
 							(alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
 
-	always @(posedge clock) begin
-        if(next_state == LSU_WAIT_LSU_VALID & con_state == LSU_WAIT_ADDR_PASS) begin	
-			aligned_store_reg <= aligned_store;				
-        end
-	end
+	// always @(posedge clock) begin
+    //     if(next_state == STATE_RUN & con_state == LSU_WAIT_ADDR_PASS) begin	
+	// 		aligned_store_reg <= aligned_store;				
+    //     end
+	// end
 
-    always @(*) begin
-        if(con_state != LSU_WAIT_IFU_VALID) begin				
-            mem_to_reg = |load_type_i;
-        end else begin
-            mem_to_reg = 0;
-        end
-	end
+    // always @(*) begin
+    //     if(con_state != LSU_WAIT_IFU_VALID) begin				
+    //         mem_to_reg = |load_type_i;
+    //     end else begin
+    //         mem_to_reg = 0;
+    //     end
+	// end
 
     // assign mem_ren_o = mem_to_reg;
     

@@ -113,7 +113,6 @@ $(BIN): $(SRCS) $(VSRCS)  $(NVBOARD_ARCHIVE)
 
 $(shell mkdir -p $(BUILD_DIR))
 
-IMG ?= char-test.bin
 
 PERF_IMG ?= $(WORK_DIR)/img/microbench-riscv32e-ysyxsoc.bin
 
@@ -124,11 +123,11 @@ PERF_IMG ?= $(WORK_DIR)/img/microbench-riscv32e-ysyxsoc.bin
 
 run:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!
-	$(EXE)  $(ARGS) $(IMG)
+	$(EXE)  $(ARGS) 
 
 gdb:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!
-	gdb -s $(EXE) --args $(EXE) $(ARGS) $(IMG)
+	gdb -s $(EXE) --args $(EXE) $(ARGS) 
 
 perf:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!

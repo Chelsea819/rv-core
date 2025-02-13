@@ -2,7 +2,7 @@
 `include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
-// `define N_YOSYS_STA_CHECK 1'b1
+`define N_YOSYS_STA_CHECK 1'b1
 
 
 `define TYPE_R_OPCODE     7'b0110011
@@ -32,6 +32,8 @@
 
 `define TYPE_I_JALR_OPCODE 7'b1100111
 `define TYPE_I_JALR_FUNC3 3'b0
+
+`define EBREAK_FLAG 1'b1
 
 `define TYPE_I_EBREAK 32'b0000000_0000100000000000001110011
 `define TYPE_I_ECALL  32'b0000000_00000_00000_000_00000_11100_11

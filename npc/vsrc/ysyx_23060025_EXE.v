@@ -22,7 +22,19 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	input		[1:0]					store_type_i,
 	input       [2:0]                   load_type_i ,
 	input		[2:0]					branch_type_i,
-	input                               ifu_valid    ,
+	input                                        ebreak_flag_i             ,
+
+
+	// idu_exu
+    input                                         idu_valid_i               ,
+    output                                        exu_ready_o               ,
+
+    // exu_lsu
+    output                                        exu_valid_o               ,
+    input                                         lsu_ready_i               ,
+
+	output                                        ebreak_flag_o             ,
+
     // input                                         isu_ready                 ,
     // output                                        exu_ready_o                 ,
 	output  reg    [2:0]                load_type_o 	,
@@ -52,24 +64,28 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	assign pc_o  = pc_i;
 	assign csr_mcause_o  = 32'hb;
 
+	assign ebreak_flag_o = ebreak_flag_i;
+
 `ifdef N_YOSYS_STA_CHECK
+	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void exu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == EXU_WAIT_WB_READY) begin
+		if (con_state == STATE_WAIT_LSU_READY) begin
 			exu_p_counter_update();
 		end
 	end
+	`endif
 `endif
 
 	reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] EXU_WAIT_IDU_VALID = 2'b00, EXU_WAIT_EXU_VALID = 2'b01, EXU_WAIT_WB_READY = 2'b10;
+    parameter [1:0] STATE_RUN = 2'b01, STATE_WAIT_LSU_READY = 2'b10;
 
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= EXU_WAIT_IDU_VALID;
+			con_state <= STATE_RUN;
 		else 
 			con_state <= next_state;
 	end
@@ -78,29 +94,24 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	always @(*) begin
 		next_state = con_state;
 		case(con_state) 
-            // 等待ifu取指，下一个时钟周期开始译码
-			EXU_WAIT_IDU_VALID: begin
-				if (ifu_valid == 1'b1) begin
-					next_state = EXU_WAIT_EXU_VALID;
-				end
-			end
             // 等待idu完成译码
-			EXU_WAIT_EXU_VALID: begin 
-				next_state = EXU_WAIT_WB_READY;
+			STATE_RUN: begin
+				if(~lsu_ready_i) 
+					next_state = STATE_WAIT_LSU_READY;
 			end
             // 等待exu空闲，下个时钟周期传递信息
-            EXU_WAIT_WB_READY: begin 
-				// if (isu_ready == 1'b0) begin
-				// 	next_state = EXU_WAIT_WB_READY;
-				// end else begin 
-				next_state = EXU_WAIT_IDU_VALID;
-				// end
+            STATE_WAIT_LSU_READY: begin 
+				if (lsu_ready_i) begin
+					next_state = STATE_RUN;
+				end
 			end
             default: begin 
 				next_state = 2'b11;
 			end
 		endcase
 	end
+	assign exu_valid_o = idu_valid_i;
+	assign exu_ready_o = (con_state == STATE_RUN);
 
 	ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
 		`BRANCH_BEQ, alu_zero,

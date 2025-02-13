@@ -6,7 +6,15 @@ module ysyx_23060025_decoder(
     input           [31:0]                        reg1_data_i               ,
     input           [31:0]                        reg2_data_i               ,
     input           [31:0]                        pc_i                      ,
-    input                                         ifu_valid                 ,
+
+    // ifu_idu
+    input                                         ifu_valid_i               ,
+    output                                        idu_ready_o               ,
+
+    // idu_exu
+    output                                        idu_valid_o               ,
+    input                                         exu_ready_i               ,
+
     // input                                         exu_ready                 ,
     // output                                        idu_ready_o               ,
     output          [3:0]                         aluop_o                   ,
@@ -24,6 +32,7 @@ module ysyx_23060025_decoder(
     output          [2:0]                         load_type_o              ,
     output                                        jmp_flag_o                ,
     output                                        fencei_flag_o             ,
+    output                                        ebreak_flag_o             ,
     output          [31:0]                        jmp_target_o              ,
     output          [11:0]                        csr_addr_o                ,
     output          [2:0]                         csr_flag_o                ,
@@ -45,50 +54,48 @@ module ysyx_23060025_decoder(
     assign branch_target_o = pc_i + imm_o;
     assign csr_addr_o = inst_i[31:20];
 
+    assign idu_valid_o = ifu_valid_i;
+    assign idu_ready_o = (con_state == STATE_RUN);
+
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] IDU_WAIT_IFU_VALID = 2'b00, IDU_WAIT_IDU_VALID = 2'b01, IDU_WAIT_EXU_READY = 2'b10;
+    parameter [1:0] STATE_RUN = 2'b00, STATE_WAIT_EXU_READY = 2'b10;
 
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= IDU_WAIT_IFU_VALID;
+			con_state <= STATE_RUN;
 		else 
 			con_state <= next_state;
 	end
     
 `ifdef N_YOSYS_STA_CHECK
+    `ifdef PERFORMANCE_COUNTER
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
 	always @(posedge clock) begin
-		if (con_state == IDU_WAIT_IDU_VALID && next_state == IDU_WAIT_EXU_READY) begin
+		if (con_state == IDU_WAIT_IDU_VALID && next_state == STATE_WAIT_EXU_READY) begin
 			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
 		end
 	end
+    `endif
 `endif
-
 	// next_state
 	always @(*) begin
         next_state = con_state;
 		case(con_state) 
             // 等待ifu取指，下一个时钟周期开始译码
-			IDU_WAIT_IFU_VALID: begin
-				if (ifu_valid == 1'b1) begin
-					next_state = IDU_WAIT_IDU_VALID;
+			STATE_RUN: begin
+				if (~exu_ready_i) begin
+					next_state = STATE_WAIT_EXU_READY;
 				end
 			end
-            // 等待idu完成译码
-			IDU_WAIT_IDU_VALID: begin 
-				next_state = IDU_WAIT_EXU_READY;
-			end
             // 等待exu空闲，下个时钟周期传递信息
-            IDU_WAIT_EXU_READY: begin 
-				// if (exu_ready == 1'b0) begin
-				// 	next_state = IDU_WAIT_EXU_READY;
-				// end else begin 
-					next_state = IDU_WAIT_IFU_VALID;
-				// end
+            STATE_WAIT_EXU_READY: begin 
+				if (exu_ready_i) begin
+					next_state = STATE_RUN;
+				end
 			end
             default: begin 
 				next_state = 2'b11;
@@ -97,54 +104,57 @@ module ysyx_23060025_decoder(
 	end
 
     // TODO: if change to pipeline, fence.i logic should be modified
-    assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
+    // assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
+
+
     
 // controller look-up lut
 // inst: R-type: wd_o aluop_o alusel_o
 // alu_sel  [1:0] res1/pc_o/0, [3:2] res2/imm_o/4/0
 // alu_op + - 
-assign {wd_o, aluop_o, alusel_o, store_type_o, load_type_o} = ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_ADD_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-add
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SUB_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sub
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_XOR_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_XOR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-xor
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_OR_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-or
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_AND_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_AND, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-and
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLL_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LEFT_LOGIC, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sll
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SRL_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_RIGHT_LOGIC, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-srl
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SRA_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sra
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLT_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-slt
-                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLTU_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}} :        // R-sltu
-                                                              ({inst_i}                     == {`TYPE_I_FENCEI})                          ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}} :        // R-sltu
-                                                              ({inst_i}                     == {`TYPE_I_ECALL})                           ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :       // I-ecall
-                                                              ({inst_i}                     == {`TYPE_I_MRET})                            ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :       // I-mret
-                                                              ({opcode, func3}              == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRW_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :        // I-csrrw
-                                                              ({opcode, func3}              == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRS_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}}  :        // I-csrrs
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ADDI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :        // I-addi
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_XORI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_XOR, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :        // I-xori
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ORI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :         // I-ori
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ANDI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_AND, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :        // I-andi
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :         // I-ori
-                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTIU_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :        // I-andi
-                                                              ({opcode, func3}              == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}}  :            // I-jalr
-                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_LEFT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :         // I-slli
-                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :         // I-slli
-                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRAI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}  :         // I-slli
-                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SB_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SB_8, `LOAD_INVALID}}  :         // S-sb
-                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SH_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SH_16, `LOAD_INVALID}}  :        // S-sh
-                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SW_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SW_32, `LOAD_INVALID}}  :        // S-sw
-                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LB_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LB_8}}  :         // L-sb
-                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LH_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LH_16}}  :        // L-sh
-                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LW_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LW_32}}  :        // L-sw
-                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LBU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LBU_8}}  :         // L-sb
-                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LHU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LHU_16}}  :        // L-sh
-                                                              ({opcode}                     == {`TYPE_J_JAL_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}}  :            // J-jal
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BEQ_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BNE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLT_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLTU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGEU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}}:        // B-beq
-                                                              ({opcode}                     == {`TYPE_U_AUIPC_OPCODE})                    ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}}    :        // U-auipc
-                                                              ({opcode}                     == {`TYPE_U_LUI_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}}  :         // U-lui  
+assign {wd_o, aluop_o, alusel_o, store_type_o, load_type_o, ebreak_flag_o} = ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_ADD_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-add
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SUB_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-sub
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_XOR_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_XOR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-xor
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_OR_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-or
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_AND_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_AND, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-and
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLL_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LEFT_LOGIC, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-sll
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SRL_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_RIGHT_LOGIC, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-srl
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SRA_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-sra
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLT_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-slt
+                                                              ({opcode, func3, func7}       == {`TYPE_R_OPCODE, `TYPE_R_SLTU_FUNC})        ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-sltu
+                                                              ({inst_i}                     == {`TYPE_I_EBREAK})                          ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}, `EBREAK_FLAG} :        // R-sltu
+                                                              ({inst_i}                     == {`TYPE_I_FENCEI})                          ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG} :        // R-sltu
+                                                              ({inst_i}                     == {`TYPE_I_ECALL})                           ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :       // I-ecall
+                                                              ({inst_i}                     == {`TYPE_I_MRET})                            ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :       // I-mret
+                                                              ({opcode, func3}              == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRW_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-csrrw
+                                                              ({opcode, func3}              == {`TYPE_I_CSR_OPCODE, `TYPE_I_CSRRS_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_ZERO,`ALU_SEL1_CSR, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-csrrs
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ADDI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-addi
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_XORI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_XOR, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-xori
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ORI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-ori
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ANDI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_AND, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-andi
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-ori
+                                                              ({opcode, func3}              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTIU_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-andi
+                                                              ({opcode, func3}              == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :            // I-jalr
+                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_LEFT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
+                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
+                                                              ({opcode, func3, imm_o[11:5]}   == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRAI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
+                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SB_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SB_8, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // S-sb
+                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SH_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SH_16, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // S-sh
+                                                              ({opcode, func3}              == {`TYPE_S_OPCODE, `TYPE_S_SW_FUNC3})        ? {~`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_SW_32, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // S-sw
+                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LB_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LB_8}, ~`EBREAK_FLAG}  :         // L-sb
+                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LH_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LH_16}, ~`EBREAK_FLAG}  :        // L-sh
+                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LW_FUNC3})        ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LW_32}, ~`EBREAK_FLAG}  :        // L-sw
+                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LBU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LBU_8}, ~`EBREAK_FLAG}  :         // L-sb
+                                                              ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LHU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LHU_16}, ~`EBREAK_FLAG}  :        // L-sh
+                                                              ({opcode}                     == {`TYPE_J_JAL_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :            // J-jal
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BEQ_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BNE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLT_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLTU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGEU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode}                     == {`TYPE_U_AUIPC_OPCODE})                    ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}    :        // U-auipc
+                                                              ({opcode}                     == {`TYPE_U_LUI_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // U-lui  
                                                               0;         
 
 assign  {branch_type_o, jmp_target_o, jmp_flag_o, csr_flag_o} = ({opcode, func3} == {`TYPE_B_OPCODE, `TYPE_B_BEQ_FUNC3})             ? {`BRANCH_BEQ,     32'b0,             ~`EN_JMP, `CSR_INVALID}:         // B-beq

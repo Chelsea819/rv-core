@@ -84,25 +84,27 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire								ifu_valid_o		;
 	// wire								exu_ready_o		;
 	// wire								idu_valid_o		;
-	wire			[ADDR_LEN - 1:0]	id_pc_i			;
-	wire			[ADDR_LEN - 1:0]	id_inst_i		;
+	wire			[ADDR_LEN - 1:0]	ifu_pc_o			;
+	wire			[ADDR_LEN - 1:0]	ifu_inst_o		;
 	wire			[ADDR_LEN - 1:0]	id_reg1_data_i	;
 	wire			[ADDR_LEN - 1:0]	id_reg2_data_i	;
 
 
 	// execute
-	wire			[3:0]				ex_aluop_i		;
-	wire			[3:0]				ex_alusel_i		;
-	wire			[DATA_LEN - 1:0]	ex_reg1_i		;
-	wire			[DATA_LEN - 1:0]	ex_reg2_i		;
-	wire			[DATA_LEN - 1:0]	ex_imm_i		;
-	wire			[DATA_LEN - 1:0]	ex_inst_i		;
-	wire			[DATA_LEN - 1:0]	ex_pc_i			;
-	wire								ex_wd_i			;
-	wire			[4:0]				ex_wreg_i		;
-	wire			[1:0]				ex_store_type_i	;
-	wire			[2:0]				ex_load_type_i	;
-	wire			[2:0]				ex_csr_flag_i	;
+	wire			[3:0]				idu_aluop_o		;
+	wire			[3:0]				idu_alusel_o		;
+	wire			[DATA_LEN - 1:0]	idu_reg1_o		;
+	wire			[DATA_LEN - 1:0]	idu_reg2_o		;
+	wire			[DATA_LEN - 1:0]	idu_imm_o		;
+	wire			[DATA_LEN - 1:0]	idu_inst_o		;
+	wire			[ADDR_LEN - 1:0]	idu_pc_o			;
+	wire								idu_wd_o			;
+	wire			[4:0]				idu_wreg_o		;
+	wire			[1:0]				idu_store_type_o	;
+	wire			[2:0]				idu_load_type_o	;
+	wire			[2:0]				idu_csr_flag_o	;
+
+
 	wire			[31:0]				ex_csr_rdata_i	;
 
 	// csr Unit
@@ -113,47 +115,46 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	        [DATA_LEN - 1:0]    csr_mcause_i	;
 
 	// lsu
-	wire			[DATA_LEN - 1:0]	lsu_mem_wdata_i	;
-	wire			[DATA_LEN - 1:0]	lsu_csr_wdata_i	;
-	wire			[2:0]				lsu_csr_type_i	;
-	wire								lsu_mem_wen_i	;
-	wire								lsu_wd_i		;
-	// wire								exu_valid_o		;
-	wire								lsu_ready_o		;
-	wire								lsu_valid_o		;
-	wire			[4:0]				lsu_wreg_i		;
-	wire			[DATA_LEN - 1:0]	lsu_alu_result_i	;
-	wire			[2:0]				lsu_load_type_i	;
-	wire			[1:0]				lsu_store_type_i	;
+	wire								ex_wd_o			;
+	wire			[4:0]				ex_wreg_o		;
+	wire			[DATA_LEN - 1:0]	ex_alu_result_o	;
+	wire								ex_mem_wen_o	;
+	wire			[DATA_LEN - 1:0]	ex_mem_wdata_o	;
+	wire			[2:0]				ex_load_type_o	;
+	wire			[1:0]				ex_store_type_o	;
+	wire			[DATA_LEN - 1:0]	ex_csr_wdata_o	;
+	wire			[2:0]				ex_csr_type_o	;
+
 
 	// wb Unit
-	wire			[DATA_LEN - 1:0]	wb_reg_wdata_i	;
-	wire			[DATA_LEN - 1:0]	wb_csr_wdata_i	;
-	wire			[2:0]				wb_csr_type_i	;
-	wire								wb_reg_wen_i	;
-	wire			[4:0]				wb_wreg_i		;
-	wire								wb_memory_inst_i;
+	wire								lsu_reg_wen_o		;
+	wire			[4:0]				lsu_wreg_o			;
+	wire			[DATA_LEN - 1:0]	lsu_reg_wdata_o		;
+	wire			[DATA_LEN - 1:0]	lsu_csr_wdata_o		;
+	wire			[2:0]				lsu_csr_type_o		;
+	wire								lsu_memory_inst_o	;
+
 	wire								wb_ready_o		;
 	
-	// assign pc = id_pc_i;
+	// assign pc = ifu_pc_o;
 	// assign finish = if_last_finish_i;
 	
 	// always @(*) begin
-	// 	$display("pc: [%h] inst: [%b] invalid: [%h] reset: [%b] clock[%b]",pc, id_inst_i, invalid, reset, clock);
+	// 	$display("pc: [%h] inst: [%b] invalid: [%h] reset: [%b] clock[%b]",pc, ifu_inst_o, invalid, reset, clock);
 	// end
 `ifdef YSYXSOC_TRACE_DEVICE
 	always @(*) begin
 		if (data_addr_w_valid_o & data_addr_w_ready_i & data_w_ready_i & data_w_valid_o) begin
 			if (data_addr_w_addr_o >= `DEVICE_CLINT_ADDR_L && data_addr_w_addr_o <= `DEVICE_CLINT_ADDR_H) begin
-				$display("[DTRACE]------[CLINT: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_CLINT_ADDR_L, `DEVICE_CLINT_ADDR_H, data_addr_w_addr_o, data_w_data_o, id_pc_i);
+				$display("[DTRACE]------[CLINT: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_CLINT_ADDR_L, `DEVICE_CLINT_ADDR_H, data_addr_w_addr_o, data_w_data_o, ifu_pc_o);
 			end else if (data_addr_w_addr_o >= `DEVICE_SRAM_ADDR_L && data_addr_w_addr_o <= `DEVICE_SRAM_ADDR_H) begin
-				$display("[DTRACE]------[SRAM: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_SRAM_ADDR_L, `DEVICE_SRAM_ADDR_H, data_addr_w_addr_o, data_w_data_o, id_pc_i);
+				$display("[DTRACE]------[SRAM: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_SRAM_ADDR_L, `DEVICE_SRAM_ADDR_H, data_addr_w_addr_o, data_w_data_o, ifu_pc_o);
 			end else if (data_addr_w_addr_o >= `DEVICE_UART16550_ADDR_L && data_addr_w_addr_o <= `DEVICE_UART16550_ADDR_H) begin
-				$display("[DTRACE]------[UART16550: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_UART16550_ADDR_L, `DEVICE_UART16550_ADDR_H, data_addr_w_addr_o, data_w_data_o, id_pc_i);
+				$display("[DTRACE]------[UART16550: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_UART16550_ADDR_L, `DEVICE_UART16550_ADDR_H, data_addr_w_addr_o, data_w_data_o, ifu_pc_o);
 			end else if (data_addr_w_addr_o >= `DEVICE_SPI_ADDR_L && data_addr_w_addr_o <= `DEVICE_SPI_ADDR_H) begin
-				$display("[DTRACE]------[SPI: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_SPI_ADDR_L, `DEVICE_SPI_ADDR_H, data_addr_w_addr_o, data_w_data_o, id_pc_i);
+				$display("[DTRACE]------[SPI: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_SPI_ADDR_L, `DEVICE_SPI_ADDR_H, data_addr_w_addr_o, data_w_data_o, ifu_pc_o);
 			end else if (data_addr_w_addr_o >= `DEVICE_MROM_ADDR_L && data_addr_w_addr_o <= `DEVICE_MROM_ADDR_H) begin
-				$display("[DTRACE]------[MROM: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_MROM_ADDR_L, `DEVICE_MROM_ADDR_H, data_addr_w_addr_o, data_w_data_o, id_pc_i);
+				$display("[DTRACE]------[MROM: %x ~ %x]------[w_addr: %x]------[w_data: %x]---[PC: %x]", `DEVICE_MROM_ADDR_L, `DEVICE_MROM_ADDR_H, data_addr_w_addr_o, data_w_data_o, ifu_pc_o);
 			end else begin
 				
 			end
@@ -164,15 +165,15 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	always @(*) begin
 		if (data_addr_r_valid_o & data_addr_r_ready_i) begin
 			if (data_addr_r_addr_o >= `DEVICE_CLINT_ADDR_L && data_addr_r_addr_o <= `DEVICE_CLINT_ADDR_H) begin
-				$display("[DTRACE-READ]------[CLINT: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_CLINT_ADDR_L, `DEVICE_CLINT_ADDR_H, data_addr_r_addr_o, id_pc_i);
+				$display("[DTRACE-READ]------[CLINT: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_CLINT_ADDR_L, `DEVICE_CLINT_ADDR_H, data_addr_r_addr_o, ifu_pc_o);
 			end else if (data_addr_r_addr_o >= `DEVICE_SRAM_ADDR_L && data_addr_r_addr_o <= `DEVICE_SRAM_ADDR_H) begin
-				$display("[DTRACE-READ]------[SRAM: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_SRAM_ADDR_L, `DEVICE_SRAM_ADDR_H, data_addr_r_addr_o, id_pc_i);
+				$display("[DTRACE-READ]------[SRAM: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_SRAM_ADDR_L, `DEVICE_SRAM_ADDR_H, data_addr_r_addr_o, ifu_pc_o);
 			end else if (data_addr_r_addr_o >= `DEVICE_UART16550_ADDR_L && data_addr_r_addr_o <= `DEVICE_UART16550_ADDR_H) begin
-				$display("[DTRACE-READ]------[UART16550: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_UART16550_ADDR_L, `DEVICE_UART16550_ADDR_H, data_addr_r_addr_o, id_pc_i);
+				$display("[DTRACE-READ]------[UART16550: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_UART16550_ADDR_L, `DEVICE_UART16550_ADDR_H, data_addr_r_addr_o, ifu_pc_o);
 			end else if (data_addr_r_addr_o >= `DEVICE_SPI_ADDR_L && data_addr_r_addr_o <= `DEVICE_SPI_ADDR_H) begin
-				$display("[DTRACE-READ]------[SPI: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_SPI_ADDR_L, `DEVICE_SPI_ADDR_H, data_addr_r_addr_o, id_pc_i);
+				$display("[DTRACE-READ]------[SPI: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_SPI_ADDR_L, `DEVICE_SPI_ADDR_H, data_addr_r_addr_o, ifu_pc_o);
 			end else if (data_addr_r_addr_o >= `DEVICE_MROM_ADDR_L && data_addr_r_addr_o <= `DEVICE_MROM_ADDR_H) begin
-				$display("[DTRACE-READ]------[MROM: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_MROM_ADDR_L, `DEVICE_MROM_ADDR_H, data_addr_r_addr_o, id_pc_i);
+				$display("[DTRACE-READ]------[MROM: %x ~ %x]------[r_addr: %x]---[PC: %x]", `DEVICE_MROM_ADDR_L, `DEVICE_MROM_ADDR_H, data_addr_r_addr_o, ifu_pc_o);
 			end else begin
 				
 			end
@@ -210,7 +211,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 // 	.addr_r_data_i           ( inst_i           ),
 // 	.id_inst_i        ( id_inst_i           ),
 //     // .inst_invalid_o   ( invalid           ),
-//     .pc               ( id_pc_i             )
+//     .pc               ( ifu_pc_o             )
 // );
 
 	// outports wire
@@ -225,19 +226,23 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	u_ysyx_23060025_IFU(
 		.clock            	( clock             ),
 		.reset            	( reset             ),
-		.last_finish      	( if_last_finish_i       ),
-		.valid            	( ifu_valid_o             ),
+
+		// ifu ifu_valid_o
+		.ifu_valid_o           	( ifu_valid_o             ),
+		.idu_ready_i           	( idu_ready_o            ),
+
 
 		.branch_request_i ( if_branch_request_i ),
 		.branch_target_i  ( if_branch_target_i  ),
 		.branch_flag_i    ( |if_branch_type_i    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
-		.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
+		.csr_jmp_i     	  (0   ),
+		// .csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
 		.csr_pc_i         ( if_csr_pc_i      ),
 
-		.id_inst_i        	( id_inst_i         ),
-		.pc               	( id_pc_i           ),
+		.if_inst_o        	( ifu_inst_o         ),
+		.if_pc_o               	( ifu_pc_o           ),
 
 		.out_paddr    		( icache_addr_r_addr     ),
 		.out_psel   		( icache_addr_r_sel    ),
@@ -246,6 +251,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 
 	wire icache_fencei_flag;
+	wire idu_ebreak_flag_o;
 
 	ysyx_23060025_icache u_ysyx_23060025_icache(
 		.clock       	( clock        ),
@@ -269,8 +275,26 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.out_rready  	( inst_r_ready_o   )
 	);
 
-
-
+	// output declaration of module ysyx_23060025_if_id
+	wire [DATA_LEN-1:0] t_id_inst_o;
+	wire [ADDR_LEN-1:0] t_id_pc_o;
+	wire 				t_id_if_valid_o;
+	
+	ysyx_23060025_if_id #(
+		.ADDR_WIDTH 	(32  ),
+		.DATA_WIDTH 	(32  ))
+	u_ysyx_23060025_if_id(
+		.clock       	(clock        ),
+		.reset       	(reset        ),
+		.f_if_inst_i 	(ifu_inst_o  ),
+		.f_if_pc_i   	(ifu_pc_o    ),
+		.f_if_valid_i   	(ifu_valid_o    ),
+		.f_id_ready_i   	(idu_ready_o    ),
+		.t_id_inst_o 	(t_id_inst_o  ),
+		.t_id_pc_o   	(t_id_pc_o    ),
+		.t_id_if_valid_o   	(t_id_if_valid_o    )
+	);
+	
 	ysyx_23060025_RegisterFile ysyx_23060025_RegisterFile(
 		.clock		(clock),
 		.wdata		(reg_wdata_i),
@@ -286,99 +310,253 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	ysyx_23060025_decoder ysyx_23060025_decoder(
 		.clock              				( clock              ),
 		.reset              				( reset              ),
-		.inst_i							(id_inst_i),
+		.inst_i							(t_id_inst_o),
 		.reg1_data_i					(id_reg1_data_i),
 		.reg2_data_i					(id_reg2_data_i),
-		.pc_i       					(id_pc_i),	
+		.pc_i       					(t_id_pc_o),	
 
 		.fencei_flag_o    					(icache_fencei_flag),	
+		.ebreak_flag_o    					(idu_ebreak_flag_o),	
 
-		.ifu_valid    					(ifu_valid_o),	
+		// ifu_idu
+		.ifu_valid_i           	( t_id_if_valid_o             ),
+		.idu_ready_o           	(idu_ready_o              ),
+
+		// idu_exu
+		.idu_valid_o           	( idu_valid_o             ),
+		.exu_ready_i           	(exu_ready_o              ),
+
+
 		// .exu_ready   					(exu_ready_o),
 		// .idu_ready_o       				(idu_ready_o),
 		// .idu_valid_o     				(idu_valid_o),
 
-		.aluop_o    					(ex_aluop_i),	
-		.alusel_o   					(ex_alusel_i),
-		.pc_o       					(ex_pc_i),
-		.reg1_o     					(ex_reg1_i),
-		.reg2_o     					(ex_reg2_i),
-		.wd_o       					(ex_wd_i),
-		.wreg_o     					(ex_wreg_i),
+		.aluop_o    					(idu_aluop_o		),	
+		.alusel_o   					(idu_alusel_o		),
+		.pc_o       					(idu_pc_o			),
+		.reg1_o     					(idu_reg1_o			),
+		.reg2_o     					(idu_reg2_o			),
+		.wd_o       					(idu_wd_o			),
+		.wreg_o     					(idu_wreg_o			),
+		.imm_o      					(idu_imm_o			),
+		.csr_flag_o						(idu_csr_flag_o		),
+		.store_type_o					(idu_store_type_o	),
+		.load_type_o					(idu_load_type_o	),
+
 		.reg1_addr_o					(reg_raddr1_i),
 		.reg2_addr_o					(reg_raddr2_i),
 		.branch_type_o					(if_branch_type_i),
 		.branch_target_o				(if_branch_target_i),
 		.jmp_flag_o						(if_jmp_flag_i),
 		.jmp_target_o					(if_jmp_target_i),
-		.store_type_o					(ex_store_type_i),
-		.load_type_o					(ex_load_type_i),
-		.csr_addr_o						(csr_addr_i),
-		.csr_flag_o						(ex_csr_flag_i),  
-		.imm_o      					(ex_imm_i)
+		
+		.csr_addr_o						(csr_addr_i)
+		  
+		
 	);
 
+	
+	// outports wire
+	wire [DATA_LEN-1:0] 	t_ex_reg1_o;
+	wire [DATA_LEN-1:0] 	t_ex_reg2_o;
+	wire [ADDR_LEN-1:0] 	t_ex_pc_o;
+	wire [3:0]            	t_ex_aluop_o;
+	wire [3:0]            	t_ex_alusel_o;
+	wire [DATA_LEN-1:0] 	t_ex_imm_o;
+	wire [DATA_LEN-1:0] 	t_ex_csr_rdata_o;
+	wire [2:0]            	t_ex_csr_flag_o;
+	wire                  	t_ex_wd_o;
+	wire [1:0]            	t_ex_store_type_o;
+	wire [2:0]            	t_ex_load_type_o;
+	wire [4:0]            	t_ex_wreg_o;
+	wire                  	t_ex_ebreak_flag_o;
+	wire                  	t_ex_id_valid_o;
+
+	ysyx_23060025_id_ex #(
+		.ADDR_WIDTH 	( 32  ),
+		.DATA_WIDTH 	( 32  ))
+	u_ysyx_23060025_id_ex(
+		.clock            	( clock             ),
+		.reset            	( reset             ),
+		.f_id_aluop_i     	( idu_aluop_o		  ),
+		.f_id_alusel_i    	( idu_alusel_o		  ),
+		.f_id_pc_i        	( idu_pc_o			  ),
+		.f_id_reg1_i      	( idu_reg1_o		  ),
+		.f_id_reg2_i      	( idu_reg2_o		  ),
+		.f_id_wd_i        	( idu_wd_o			  ),
+		.f_id_wreg_i      	( idu_wreg_o		),
+		.f_id_imm_i       	( idu_imm_o			  ),
+		.f_id_csr_flag_i  	( idu_csr_flag_o		),
+		.f_id_store_type_i  ( idu_store_type_o	  ),
+		.f_id_load_type_i  	( idu_load_type_o	  ),
+		.f_id_ebreak_flag_i ( idu_ebreak_flag_o	  ),
+		.f_id_valid_i  		( idu_valid_o	  ),
+		.f_ex_ready_i  		( exu_ready_o	  ),
+		
+
+		.t_ex_reg1_o      	( t_ex_reg1_o       ),
+		.t_ex_reg2_o      	( t_ex_reg2_o       ),
+		.t_ex_pc_o        	( t_ex_pc_o         ),
+		.t_ex_aluop_o     	( t_ex_aluop_o      ),
+		.t_ex_alusel_o    	( t_ex_alusel_o     ),
+		.t_ex_imm_o       	( t_ex_imm_o        ),
+		.t_ex_csr_flag_o  	( t_ex_csr_flag_o   ),
+		.t_ex_wd_o        	( t_ex_wd_o         ),
+		.t_ex_wreg_o      	( t_ex_wreg_o       ),
+		.t_ex_store_type_o  ( t_ex_store_type_o         ),
+		.t_ex_load_type_o   ( t_ex_load_type_o       ),
+		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       ),
+		.t_ex_id_valid_o    ( t_ex_id_valid_o       )
+	);
+
+	wire exu_valid_o;
+	wire exu_ready_o;
+	wire idu_valid_o;
+	wire idu_ready_o;
+	wire lsu_valid_o;
+	wire lsu_ready_o;
+	wire exu_ebreak_flag_o;
+
+
 	ysyx_23060025_EXE ysyx_23060025_EXE(
-		.clock              	( clock     ),
-		.reset              	( reset     ),
-		.reg1_i				(ex_reg1_i),
-		.reg2_i				(ex_reg2_i),
-		.pc_i				(ex_pc_i),
-		.alu_control		(ex_aluop_i),
-		.alu_sel			(ex_alusel_i),		
-		.imm_i				(ex_imm_i),
-		.csr_rdata_i		(ex_csr_rdata_i),
-		.csr_flag_i			(ex_csr_flag_i),
-		.wd_i				(ex_wd_i),	
-		.wreg_i				(ex_wreg_i),
-		.branch_type_i		(if_branch_type_i),	
-		.ifu_valid			(ifu_valid_o),
+		.clock              	( clock     	),
+		.reset              	( reset     	),
+
+		.reg1_i				(t_ex_reg1_o      	),
+		.reg2_i				(t_ex_reg2_o      	),
+		.pc_i				(t_ex_pc_o        	),
+		.alu_control		(t_ex_aluop_o     	),
+		.alu_sel			(t_ex_alusel_o    	),		
+		.imm_i				(t_ex_imm_o       	),
+		.csr_flag_i			(t_ex_csr_flag_o  	),
+		.wd_i				(t_ex_wd_o        	),	
+		.wreg_i				(t_ex_wreg_o      	),
+		.store_type_i		(t_ex_store_type_o	)	,	
+		.load_type_i		(t_ex_load_type_o 	),
+
+		.branch_type_i		(if_branch_type_i	),	
+
+		.csr_rdata_i		(ex_csr_rdata_i		),
+		// idu_exu
+		.idu_valid_i           	(      t_ex_id_valid_o        ),
+		.exu_ready_o           	(      exu_ready_o        ),
+
+		// exu_wbu
+		.exu_valid_o           	(      exu_valid_o        ),
+		.lsu_ready_i           	(      lsu_ready_o        ),
+
+		.ebreak_flag_i           	(      t_ex_ebreak_flag_o        ),
+		.ebreak_flag_o           	(      exu_ebreak_flag_o        ),
+
+
 		// .isu_ready		(lsu_ready_o),	
 		// .exu_ready_o		(exu_ready_o),
 		// .exu_valid_o		(exu_valid_o),
-		.store_type_i		(ex_store_type_i),	
-		.load_type_i		(ex_load_type_i),
+		
 		.branch_request_o	(if_branch_request_i),
-		.wd_o				(lsu_wd_i),	
-		.wreg_o				(lsu_wreg_i),
-		.mem_wen_o			(lsu_mem_wen_i),	
-		.mem_wdata_o		(lsu_mem_wdata_i),	
-		.csr_wdata_o		(lsu_csr_wdata_i),
-		.csr_type_o			(lsu_csr_type_i),
+
+		.wd_o				(ex_wd_o			),	
+		.wreg_o				(ex_wreg_o		),
+		.alu_result_o		(ex_alu_result_o		),
+		.mem_wen_o			(ex_mem_wen_o	),	
+		.mem_wdata_o		(ex_mem_wdata_o		),	
+		.load_type_o		(ex_load_type_o		),
+		.store_type_o		(ex_store_type_o		),
+		.csr_wdata_o		(ex_csr_wdata_o		),
+		.csr_type_o			(ex_csr_type_o	),
+
 		.csr_mcause_o		(csr_mcause_i),
-		.pc_o				(csr_mepc_i),
-		.load_type_o		(lsu_load_type_i),
-		.store_type_o		(lsu_store_type_i),
-		.alu_result_o		(lsu_alu_result_i)
+		.pc_o				(csr_mepc_i)
+		
+		
 	);
+
+	// output declaration of module ysyx_23060025_ex_lsu
+	wire t_lsu_wd_o;
+	wire [4:0] t_lsu_wreg_o;
+	wire [DATA_LEN-1:0] t_lsu_alu_result_o;
+	wire t_lsu_mem_wen_o;
+	wire [DATA_LEN-1:0] t_lsu_mem_wdata_o;
+	wire [2:0] t_lsu_load_type_o;
+	wire [1:0] t_lsu_store_type_o;
+	wire [31:0] t_lsu_csr_wdata_o;
+	wire [2:0] t_lsu_csr_type_o;
+	wire 	   t_lsu_ex_valid_o;
+	wire 	   t_lsu_ebreak_flag_o;
+	
+	ysyx_23060025_ex_lsu #(
+		.ADDR_WIDTH 	(32  ),
+		.DATA_WIDTH 	(32  ))
+	u_ysyx_23060025_ex_lsu(
+		.clock              	(clock               ),
+		.reset              	(reset               ),
+		.f_ex_wd_i          	(ex_wd_o			   ),
+		.f_ex_wreg_i        	(ex_wreg_o		   ),
+		.f_ex_alu_result_i  	(ex_alu_result_o	   ),
+		.f_ex_mem_wen_i     	(ex_mem_wen_o	   ),
+		.f_ex_mem_wdata_i   	(ex_mem_wdata_o	   ),
+		.f_ex_load_type_i   	(ex_load_type_o	   ),
+		.f_ex_store_type_i  	(ex_store_type_o	   ),
+		.f_ex_csr_wdata_i   	(ex_csr_wdata_o	   ),
+		.f_ex_csr_type_i    	(ex_csr_type_o	   ),
+		.f_ex_valid_i    		(exu_valid_o	   ),
+		.f_lsu_ready_i    		(lsu_ready_o	   ),
+
+		.f_ex_ebreak_flag_i           	(      exu_ebreak_flag_o        ),
+		.t_lsu_ebreak_flag_o           	(      t_lsu_ebreak_flag_o        ),
+
+
+		.t_lsu_wd_o         	(t_lsu_wd_o          ),
+		.t_lsu_wreg_o       	(t_lsu_wreg_o        ),
+		.t_lsu_alu_result_o 	(t_lsu_alu_result_o  ),
+		.t_lsu_mem_wen_o    	(t_lsu_mem_wen_o     ),
+		.t_lsu_mem_wdata_o  	(t_lsu_mem_wdata_o   ),
+		.t_lsu_load_type_o  	(t_lsu_load_type_o   ),
+		.t_lsu_store_type_o 	(t_lsu_store_type_o  ),
+		.t_lsu_csr_wdata_o  	(t_lsu_csr_wdata_o   ),
+		.t_lsu_csr_type_o   	(t_lsu_csr_type_o    ),
+		.t_lsu_ex_valid_o    	(t_lsu_ex_valid_o	   )
+	);
+	
+	wire lsu_ebreak_flag_o;
 
 	ysyx_23060025_LSU#(
 		.DATA_LEN          ( 32 ),
 		.ADDR_LEN          ( 32 )
 	)ysyx_23060025_LSU(
 		.rstn           ( ~reset           ),
-		.wd_i          ( lsu_wd_i          ),
 		.clock           ( clock           		),
-		.wreg_i   		( lsu_wreg_i   		),
-		.alu_result_i   ( lsu_alu_result_i  	),
-		.mem_wen_i     	( lsu_mem_wen_i   	),
-		.mem_wdata_i   	( lsu_mem_wdata_i 	),
 
-		.memory_inst_o  ( wb_memory_inst_i ),
-		.load_type_i	( lsu_load_type_i	),
-		.store_type_i	( lsu_store_type_i	),
-		.csr_wdata_i	( lsu_csr_wdata_i	),
-		.csr_type_i		( lsu_csr_type_i	),
+		.wd_i          	( t_lsu_wd_o        ),
+		.wreg_i   		( t_lsu_wreg_o      ),
+		.alu_result_i   ( t_lsu_alu_result_o	),
+		.mem_wen_i     	( t_lsu_mem_wen_o   ),
+		.mem_wdata_i   	( t_lsu_mem_wdata_o ),
+		.load_type_i	( t_lsu_load_type_o ),
+		.store_type_i	( t_lsu_store_type_o),
+		.csr_wdata_i	( t_lsu_csr_wdata_o ),
+		.csr_type_i		( t_lsu_csr_type_o  ),
 
-		.ifu_valid     	( ifu_valid_o   	),
-		// .wb_ready_o   	( wb_ready_o 		),
-		// .lsu_ready_o    ( lsu_ready_o   	),
-		.lsu_valid_o    ( lsu_valid_o   	),
-		.wd_o     		( wb_reg_wen_i   		),
-		.wreg_o   		( wb_wreg_i 		),
-		.wdata_o  		( wb_reg_wdata_i 	),
-		.csr_type_o		( wb_csr_type_i	),
-		.csr_wdata_o    ( wb_csr_wdata_i   	),
+		
+
+		// idu_exu
+		.exu_valid_i           	(   t_lsu_ex_valid_o           ),
+		.lsu_ready_o           	(    lsu_ready_o          ),
+
+		// exu_wbu
+		.lsu_valid_o           	(     lsu_valid_o         ),
+		.wbu_ready_i           	(    wbu_ready_o          ),
+
+
+		.ebreak_flag_i   	( t_lsu_ebreak_flag_o 		),
+		.ebreak_flag_o    ( lsu_ebreak_flag_o   	),
+
+		.wd_o     		( lsu_reg_wen_o			),
+		.wreg_o   		( lsu_wreg_o			),
+		.wdata_o  		( lsu_reg_wdata_o		),
+		.csr_type_o		( lsu_csr_type_o		),
+		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
+		.memory_inst_o  ( lsu_memory_inst_o ),
 
 		.mem_rdata_rare_i  ( data_r_data_i   	),
 
@@ -403,21 +581,62 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.bkwd_ready_o      ( data_bkwd_ready_o      )
 	);
 
+	// output declaration of module ysyx_23060025_lsu_wb
+	wire t_wb_reg_wen_o;
+	wire [4:0] t_wb_wreg_o;
+	wire [DATA_LEN-1:0] t_wb_reg_wdata_o;
+	wire [DATA_LEN-1:0] t_wb_csr_wdata_o;
+	wire [2:0] t_wb_csr_type_o;
+	wire t_wb_memory_inst_o;
+	wire t_wb_lsu_valid_o;
+	wire t_wb_ebreak_flag_o;
+	
+	ysyx_23060025_lsu_wb #(
+		.ADDR_WIDTH 	(32  ),
+		.DATA_WIDTH 	(32  ))
+	u_ysyx_23060025_lsu_wb(
+		.clock               	(clock                ),
+		.reset               	(reset                ),
+		.f_lsu_reg_wen_i     	(lsu_reg_wen_o	  ),
+		.f_lsu_wreg_i        	(lsu_wreg_o		  ),
+		.f_lsu_reg_wdata_i   	(lsu_reg_wdata_o	  ),
+		.f_lsu_csr_wdata_i   	(lsu_csr_wdata_o	  ),
+		.f_lsu_csr_type_i    	(lsu_csr_type_o	  ),
+		.f_lsu_memory_inst_i 	(lsu_memory_inst_o  ),
+		.f_lsu_valid_i 			(lsu_valid_o  ),
+		.f_lsu_ebreak_flag_i 			(lsu_ebreak_flag_o  ),
+		.f_wb_ready_i 			(wbu_ready_o  ),
+
+
+		.t_wb_reg_wen_o      	(t_wb_reg_wen_o       ),
+		.t_wb_wreg_o         	(t_wb_wreg_o          ),
+		.t_wb_reg_wdata_o    	(t_wb_reg_wdata_o     ),
+		.t_wb_csr_wdata_o    	(t_wb_csr_wdata_o     ),
+		.t_wb_csr_type_o     	(t_wb_csr_type_o      ),
+		.t_wb_memory_inst_o  	(t_wb_memory_inst_o   ),
+		.t_wb_ebreak_flag_o  	(t_wb_ebreak_flag_o   ),
+		.t_wb_lsu_valid_o  		(t_wb_lsu_valid_o  )
+	);
+	
+	wire wbu_ready_o;
 	ysyx_23060025_wb#(
 		.DATA_LEN     ( 32 )
 	)ysyx_23060025_wb(
 		.reset          ( reset          ),
-		.wd_i         ( wb_reg_wen_i ),
 		.clock          ( clock          ),
-		.wreg_i       ( wb_wreg_i       ),
-		.csr_wdata_i  ( wb_csr_wdata_i  ),
-		.csr_type_i   ( wb_csr_type_i  ),
-		.reg_wdata_i  ( wb_reg_wdata_i  ),
-		.memory_inst_i( wb_memory_inst_i ),
-		.ifu_valid    ( ifu_valid_o    ),
-		.lsu_valid    ( lsu_valid_o    ),
-		// .wb_ready_o   ( wb_ready_o   ),
-		.finish       ( if_last_finish_i ),
+
+		.wd_i         ( t_wb_reg_wen_o     ),
+		.wreg_i       ( t_wb_wreg_o        ),
+		.reg_wdata_i  ( t_wb_reg_wdata_o   ),
+		.csr_wdata_i  ( t_wb_csr_wdata_o   ),
+		.csr_type_i   ( t_wb_csr_type_o    ),
+		.memory_inst_i( t_wb_memory_inst_o  ),
+		.ebreak_flag_i( t_wb_ebreak_flag_o  ),
+
+		// lsu_wbu 
+		.lsu_valid_i    ( t_wb_lsu_valid_o	    ),
+		.wbu_ready_o    ( 	wbu_ready_o    ),
+
 		.wd_o     	  ( reg_wen_i   ),
 		.wreg_o   	  ( reg_waddr_i ),
 		.wdata_o  	  ( reg_wdata_i ),

@@ -111,7 +111,7 @@ $(BIN): $(SRCS) $(VSRCS)  $(NVBOARD_ARCHIVE)
 
 $(shell mkdir -p $(BUILD_DIR))
 
-IMG ?= char-test.bin
+IMG ?= 
 
 PERF_IMG ?= $(WORK_DIR)/img/microbench-riscv32e-ysyxsoc.bin
 

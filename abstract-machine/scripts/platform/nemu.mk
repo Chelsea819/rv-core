@@ -32,7 +32,7 @@ image: $(IMAGE).elf
 run: image
 	$(info ARCHIVES = $(ARCHIVES))
 	$(info ARCHIVE = $(ARCHIVE))
-	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=/home/chelsea/ysyx-workbench/am-kernels/benchmarks/microbench/build/microbench-riscv32e-ysyxsoc.bin
+	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=/home/chelsea/ysyx-workbench/am-kernels/tests/cpu-tests/build/load-store-riscv32e-ysyxsoc.bin
 #$(IMAGE).bin
 # bear --output ~/ysyx-workbench/.vscode/compile_commands.json -- $(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin
 

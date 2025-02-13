@@ -272,9 +272,9 @@ extern WP *head;
 
 void device_update();
 
-void ifebreak_func(int inst){
+void ifebreak_func(char ebreak_flag){
 	// printf("while key = 0x%08x\n",inst);printf("ebreak-called: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst)
-	if(inst == 1048691) { ifbreak = true; } 
+	if(ebreak_flag != 0) { ifbreak = true; } 
 }
 
 void resp_check(char resp){
@@ -453,19 +453,19 @@ void per_inst_cycle(){
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
   size_t i = 0;
-  while (1) {
-    if(i >= INST_TYPE_NUM){dut->final();
-        #ifdef CONFIG_WAVE
-        tfp->close();	//关闭波形跟踪文件
-        #endif 
-        panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
-    if (type_flag[i]) {
-      inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
-      type_flag[i] = false;
-      break;
-    }
-    i ++;
-  }
+  // while (1) {
+  //   if(i >= INST_TYPE_NUM){dut->final();
+  //       #ifdef CONFIG_WAVE
+  //       tfp->close();	//关闭波形跟踪文件
+  //       #endif 
+  //       panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
+  //   if (type_flag[i]) {
+  //     inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
+  //     type_flag[i] = false;
+  //     break;
+  //   }
+  //   i ++;
+  // }
   // printf("finished dut.pc = [0x%08x]!\n",cpu.pc);
 }
 

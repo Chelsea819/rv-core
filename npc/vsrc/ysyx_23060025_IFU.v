@@ -11,10 +11,12 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									clock				,
 	input									reset				,
     // hand signal
-	input									last_finish		,
-	output									valid	        ,
 
-    // refresh pc
+	// ifu ifu_valid_o
+	output									ifu_valid_o	        ,
+	input									idu_ready_i	        ,
+
+    // refresh if_pc_o
 	input									branch_request_i,	
 	input		[ADDR_WIDTH - 1:0]			branch_target_i	,
 	input									branch_flag_i	,
@@ -24,8 +26,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input		[ADDR_WIDTH - 1:0]			csr_pc_i	    ,
 
     // get instruction
-    output 		[DATA_WIDTH - 1:0]			id_inst_i	,
-	output reg	[ADDR_WIDTH - 1:0]			pc			,
+    output 		[DATA_WIDTH - 1:0]			if_inst_o	,
+	output reg	[ADDR_WIDTH - 1:0]			if_pc_o			,
 
 	// IFU-AXI
 	// Addr Read
@@ -39,7 +41,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	wire		[ADDR_WIDTH - 1:0]	        pc_plus_4	;
 	reg			[1:0]				        con_state	;
 	reg			[1:0]			        	next_state	;
-	reg 		[DATA_WIDTH - 1:0]			inst_reg	;
+	// reg 		[DATA_WIDTH - 1:0]			out_prdata	;
 
 	// delay test
 `ifdef DELAY_TEST
@@ -98,44 +100,47 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 `else
 	// assign out_psel = (next_state == STATE_IDLE) & ~reset;
 `endif
-	assign valid = (next_state == STATE_WAIT_EX_READY);
+	assign ifu_valid_o = out_pready;
 
 `ifdef N_YOSYS_STA_CHECK
 	// 检测到ebreak
-    import "DPI-C" function void ifebreak_func(int inst);
-    always @(*)
-        ifebreak_func(inst_reg);
+    // import "DPI-C" function void ifebreak_func(int inst);
+    // always @(*)
+    //     ifebreak_func(out_prdata);
 
-	wire	inst_invalid = ~((inst_reg[6:0] == `TYPE_U_LUI_OPCODE) | (inst_reg[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc lui
-					(inst_reg[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
-					({inst_reg[14:12], inst_reg[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
-					({inst_reg[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
-					((inst_reg[6:0] == `TYPE_I_LOAD_OPCODE) & (inst_reg[14:12] == `TYPE_I_LB_FUNC3 | inst_reg[14:12] == `TYPE_I_LH_FUNC3 | inst_reg[14:12] == `TYPE_I_LW_FUNC3 | inst_reg[14:12] == `TYPE_I_LBU_FUNC3 | inst_reg[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
-					((inst_reg[6:0] == `TYPE_I_CSR_OPCODE) & (inst_reg[14:12] == `TYPE_I_CSRRW_FUNC3 | inst_reg[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
-					((inst_reg[6:0] == `TYPE_S_OPCODE) & (inst_reg[14:12] == `TYPE_S_SB_FUNC3 | inst_reg[14:12] == `TYPE_S_SH_FUNC3 | inst_reg[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
-					((inst_reg[6:0] == `TYPE_I_BASE_OPCODE) & (inst_reg[14:12] == `TYPE_I_SLTI_FUNC3 || inst_reg[14:12] == `TYPE_I_SLTIU_FUNC3 || inst_reg[14:12] == `TYPE_I_ADDI_FUNC3 || inst_reg[14:12] == `TYPE_I_XORI_FUNC3 || inst_reg[14:12] == `TYPE_I_ORI_FUNC3 || inst_reg[14:12] == `TYPE_I_ANDI_FUNC3 || 
-														{inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {inst_reg[14:12], inst_reg[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
-					(inst_reg[6:0] == `TYPE_R_OPCODE) | //R
-					(inst_reg == `TYPE_I_ECALL) | 
-					(inst_reg == `TYPE_I_MRET)  | 
-					(inst_reg == `TYPE_I_FENCEI)  | 
-					(inst_reg == `TYPE_I_EBREAK));
+	// TODO: 目前只有 lui I-addi/slti/sltiu/xori/ori/andi/slli/srli/srai R 
+	wire	inst_invalid = ~((out_prdata[6:0] == `TYPE_U_LUI_OPCODE) | // lui
+					// (out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
+					// (out_prdata[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
+					// ({out_prdata[14:12], out_prdata[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
+					// ({out_prdata[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
+					// ((out_prdata[6:0] == `TYPE_I_LOAD_OPCODE) & (out_prdata[14:12] == `TYPE_I_LB_FUNC3 | out_prdata[14:12] == `TYPE_I_LH_FUNC3 | out_prdata[14:12] == `TYPE_I_LW_FUNC3 | out_prdata[14:12] == `TYPE_I_LBU_FUNC3 | out_prdata[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
+					// ((out_prdata[6:0] == `TYPE_I_CSR_OPCODE) & (out_prdata[14:12] == `TYPE_I_CSRRW_FUNC3 | out_prdata[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
+					// ((out_prdata[6:0] == `TYPE_S_OPCODE) & (out_prdata[14:12] == `TYPE_S_SB_FUNC3 | out_prdata[14:12] == `TYPE_S_SH_FUNC3 | out_prdata[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
+					((out_prdata[6:0] == `TYPE_I_BASE_OPCODE) & (out_prdata[14:12] == `TYPE_I_SLTI_FUNC3 || out_prdata[14:12] == `TYPE_I_SLTIU_FUNC3 || out_prdata[14:12] == `TYPE_I_ADDI_FUNC3 || out_prdata[14:12] == `TYPE_I_XORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ANDI_FUNC3 || 
+														{out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
+					(out_prdata[6:0] == `TYPE_R_OPCODE) | //R
+					// (out_prdata == `TYPE_I_ECALL) | 
+					// (out_prdata == `TYPE_I_MRET)  | 
+					// (out_prdata == `TYPE_I_FENCEI)  | 
+					(out_prdata == `TYPE_I_EBREAK));
 
 	import "DPI-C" function void inst_invalid_get(byte invalid);
-		always @(*) begin
-			// $display("pc = %x dpc = %x\n",pc,pc_next);
-			inst_invalid_get({7'b0, inst_invalid});
+		always @(posedge clock) begin
+			if(out_pready)
+				inst_invalid_get({7'b0, inst_invalid});
 		end
-
+	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_WAIT_EX_READY) begin
+		if (con_state == STATE_IDLE) begin
 			ifu_p_counter_update();
 		end
 	end
+	`endif
 `endif
 
-	parameter [1:0] STATE_IDLE = 2'b00, STATE_WAIT_EX_READY = 2'b01, STATE_WAIT_INST_FINISH = 2'b10;
+	parameter [1:0] STATE_IDLE = 2'b00, STATE_WAIT_ID_READY = 2'b01, STATE_STOP = 2'b10;
 
 	// state trans
 	always @(posedge clock ) begin
@@ -149,66 +154,69 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(*) begin
 		next_state = con_state;
 		case(con_state) 
+			// finish get instruction
 			STATE_IDLE: begin
-				if (out_pready == 1'b1) begin
-					next_state = STATE_WAIT_EX_READY;
+				if (out_prdata == `TYPE_I_EBREAK) begin
+					next_state = STATE_STOP;
+				end else if (out_pready == 1'b1 & ~idu_ready_i) begin
+					next_state = STATE_WAIT_ID_READY;
 				end
 			end
-			STATE_WAIT_EX_READY: begin 
-				next_state = STATE_WAIT_INST_FINISH;
-			end
-			STATE_WAIT_INST_FINISH: begin 
-				if (last_finish == 1'b0) begin
-					next_state = STATE_WAIT_INST_FINISH;
-				end else begin 
+			STATE_WAIT_ID_READY: begin 
+				if(idu_ready_i) begin
 					next_state = STATE_IDLE;
 				end
 			end
-			default:
-				next_state = 2'b0;
+			default: begin
+				
+			end
+				
 		endcase
 	end
 
-    // get new pc
-    ysyx_23060025_counter#(
-        .ADDR_LEN         ( 32 )
-    )u_ysyx_23060025_counter(
-        .clock              ( clock              ),
-        .reset              ( reset              ),
-        .branch_request_i ( branch_request_i ),
-        .branch_target_i  ( branch_target_i  ),
-        .branch_flag_i    ( branch_flag_i    ),
-        .pc_plus_4        ( pc_plus_4        ),
-        .jmp_flag_i       ( jmp_flag_i       ),
-        .jmp_target_i     ( jmp_target_i     ),
-        .csr_jmp_i        ( csr_jmp_i        ),
-        .csr_pc_i         ( csr_pc_i         ),
-		.con_state        ( con_state        ),
-        .pc               ( pc               )
-    );
+    // get new if_pc_o
+    // ysyx_23060025_counter#(
+    //     .ADDR_LEN         ( 32 )
+    // )u_ysyx_23060025_counter(
+    //     .clock              ( clock              ),
+    //     .reset              ( reset              ),
+    //     .branch_request_i ( branch_request_i ),
+    //     .branch_target_i  ( branch_target_i  ),
+    //     .branch_flag_i    ( branch_flag_i    ),
+    //     .pc_plus_4        ( pc_plus_4        ),
+    //     .jmp_flag_i       ( jmp_flag_i       ),
+    //     .jmp_target_i     ( jmp_target_i     ),
+    //     .csr_jmp_i        ( csr_jmp_i        ),
+    //     .csr_pc_i         ( csr_pc_i         ),
+	// 	.con_state        ( con_state        ),
+    //     .if_pc_o               ( if_pc_o               )
+    // );
 
+	
+
+	// 访问cache
+	reg [31:0] pc;
+	assign pc_plus_4 = pc + 32'b100;
 	always @(posedge clock) begin
 		if(reset) begin
+			pc <= `PC_RESET_VAL;
+		end else if(out_pready) begin
+			pc <= pc_plus_4;
+		end
+	end
+	assign out_paddr = pc;
+	always @(posedge clock) begin
+		if(reset | next_state == STATE_WAIT_ID_READY | next_state == STATE_STOP) begin
 			out_psel	<= 0;
 		end else if(next_state == STATE_IDLE) begin
 			out_psel	<= 1;
-		end else if(next_state == STATE_WAIT_EX_READY) begin
-			out_psel	<= 0;
-		end
+		end 
 	end
 
+	// 给下一级使用的寄存器：inst/pc
+	assign if_inst_o = out_prdata;
+	assign if_pc_o = pc;
 
-	always @(posedge clock) begin
-		if(reset) begin
-			inst_reg <= 0;
-		end else if(next_state == STATE_WAIT_EX_READY) begin
-			inst_reg <= out_prdata;
-		end
-	end
-
-	assign pc_plus_4 = pc + 32'b100;
-	assign out_paddr = pc;
-	assign id_inst_i = inst_reg;
 
 
 endmodule
