@@ -230,6 +230,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		// ifu ifu_valid_o
 		.ifu_valid_o           	( ifu_valid_o             ),
 		.idu_ready_i           	( idu_ready_o            ),
+		.idu_valid_i           	( idu_valid_o            ),
 
 
 		.branch_request_i ( if_branch_request_i ),
@@ -292,7 +293,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_id_ready_i   	(idu_ready_o    ),
 		.t_id_inst_o 	(t_id_inst_o  ),
 		.t_id_pc_o   	(t_id_pc_o    ),
-		.t_id_if_valid_o   	(t_id_if_valid_o    )
+		.t_id_if_valid_o   	(    )
 	);
 	
 	ysyx_23060025_RegisterFile ysyx_23060025_RegisterFile(
@@ -319,19 +320,21 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.ebreak_flag_o    					(idu_ebreak_flag_o),	
 
 		// ifu_idu
-		.ifu_valid_i           	( t_id_if_valid_o             ),
+		.ifu_valid_i           	( ifu_valid_o             ),
 		.idu_ready_o           	(idu_ready_o              ),
 
 		// idu_exu
 		.idu_valid_o           	( idu_valid_o             ),
 		.exu_ready_i           	(exu_ready_o              ),
+		.exu_valid_i           	(exu_valid_o              ),
 
 		// data_bypass
 		.exu_wd_i           	( ex_wd_o             ),
-		.exu_valid_i           	(exu_valid_o              ),
 		.exu_load_flag_i           	( |ex_load_type_o             ),
 		.exu_wreg_i           	(ex_wreg_o              ),
 		.exu_reg_wdata_i           	( ex_alu_result_o             ),
+		.lsu_wd_i           	(     lsu_reg_wen_o         ),
+		.lsu_wreg_i           	(lsu_wreg_o              ),
 		.lsu_valid_i           	(lsu_valid_o              ),
 		.lsu_reg_wdata_i           	(lsu_reg_wdata_o              ),
 

@@ -15,6 +15,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// ifu ifu_valid_o
 	output									ifu_valid_o	        ,
 	input									idu_ready_i	        ,
+	input									idu_valid_i	        ,
 
     // refresh if_pc_o
 	input									branch_request_i,	
@@ -60,7 +61,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		always @(posedge clock ) begin
 			if (reset) 
 				RANDOM_DELAY <= 4'b1;
-			else if((con_state == STATE_WAIT_INST_FINISH && next_state == STATE_IDLE) || (con_state == STATE_IDLE && next_state == STATE_READ))
+			else if((con_state == STATE_WAIT_INST_FINISH && next_state == STATE_RUN) || (con_state == STATE_RUN && next_state == STATE_READ))
 				RANDOM_DELAY <= delay_num;
 		end
 
@@ -74,15 +75,15 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg			[3:0]		addr_r_valid_delay;
 	reg			[3:0]		r_ready_delay;
 
-	// assign out_psel = (con_state == STATE_IDLE) & ~reset & (addr_r_valid_delay == RANDOM_DELAY);
-	assign out_psel = (con_state == STATE_IDLE) & ~reset;
+	// assign out_psel = (con_state == STATE_RUN) & ~reset & (addr_r_valid_delay == RANDOM_DELAY);
+	assign out_psel = (con_state == STATE_RUN) & ~reset;
 	assign out_prdata = (con_state == STATE_READ) & (r_ready_delay == RANDOM_DELAY);
 
 	// r addr delay
 	always @(posedge clock ) begin
-		if (next_state == STATE_IDLE && (addr_r_valid_delay != RANDOM_DELAY || addr_r_valid_delay == 0))
+		if (next_state == STATE_RUN && (addr_r_valid_delay != RANDOM_DELAY || addr_r_valid_delay == 0))
 			addr_r_valid_delay <= addr_r_valid_delay + 1;
-		else if(next_state == STATE_IDLE && addr_r_valid_delay == RANDOM_DELAY)
+		else if(next_state == STATE_RUN && addr_r_valid_delay == RANDOM_DELAY)
 			addr_r_valid_delay <= addr_r_valid_delay;
 		else 
 			addr_r_valid_delay <= 4'b0;
@@ -98,11 +99,24 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 // no delay
 `else
-	// assign out_psel = (next_state == STATE_IDLE) & ~reset;
+	// assign out_psel = (next_state == STATE_RUN) & ~reset;
 `endif
 	assign ifu_valid_o = out_pready;
 
 `ifdef N_YOSYS_STA_CHECK
+	reg pc_update;
+	always @(posedge clock) begin
+		if(reset) begin
+			pc_update <= 0;
+		end else begin
+			pc_update <= out_pready;
+		end
+	end
+	import "DPI-C" function void pc_node_init(int pc, int dnpc);
+	always @(posedge clock) begin
+		if(pc_update)
+			pc_node_init(pc, pc_next);
+	end
 	// 检测到ebreak
     // import "DPI-C" function void ifebreak_func(int inst);
     // always @(*)
@@ -111,9 +125,9 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// TODO: 目前只有 lui I-addi/slti/sltiu/xori/ori/andi/slli/srli/srai R 
 	wire	inst_invalid = ~((out_prdata[6:0] == `TYPE_U_LUI_OPCODE) | // lui
 					// (out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
-					// (out_prdata[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
-					// ({out_prdata[14:12], out_prdata[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
-					// ({out_prdata[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
+					(out_prdata[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
+					({out_prdata[14:12], out_prdata[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
+					({out_prdata[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
 					// ((out_prdata[6:0] == `TYPE_I_LOAD_OPCODE) & (out_prdata[14:12] == `TYPE_I_LB_FUNC3 | out_prdata[14:12] == `TYPE_I_LH_FUNC3 | out_prdata[14:12] == `TYPE_I_LW_FUNC3 | out_prdata[14:12] == `TYPE_I_LBU_FUNC3 | out_prdata[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
 					// ((out_prdata[6:0] == `TYPE_I_CSR_OPCODE) & (out_prdata[14:12] == `TYPE_I_CSRRW_FUNC3 | out_prdata[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
 					// ((out_prdata[6:0] == `TYPE_S_OPCODE) & (out_prdata[14:12] == `TYPE_S_SB_FUNC3 | out_prdata[14:12] == `TYPE_S_SH_FUNC3 | out_prdata[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
@@ -133,19 +147,19 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_IDLE) begin
+		if (con_state == STATE_RUN) begin
 			ifu_p_counter_update();
 		end
 	end
 	`endif
 `endif
 
-	parameter [1:0] STATE_IDLE = 2'b00, STATE_NOP = 2'b01, STATE_STOP = 2'b10;
+	parameter [1:0] STATE_PRE_IFU = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_IDU_READY = 2'b11, STATE_STOP = 2'b10;
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= STATE_IDLE;
+			con_state <= STATE_PRE_IFU;
 		else 
 			con_state <= next_state;
 	end
@@ -154,18 +168,22 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(*) begin
 		next_state = con_state;
 		case(con_state) 
-			// finish get instruction
-			STATE_IDLE: begin
+			STATE_PRE_IFU: begin
+				next_state = STATE_RUN;
+			end
+			STATE_RUN: begin
 				if (out_prdata == `TYPE_I_EBREAK) begin
 					next_state = STATE_STOP;
 				// idu busy
 				end else if (out_pready == 1'b1 & ~idu_ready_i) begin
-					next_state = STATE_NOP;
-				end 
+					next_state = STATE_WAIT_IDU_READY;
+				end else if (out_pready)  begin
+					next_state = STATE_PRE_IFU;
+				end
 			end
-			STATE_NOP: begin 
+			STATE_WAIT_IDU_READY: begin 
 				if(idu_ready_i) begin
-					next_state = STATE_IDLE;
+					next_state = STATE_PRE_IFU;
 				end
 			end
 			default: begin
@@ -198,25 +216,28 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// 访问cache
 	reg [31:0] pc;
 	assign pc_plus_4 = pc + 32'b100;
+
+	wire [31:0] pc_next = (branch_flag_i & branch_request_i) ? branch_target_i : 
+							jmp_flag_i 						? jmp_target_i : 
+							csr_jmp_i 						? csr_pc_i : 
+							pc_plus_4;
+
+
 	always @(posedge clock) begin
 		if(reset) begin
-			pc <= `PC_RESET_VAL;
+			pc <= `PC_RESET_VAL - 4;
+		// only when STATE_PRE_IFU has just one cycle
 		end else if(out_pready) begin
-			pc <= pc_plus_4;
+			pc <= pc_next;
 		end
 	end
-	assign out_paddr = pc;
-	always @(posedge clock) begin
-		if(reset | next_state == STATE_NOP | next_state == STATE_STOP) begin
-			out_psel	<= 0;
-		end else if(next_state == STATE_IDLE) begin
-			out_psel	<= 1;
-		end 
-	end
+	assign out_paddr = pc_next;
+
+	assign out_psel = (con_state == STATE_PRE_IFU) & ~reset;
 
 	// 给下一级使用的寄存器：inst/pc
 	assign if_inst_o = out_prdata;
-	assign if_pc_o = pc;
+	assign if_pc_o = pc_next;
 
 
 

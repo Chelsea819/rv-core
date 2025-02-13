@@ -1,5 +1,5 @@
 `include "ysyx_23060025_define.v"
-module ysyx_23060025_wb #(parameter DATA_LEN = 32)(
+module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input								reset,
     input		                		wd_i		,
     input		                		clock		    ,
@@ -40,16 +40,38 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32)(
             wdata_o          =     0; 
         end
 	end
-	wire finish = lsu_valid_i;
+	
+
+
 `ifdef N_YOSYS_STA_CHECK
+	// reg finish;
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		finish <= 0;
+	// 	end else begin
+	// 		finish <= lsu_valid_i;
+	// 	end
+	// end
+
 	import "DPI-C" function void finish_get(byte finish);
-		always @(posedge clock) begin
-			if(finish)
-				finish_get({7'b0,finish});
-		end
+		// always @(posedge clock) begin
+		// 	if(finish) begin
+		// 		$display("finish!");
+		// 		finish_get({7'b0,finish});
+		// 	end
+				
+		// end
 	// 检测到ebreak
     import "DPI-C" function void ifebreak_func(byte ebreak_flag);
     always @(posedge clock)
         ifebreak_func({7'b0,ebreak_flag_i});
+
+	always @(posedge clock) begin
+		// $display("pc = %x dpc = %x",pc,pc_next);
+		if(lsu_valid_i) begin
+			finish_get({7'b0,1'b1});
+		end
+			
+	end
 `endif    
 endmodule

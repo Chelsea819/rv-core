@@ -24,11 +24,12 @@ module ysyx_23060025_decoder(
 	input		[4:0]						exu_wreg_i	    ,
 	input		[31:0]			            exu_reg_wdata_i	,
 	// from lsu
+    input									lsu_wd_i	    ,
+    input		[4:0]						lsu_wreg_i	    ,
 	input									lsu_valid_i	    ,
 	input		[31:0]			            lsu_reg_wdata_i	,
 
     // input                                         exu_ready                 ,
-    // output                                        idu_ready_o               ,
     output          [3:0]                         aluop_o                   ,
     output          [3:0]                         alusel_o                  ,
     output          [31:0]                        pc_o                      ,
@@ -65,24 +66,33 @@ module ysyx_23060025_decoder(
     assign wreg_o = inst_i[11:7];
     assign reg1_addr_o = inst_i[19:15];
     assign reg2_addr_o = inst_i[24:20];
-    
+
     assign branch_target_o = pc_i + imm_o;
     assign csr_addr_o = inst_i[31:20];
    
 
-    assign idu_valid_o = ifu_valid_i;
-    assign idu_ready_o = (con_state == STATE_RUN);
+    assign idu_valid_o = (con_state == STATE_RUN);
+    assign idu_ready_o = (next_state == STATE_RUN || next_state == STATE_WAIT_IFU_VALID) ;
 
+    // 最新的涉及数据相关的指令处于exu状态，并且为load型指令
+    reg exu_to_lsu;
+    always @(posedge clock) begin
+        if(reset) begin
+            exu_to_lsu <= 0;
+        end else if(con_state == STATE_DATA_BYPASS) begin
+            exu_to_lsu <= 1;
+        end
+    end
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_RUN = 2'b00, STATE_WAIT_EXU_READY = 2'b10, STATE_DATA_BYPASS = 2'b01;
+    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_EXU_READY = 2'b10, STATE_DATA_BYPASS = 2'b11;
 
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= STATE_RUN;
+			con_state <= STATE_WAIT_IFU_VALID;
 		else 
 			con_state <= next_state;
 	end
@@ -102,11 +112,23 @@ module ysyx_23060025_decoder(
         next_state = con_state;
 		case(con_state) 
             // 等待ifu取指，下一个时钟周期开始译码
+            STATE_WAIT_IFU_VALID: begin
+				if (ifu_valid_i) begin
+					next_state = STATE_RUN;
+				end
+			end
+            // 等待ifu取指，下一个时钟周期开始译码
 			STATE_RUN: begin
 				if (~exu_ready_i) begin
 					next_state = STATE_WAIT_EXU_READY;
                 // data bypass, wait for data from lsu
-				end else if (exu_wd_i & exu_load_flag_i & (exu_wreg_i == reg1_addr_o | exu_wreg_i == reg2_addr_o)) begin
+				end else if (~ifu_valid_i) begin
+					next_state = STATE_WAIT_IFU_VALID;
+                // 当前指令是否需要读取寄存器，读取寄存器的地址、写寄存器的地址非零
+				end else if (exu_valid_i &(exu_wreg_i != 0) && exu_wd_i & exu_load_flag_i & (exu_wreg_i == (reg1_addr_o & {5{reg1_ren}}) | exu_wreg_i == (reg2_addr_o & {5{reg2_ren}}))) begin
+					next_state = STATE_DATA_BYPASS;
+                // TODO: 这个模块可能不在执行指令
+				end else if ((lsu_wreg_i != 0) && ~exu_to_lsu & lsu_wd_i & (lsu_wreg_i == (reg1_addr_o & {5{reg1_ren}}) | lsu_wreg_i == (reg2_addr_o & {5{reg2_ren}}))) begin
 					next_state = STATE_DATA_BYPASS;
 				end
 			end
@@ -129,7 +151,8 @@ module ysyx_23060025_decoder(
     // TODO: if change to pipeline, fence.i logic should be modified
     // assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
 
-
+wire reg1_ren = (alusel_o[1:0] == `ALU_SEL1_REG1);
+wire reg2_ren = (alusel_o[3:2] == `ALU_SEL2_REG2);
     
 // controller look-up lut
 // inst: R-type: wd_o aluop_o alusel_o

@@ -13,9 +13,21 @@
 
 #define OPCODE_JAL  0b1101111
 #define OPCODE_JALR 0b1100111
+#define PC_FIFO_LEN 10
 
 word_t expr(char *e, bool *success);
 Decode s;
+
+typedef struct pc_node{
+  uint32_t pc;
+  uint32_t dnpc;
+  struct pc_node *next;
+}PC_node;
+
+PC_node pc_fifo[PC_FIFO_LEN] = {0};
+
+PC_node *pc_write = pc_fifo;
+PC_node *pc_read = pc_write;
 
 #ifdef CONFIG_DIFFTEST
 // store the last pc
@@ -136,14 +148,33 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
   }
 }
 
-extern "C" void pc_get(int pc, int dnpc){
-  // printf("pc = %x dpc = %x\n",pc,dnpc);
-  cpu.pc = dnpc;
-  # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
-    s.pc = pc;
-    s.dnpc = dnpc;
-  #endif
+size_t write_index = 0;
+size_t read_index = 0;
+extern "C" void pc_node_init(int pc, int dnpc){
+  pc_write[write_index].pc = pc;
+  pc_write[write_index].dnpc = dnpc;
+  printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].pc, pc_write[write_index].dnpc);
+  write_index = (write_index + 1) % PC_FIFO_LEN;
 }
+
+void pc_get(){
+  printf("dnpc: 0x%08x pc: 0x%08x\n",pc_read[read_index].dnpc, pc_read[read_index].pc);
+  cpu.pc = pc_read[read_index].dnpc;
+  # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
+    s.pc = pc_read[read_index].pc;
+    s.dnpc = pc_read[read_index].dnpc;
+  #endif
+  read_index = (read_index + 1) % PC_FIFO_LEN;
+}
+char inst_finish = 0;
+void finish_get(char finish){
+  pc_get();
+  inst_finish = finish;
+  // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
+  // printf("inst:0x%08x\n",inst);
+  // printf("get inst! \n");
+}
+
 
 #ifdef CONFIG_FTRACE
 
@@ -311,7 +342,7 @@ void diff_skip(){
 }
 
 static void trace_and_difftest(){
-  
+  printf("trace_and_difftest\n");
 #ifdef CONFIG_ITRACE_COND
   if (CONFIG_ITRACE_COND)
   {
@@ -413,13 +444,8 @@ void inst_invalid_get(char invalid){
   // printf("get inst! \n");
 }
 
-char inst_finish = 0;
-void finish_get(char finish){
-  inst_finish = finish;
-  // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
-  // printf("inst:0x%08x\n",inst);
-  // printf("get inst! \n");
-}
+
+
 
 
 #ifndef CONFIG_ISA_loongarch32r
@@ -452,6 +478,7 @@ void per_inst_cycle(){
     per_clk_cycle();
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
+  inst_finish = 0;
   size_t i = 0;
   // while (1) {
   //   if(i >= INST_TYPE_NUM){dut->final();
@@ -645,7 +672,6 @@ static void execute(uint64_t n) {
     diff.dnpc = s.dnpc;
     #endif
     // if(cpu.pc != 0x80000000) {
-    // printf("trace and diff\n");
     trace_and_difftest();
 // }
   
