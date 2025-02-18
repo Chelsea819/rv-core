@@ -103,13 +103,13 @@
 `define MEM_MASK_32    8'b1111
 
 
-`define BRANCH_INVALID      3'b000 
-`define BRANCH_BEQ          3'b001 
-`define BRANCH_BNE          3'b010  
-`define BRANCH_BLT          3'b011 
-`define BRANCH_BGE          3'b100 
-`define BRANCH_BLTU         3'b101 
-`define BRANCH_BGEU         3'b110 
+`define BRANCH_INVALID        3'b000 
+`define BRANCH_BEQ     3'b001 
+`define BRANCH_BNE     3'b010  
+`define BRANCH_BLT     3'b011 
+`define BRANCH_BGE     3'b100 
+`define BRANCH_BLTU    3'b101 
+`define BRANCH_BGEU    3'b110 
 
 `define EN_REG_WRITE        1'b1
 `define EN_JMP       1'b1

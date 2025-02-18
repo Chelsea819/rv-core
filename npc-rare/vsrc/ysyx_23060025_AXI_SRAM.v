@@ -20,6 +20,7 @@ module ysyx_23060025_AXI_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		[DATA_LEN - 1:0]		r_data_o	,
 	output		[1:0]					r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		r_valid_o	,
+	output		                		r_last_o	,
 	input		                		r_ready_i	,
 
 	// Addr Write
@@ -56,6 +57,7 @@ module ysyx_23060025_AXI_SRAM #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign addr_w_ready_o = (con_state == STATE_IDLE) && rstn;
 	assign w_ready_o = (con_state == STATE_IDLE) && rstn;
 	assign bkwd_resp_o = 0;
+	assign r_last_o = r_valid_o;
 
 
 	assign mem_ren = (con_state == STATE_IDLE && next_state == STATE_READ) && rstn;

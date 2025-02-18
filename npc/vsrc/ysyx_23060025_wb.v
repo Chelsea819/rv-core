@@ -13,7 +13,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     output                              wbu_ready_o  ,
 
     input                               ebreak_flag_i,
-    input                               memory_inst_i,
+    // input                               memory_inst_i,
     // output                              wb_ready_o  ,
     // output  reg                         finish      ,
     output	reg	                		wd_o		,

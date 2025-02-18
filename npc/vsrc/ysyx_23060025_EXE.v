@@ -21,7 +21,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
     input		[4:0]		            wreg_i		,
 	input		[1:0]					store_type_i,
 	input       [2:0]                   load_type_i ,
-	input		[2:0]					branch_type_i,
 	input                                        ebreak_flag_i             ,
 
 
@@ -39,7 +38,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
     // output                                        exu_ready_o                 ,
 	output  reg    [2:0]                load_type_o 	,
 	output  reg    [1:0]				store_type_o	,
-	output	reg							branch_request_o,	
     output	reg	                		mem_wen_o		,
 	output	reg	[DATA_LEN - 1:0]		mem_wdata_o		,
     output	reg	                		wd_o			,
@@ -53,8 +51,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 
 	wire [31:0] src1;
 	wire [31:0] src2;
-	wire 		alu_zero;
-	wire 		alu_less;
 	assign wd_o  = wd_i;
 	assign wreg_o  = wreg_i;
 	assign mem_wen_o  = |store_type_i;
@@ -79,13 +75,13 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 
 	reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_RUN = 2'b01, STATE_WAIT_LSU_READY = 2'b10;
+    parameter [1:0] STATE_WAIT_IDU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_LSU_READY = 2'b10;
 
 
 	// state trans
 	always @(posedge clock ) begin
 		if(reset)
-			con_state <= STATE_RUN;
+			con_state <= STATE_WAIT_IDU_VALID;
 		else 
 			con_state <= next_state;
 	end
@@ -95,14 +91,22 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 		next_state = con_state;
 		case(con_state) 
             // 等待idu完成译码
+			STATE_WAIT_IDU_VALID: begin
+				if(idu_valid_i) 
+					next_state = STATE_RUN;
+			end
+            // 等待idu完成译码
 			STATE_RUN: begin
 				if(~lsu_ready_i) 
 					next_state = STATE_WAIT_LSU_READY;
+				else if(~idu_valid_i) begin
+					next_state = STATE_WAIT_IDU_VALID;
+				end
 			end
             // 等待exu空闲，下个时钟周期传递信息
             STATE_WAIT_LSU_READY: begin 
 				if (lsu_ready_i) begin
-					next_state = STATE_RUN;
+					next_state = STATE_WAIT_IDU_VALID;
 				end
 			end
             default: begin 
@@ -110,17 +114,17 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 			end
 		endcase
 	end
-	assign exu_valid_o = idu_valid_i;
-	assign exu_ready_o = (con_state == STATE_RUN);
+	assign exu_valid_o = (con_state == STATE_RUN || con_state == STATE_WAIT_LSU_READY);
+	assign exu_ready_o = (con_state == STATE_RUN || con_state == STATE_WAIT_IDU_VALID);
 
-	ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
-		`BRANCH_BEQ, alu_zero,
-		`BRANCH_BNE, ~alu_zero,
-		`BRANCH_BLT, alu_less,
-		`BRANCH_BGE, ~alu_less,
-		`BRANCH_BLTU, alu_less,
-		`BRANCH_BGEU, ~alu_less
-	});
+	// ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
+	// 	`BRANCH_BEQ, alu_zero,
+	// 	`BRANCH_BNE, ~alu_zero,
+	// 	`BRANCH_BLT, alu_less,
+	// 	`BRANCH_BGE, ~alu_less,
+	// 	`BRANCH_BLTU, alu_less,
+	// 	`BRANCH_BGEU, ~alu_less
+	// });
 
 	ysyx_23060025_MuxKeyWithDefault #(2,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
 		`CSR_CSRRW, reg1_i,
@@ -133,9 +137,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 		.src1				(src1),
 		.src2				(src2),
 		.alu_control		(alu_control),
-		.result				(alu_result_o ),
-		.alu_less_o 		(alu_less),
-		.alu_zero_o  		(alu_zero)
+		.result				(alu_result_o )
 	);
 
 	ysyx_23060025_MuxKeyWithDefault #(4,2,32) src1_choose (src1, alu_sel[1:0], 32'b0, {

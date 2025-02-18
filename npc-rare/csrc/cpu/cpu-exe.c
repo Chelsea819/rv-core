@@ -13,9 +13,21 @@
 
 #define OPCODE_JAL  0b1101111
 #define OPCODE_JALR 0b1100111
+#define PC_FIFO_LEN 10
 
 word_t expr(char *e, bool *success);
 Decode s;
+
+typedef struct pc_node{
+  uint32_t pc;
+  uint32_t dnpc;
+  struct pc_node *next;
+}PC_node;
+
+PC_node pc_fifo[PC_FIFO_LEN] = {0};
+
+PC_node *pc_write = pc_fifo;
+PC_node *pc_read = pc_write;
 
 #ifdef CONFIG_DIFFTEST
 // store the last pc
@@ -33,12 +45,13 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 bool ifbreak = false;
 
-#define INST_TYPE_NUM       5
+#define INST_TYPE_NUM       6
 #define TYPE_COUNT          0  
 #define TYPE_MEM            1
 #define TYPE_JMP            2
 #define TYPE_CSR            3
 #define TYPE_STATE_TRANS    4
+#define TYPE_FENCEI         5
 
 uint64_t ifu_p_counter = 0;
 uint64_t lsu_p_counter = 0;
@@ -50,6 +63,7 @@ uint64_t idu_memory_p_counter = 0;
 uint64_t idu_jmp_p_counter = 0;
 uint64_t idu_csr_p_counter = 0;
 uint64_t idu_state_trans_p_counter = 0;
+uint64_t idu_fence_p_counter = 0;
 
 // 当前执行的指令是哪种指令
 bool type_flag[INST_TYPE_NUM] = {0};
@@ -78,6 +92,7 @@ extern "C" void lsu_delay_counter_update(){
 #define TYPE_J_JAL_OPCODE   0b1101111
 #define TYPE_S_OPCODE       0b0100011
 #define TYPE_I_CSR_OPCODE   0b1110011
+#define TYPE_I_FENCEI_OPCODE 0b0001111
 #define TYPE_I_LOAD_OPCODE  0b0000011
 #define TYPE_I_ECALL_FUNC3  0b000
 
@@ -123,19 +138,46 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
         idu_csr_p_counter ++;
       }
       break;
+
+    case TYPE_I_FENCEI_OPCODE:
+      type_flag[TYPE_FENCEI] = true;
+      idu_fence_p_counter ++;
+      break;
     default: 
       break;
   }
 }
 
-extern "C" void pc_get(int pc, int dnpc){
-  // printf("pc = %x dpc = %x\n",pc,dnpc);
-  cpu.pc = dnpc;
-  # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
-    s.pc = pc;
-    s.dnpc = dnpc;
-  #endif
+size_t write_index = 0;
+size_t read_index = 0;
+extern "C" void pc_node_init(int pc, int dnpc){
+  pc_write[write_index].pc = pc;
+  pc_write[write_index].dnpc = dnpc;
+  printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].dnpc, pc_write[write_index].pc);
+  write_index = (write_index + 1) % PC_FIFO_LEN;
 }
+
+void pc_get(){
+  if(pc_read[read_index].pc == 0x80000000 - 4){
+    read_index = (read_index + 1) % PC_FIFO_LEN;
+  }
+  // printf("dnpc: 0x%08x pc: 0x%08x\n",pc_read[read_index].dnpc, pc_read[read_index].pc);
+  cpu.pc = pc_read[read_index].dnpc;
+  # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
+    s.pc = pc_read[read_index].pc;
+    s.dnpc = pc_read[read_index].dnpc;
+  #endif
+  read_index = (read_index + 1) % PC_FIFO_LEN;
+}
+char inst_finish = 0;
+void finish_get(char finish){
+  pc_get();
+  inst_finish = finish;
+  // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
+  // printf("inst:0x%08x\n",inst);
+  // printf("get inst! \n");
+}
+
 
 #ifdef CONFIG_FTRACE
 
@@ -264,9 +306,9 @@ extern WP *head;
 
 void device_update();
 
-void ifebreak_func(int inst){
+void ifebreak_func(char ebreak_flag){
 	// printf("while key = 0x%08x\n",inst);printf("ebreak-called: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst)
-	if(inst == 1048691) { ifbreak = true; } 
+	if(ebreak_flag != 0) { ifbreak = true; } 
 }
 
 void resp_check(char resp){
@@ -303,7 +345,6 @@ void diff_skip(){
 }
 
 static void trace_and_difftest(){
-  
 #ifdef CONFIG_ITRACE_COND
   if (CONFIG_ITRACE_COND)
   {
@@ -343,12 +384,12 @@ static void trace_and_difftest(){
   for(int i = 0; i < RISCV_GPR_NUM; i ++){
     cpu.gpr[i] = R(i);
   }
-  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[0];
-  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[2];
-  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[1];
-  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[3];
-  cpu.mventorid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[4];
-  cpu.marchid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[5];
+  cpu.mcause = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[0];
+  cpu.mepc = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[2];
+  cpu.mstatus = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[1];
+  cpu.mtvec = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[3];
+  cpu.mventorid = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[4];
+  cpu.marchid = dut->rootp->ysyx_23060025_top__DOT__u_ysyx_23060025__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[5];
 //  printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
  IFDEF(CONFIG_DIFFTEST, difftest_step(diff.pc, diff.dnpc));
 #endif
@@ -405,13 +446,8 @@ void inst_invalid_get(char invalid){
   // printf("get inst! \n");
 }
 
-char inst_finish = 0;
-void finish_get(char finish){
-  inst_finish = finish;
-  // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
-  // printf("inst:0x%08x\n",inst);
-  // printf("get inst! \n");
-}
+
+
 
 
 #ifndef CONFIG_ISA_loongarch32r
@@ -444,20 +480,21 @@ void per_inst_cycle(){
     per_clk_cycle();
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
+  inst_finish = 0;
   size_t i = 0;
-  while (1) {
-    if(i >= INST_TYPE_NUM){dut->final();
-        #ifdef CONFIG_WAVE
-        tfp->close();	//关闭波形跟踪文件
-        #endif 
-        panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
-    if (type_flag[i]) {
-      inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
-      type_flag[i] = false;
-      break;
-    }
-    i ++;
-  }
+  // while (1) {
+  //   if(i >= INST_TYPE_NUM){dut->final();
+  //       #ifdef CONFIG_WAVE
+  //       tfp->close();	//关闭波形跟踪文件
+  //       #endif 
+  //       panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
+  //   if (type_flag[i]) {
+  //     inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
+  //     type_flag[i] = false;
+  //     break;
+  //   }
+  //   i ++;
+  // }
   // printf("finished dut.pc = [0x%08x]!\n",cpu.pc);
 }
 
@@ -637,7 +674,6 @@ static void execute(uint64_t n) {
     diff.dnpc = s.dnpc;
     #endif
     // if(cpu.pc != 0x80000000) {
-    // printf("trace and diff\n");
     trace_and_difftest();
 // }
   
@@ -654,14 +690,18 @@ static void execute(uint64_t n) {
   void cache_cycle_statistic(char state){
     switch (state){
       // STATE_CHECK STATE_PASS
-      case 0b01:
-      case 0b11:
+      case 0b001: // STATE_CHECK
+      case 0b100: // STATE_PASS
         access_cycle ++;
         break;
 
       // STATE_LOAD
-      case 0b10:
+      case 0b010: // STATE_ADDR_HAND_SHAK
+      case 0b011: // STATE_LOAD
+      case 0b101: // STATE_UPDATE_REG
         penalty_cycle ++;
+        break;
+      case 0b111:
         break;
       default:
         dut->final();
@@ -725,13 +765,15 @@ static void statistic()
     printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
     printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
     printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
+    printf("idu_fence_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_fence_p_counter, (float)inst_type_cycle[TYPE_FENCEI]/idu_fence_p_counter, (float)idu_fence_p_counter/g_nr_guest_inst*100); 
     // access_time--cache接收访存请求到得出命中结果所需的时间
     // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;
     float hit_percent = (float)cache_hit/ifu_p_counter;
-    float access_time = (float)access_cycle / cycle_per_sec / ifu_p_counter * 1000;
-    float miss_penalty = (float)penalty_cycle / cycle_per_sec / ifu_p_counter * 1000;
-    printf("Average Memory Access Time: %f ms ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);
+    float access_time = (float)access_cycle / ifu_p_counter;
+    float miss_penalty = (float)penalty_cycle / (ifu_p_counter - cache_hit);
+    printf("Average Memory Access Time: %f cycle ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);
+    printf("Miss Penalty Time: %f cycle\n", miss_penalty);
     printf("simulation frequency       = " NUMBERIC_FMT " cycle/s\n", cycle_per_sec);
   } 
   else

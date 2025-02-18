@@ -118,6 +118,7 @@ module ysyx_23060025_top #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.r_resp_o 		( io_master_rresp       ),
 		.r_valid_o      ( io_master_rvalid      ),
 		.r_ready_i      ( io_master_rready      ),
+		.r_last_o      ( io_master_rlast      ),
 
 		.addr_w_addr_i  ( io_master_awaddr  ),
 		.addr_w_valid_i ( io_master_awvalid ),

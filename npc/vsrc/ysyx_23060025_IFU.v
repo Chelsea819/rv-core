@@ -32,7 +32,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// IFU-AXI
 	// Addr Read
-	output		[ADDR_WIDTH - 1:0]		out_paddr,
+	output	reg [ADDR_WIDTH - 1:0]		out_paddr,
 	output	reg	                		out_psel,
 
 	// Read data
@@ -104,17 +104,12 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	assign ifu_valid_o = out_pready;
 
 `ifdef N_YOSYS_STA_CHECK
-	reg pc_update;
-	always @(posedge clock) begin
-		if(reset) begin
-			pc_update <= 0;
-		end else begin
-			pc_update <= out_pready;
-		end
-	end
+
 	import "DPI-C" function void pc_node_init(int pc, int dnpc);
 	always @(posedge clock) begin
-		if(pc_update)
+		if(reset)begin
+		end
+		else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN)
 			pc_node_init(pc, pc_next);
 	end
 	// 检测到ebreak
@@ -124,13 +119,13 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// TODO: 目前只有 lui I-addi/slti/sltiu/xori/ori/andi/slli/srli/srai R 
 	wire	inst_invalid = ~((out_prdata[6:0] == `TYPE_U_LUI_OPCODE) | // lui
-					// (out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
+					(out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
 					(out_prdata[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
 					({out_prdata[14:12], out_prdata[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
 					({out_prdata[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
-					// ((out_prdata[6:0] == `TYPE_I_LOAD_OPCODE) & (out_prdata[14:12] == `TYPE_I_LB_FUNC3 | out_prdata[14:12] == `TYPE_I_LH_FUNC3 | out_prdata[14:12] == `TYPE_I_LW_FUNC3 | out_prdata[14:12] == `TYPE_I_LBU_FUNC3 | out_prdata[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
+					((out_prdata[6:0] == `TYPE_I_LOAD_OPCODE) & (out_prdata[14:12] == `TYPE_I_LB_FUNC3 | out_prdata[14:12] == `TYPE_I_LH_FUNC3 | out_prdata[14:12] == `TYPE_I_LW_FUNC3 | out_prdata[14:12] == `TYPE_I_LBU_FUNC3 | out_prdata[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
 					// ((out_prdata[6:0] == `TYPE_I_CSR_OPCODE) & (out_prdata[14:12] == `TYPE_I_CSRRW_FUNC3 | out_prdata[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
-					// ((out_prdata[6:0] == `TYPE_S_OPCODE) & (out_prdata[14:12] == `TYPE_S_SB_FUNC3 | out_prdata[14:12] == `TYPE_S_SH_FUNC3 | out_prdata[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
+					((out_prdata[6:0] == `TYPE_S_OPCODE) & (out_prdata[14:12] == `TYPE_S_SB_FUNC3 | out_prdata[14:12] == `TYPE_S_SH_FUNC3 | out_prdata[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
 					((out_prdata[6:0] == `TYPE_I_BASE_OPCODE) & (out_prdata[14:12] == `TYPE_I_SLTI_FUNC3 || out_prdata[14:12] == `TYPE_I_SLTIU_FUNC3 || out_prdata[14:12] == `TYPE_I_ADDI_FUNC3 || out_prdata[14:12] == `TYPE_I_XORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ANDI_FUNC3 || 
 														{out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
 					(out_prdata[6:0] == `TYPE_R_OPCODE) | //R
@@ -168,6 +163,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(*) begin
 		next_state = con_state;
 		case(con_state) 
+			// get jmp branch pc from decoder
 			STATE_PRE_IFU: begin
 				next_state = STATE_RUN;
 			end
@@ -192,27 +188,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 				
 		endcase
 	end
-
-    // get new if_pc_o
-    // ysyx_23060025_counter#(
-    //     .ADDR_LEN         ( 32 )
-    // )u_ysyx_23060025_counter(
-    //     .clock              ( clock              ),
-    //     .reset              ( reset              ),
-    //     .branch_request_i ( branch_request_i ),
-    //     .branch_target_i  ( branch_target_i  ),
-    //     .branch_flag_i    ( branch_flag_i    ),
-    //     .pc_plus_4        ( pc_plus_4        ),
-    //     .jmp_flag_i       ( jmp_flag_i       ),
-    //     .jmp_target_i     ( jmp_target_i     ),
-    //     .csr_jmp_i        ( csr_jmp_i        ),
-    //     .csr_pc_i         ( csr_pc_i         ),
-	// 	.con_state        ( con_state        ),
-    //     .if_pc_o               ( if_pc_o               )
-    // );
-
 	
-
 	// 访问cache
 	reg [31:0] pc;
 	assign pc_plus_4 = pc + 32'b100;
@@ -227,17 +203,25 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		if(reset) begin
 			pc <= `PC_RESET_VAL - 4;
 		// only when STATE_PRE_IFU has just one cycle
-		end else if(out_pready) begin
+		end else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
 			pc <= pc_next;
 		end
 	end
-	assign out_paddr = pc_next;
+	// assign out_paddr = pc_next;
 
-	assign out_psel = (con_state == STATE_PRE_IFU) & ~reset;
+	always @(posedge clock) begin
+		if(reset) begin
+			out_paddr <= 0;
+		end else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
+			out_paddr <= pc_next;
+		end
+	end
+
+	assign out_psel = (con_state == STATE_RUN && next_state == STATE_RUN) & ~reset;
 
 	// 给下一级使用的寄存器：inst/pc
 	assign if_inst_o = out_prdata;
-	assign if_pc_o = pc_next;
+	assign if_pc_o = pc;
 
 
 

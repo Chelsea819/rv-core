@@ -132,7 +132,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[DATA_LEN - 1:0]	lsu_reg_wdata_o		;
 	wire			[DATA_LEN - 1:0]	lsu_csr_wdata_o		;
 	wire			[2:0]				lsu_csr_type_o		;
-	wire								lsu_memory_inst_o	;
+	// wire								lsu_memory_inst_o	;
 
 	wire								wb_ready_o		;
 	
@@ -357,6 +357,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.reg1_addr_o					(reg_raddr1_i),
 		.reg2_addr_o					(reg_raddr2_i),
+		.branch_flag_o					(if_branch_request_i),
 		.branch_type_o					(if_branch_type_i),
 		.branch_target_o				(if_branch_target_i),
 		.jmp_flag_o						(if_jmp_flag_i),
@@ -418,7 +419,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_ex_store_type_o  ( t_ex_store_type_o         ),
 		.t_ex_load_type_o   ( t_ex_load_type_o       ),
 		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       ),
-		.t_ex_id_valid_o    ( t_ex_id_valid_o       )
+		.t_ex_id_valid_o    (        )
 	);
 
 	wire exu_valid_o;
@@ -446,11 +447,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.store_type_i		(t_ex_store_type_o	)	,	
 		.load_type_i		(t_ex_load_type_o 	),
 
-		.branch_type_i		(if_branch_type_i	),	
-
 		.csr_rdata_i		(ex_csr_rdata_i		),
 		// idu_exu
-		.idu_valid_i           	(      t_ex_id_valid_o        ),
+		.idu_valid_i           	(      idu_valid_o        ),
 		.exu_ready_o           	(      exu_ready_o        ),
 
 		// exu_wbu
@@ -460,13 +459,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.ebreak_flag_i           	(      t_ex_ebreak_flag_o        ),
 		.ebreak_flag_o           	(      exu_ebreak_flag_o        ),
 
-
 		// .isu_ready		(lsu_ready_o),	
 		// .exu_ready_o		(exu_ready_o),
 		// .exu_valid_o		(exu_valid_o),
 		
-		.branch_request_o	(if_branch_request_i),
-
 		.wd_o				(ex_wd_o			),	
 		.wreg_o				(ex_wreg_o		),
 		.alu_result_o		(ex_alu_result_o		),
@@ -527,7 +523,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_lsu_store_type_o 	(t_lsu_store_type_o  ),
 		.t_lsu_csr_wdata_o  	(t_lsu_csr_wdata_o   ),
 		.t_lsu_csr_type_o   	(t_lsu_csr_type_o    ),
-		.t_lsu_ex_valid_o    	(t_lsu_ex_valid_o	   )
+		.t_lsu_ex_valid_o    	(	   )
 	);
 	
 	wire lsu_ebreak_flag_o;
@@ -552,7 +548,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		
 
 		// idu_exu
-		.exu_valid_i           	(   t_lsu_ex_valid_o           ),
+		.exu_valid_i           	(   exu_valid_o           ),
 		.lsu_ready_o           	(    lsu_ready_o          ),
 
 		// exu_wbu
@@ -568,7 +564,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wdata_o  		( lsu_reg_wdata_o		),
 		.csr_type_o		( lsu_csr_type_o		),
 		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
-		.memory_inst_o  ( lsu_memory_inst_o ),
+		// .memory_inst_o  ( lsu_memory_inst_o ),
 
 		.mem_rdata_rare_i  ( data_r_data_i   	),
 
@@ -642,7 +638,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reg_wdata_i  ( lsu_reg_wdata_o ),
 		.csr_wdata_i  ( lsu_csr_wdata_o ),
 		.csr_type_i   ( lsu_csr_type_o	   ),
-		.memory_inst_i( lsu_memory_inst_o  ),
+		// .memory_inst_i( lsu_memory_inst_o  ),
 		.ebreak_flag_i( lsu_ebreak_flag_o  ),
 
 		// lsu_wbu 

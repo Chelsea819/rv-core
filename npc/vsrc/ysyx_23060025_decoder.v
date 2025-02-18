@@ -11,6 +11,9 @@ module ysyx_23060025_decoder(
     input                                         ifu_valid_i               ,
     output                                        idu_ready_o               ,
 
+    input                                         is_raw_i                  ,
+    input                                         conflict_valid_i          ,
+
     // idu_exu
     output                                        idu_valid_o               ,
     input                                         exu_ready_i               ,
@@ -27,6 +30,7 @@ module ysyx_23060025_decoder(
     input									lsu_wd_i	    ,
     input		[4:0]						lsu_wreg_i	    ,
 	input									lsu_valid_i	    ,
+	input									lsu_ready_i	    ,
 	input		[31:0]			            lsu_reg_wdata_i	,
 
     // input                                         exu_ready                 ,
@@ -39,6 +43,9 @@ module ysyx_23060025_decoder(
     output	        [4:0]		                  wreg_o                    ,
     output          [4:0]                         reg1_addr_o               ,
     output          [4:0]                         reg2_addr_o               ,
+    output                                        reg1_ren_o               ,
+    output                                        reg2_ren_o               ,
+    output                                        branch_flag_o             ,
     output          [2:0]                         branch_type_o             ,
     output          [31:0]                        branch_target_o           ,
     output          [1:0]                         store_type_o              ,
@@ -71,23 +78,15 @@ module ysyx_23060025_decoder(
     assign csr_addr_o = inst_i[31:20];
    
 
-    assign idu_valid_o = (con_state == STATE_RUN);
-    assign idu_ready_o = (next_state == STATE_RUN || next_state == STATE_WAIT_IFU_VALID) ;
+    assign idu_valid_o = (con_state == STATE_RUN && (next_state == STATE_WAIT_IFU_VALID || next_state == STATE_WAIT_READY)) || con_state == STATE_WAIT_READY;
+    
+    assign idu_ready_o = (next_state == STATE_WAIT_IFU_VALID) ;
 
-    // 最新的涉及数据相关的指令处于exu状态，并且为load型指令
-    reg exu_to_lsu;
-    always @(posedge clock) begin
-        if(reset) begin
-            exu_to_lsu <= 0;
-        end else if(con_state == STATE_DATA_BYPASS) begin
-            exu_to_lsu <= 1;
-        end
-    end
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_EXU_READY = 2'b10, STATE_DATA_BYPASS = 2'b11;
-
+    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_READY = 2'b10, STATE_IS_RAW = 2'b11;
+                                                                                                                                                             
 
 	// state trans
 	always @(posedge clock ) begin
@@ -117,42 +116,44 @@ module ysyx_23060025_decoder(
 					next_state = STATE_RUN;
 				end
 			end
-            // 等待ifu取指，下一个时钟周期开始译码
-			STATE_RUN: begin
-				if (~exu_ready_i) begin
-					next_state = STATE_WAIT_EXU_READY;
-                // data bypass, wait for data from lsu
-				end else if (~ifu_valid_i) begin
+            STATE_RUN: begin
+                // 出现了数据相关
+                if(is_raw_i) begin
+                    next_state = STATE_IS_RAW;
+                end else if(~exu_ready_i) begin
+                    next_state = STATE_WAIT_READY;
+                end else begin
+                    next_state = STATE_WAIT_IFU_VALID;
+                end
+            end
+            STATE_WAIT_READY: begin 
+				if (exu_ready_i) begin
 					next_state = STATE_WAIT_IFU_VALID;
-                // 当前指令是否需要读取寄存器，读取寄存器的地址、写寄存器的地址非零
-				end else if (exu_valid_i &(exu_wreg_i != 0) && exu_wd_i & exu_load_flag_i & (exu_wreg_i == (reg1_addr_o & {5{reg1_ren}}) | exu_wreg_i == (reg2_addr_o & {5{reg2_ren}}))) begin
-					next_state = STATE_DATA_BYPASS;
-                // TODO: 这个模块可能不在执行指令
-				end else if ((lsu_wreg_i != 0) && ~exu_to_lsu & lsu_wd_i & (lsu_wreg_i == (reg1_addr_o & {5{reg1_ren}}) | lsu_wreg_i == (reg2_addr_o & {5{reg2_ren}}))) begin
-					next_state = STATE_DATA_BYPASS;
 				end
 			end
-            // 等待exu空闲，下个时钟周期传递信息
-            STATE_WAIT_EXU_READY: begin 
-				if (exu_ready_i) begin
-					next_state = STATE_RUN;
-				end 
-			end
-            STATE_DATA_BYPASS: begin 
-				if (lsu_valid_i) begin
-					next_state = STATE_RUN;
-				end 
-			end
+            STATE_IS_RAW: begin
+                if(conflict_valid_i) begin
+                    next_state = STATE_RUN;
+                end
+            end
             default: begin 
-			end
+			end 
 		endcase
 	end
-
+// if (exu_valid_i &(exu_wreg_i != 0) && exu_wd_i & exu_load_flag_i & (exu_wreg_i == (reg1_addr_o & {5{reg1_ren_o}}) | exu_wreg_i == (reg2_addr_o & {5{reg2_ren_o}}))) begin
+// 					next_state = STATE_DATA_BYPASS;
+//                     $display("data_bypass-[exu & idu]--pc: %x!", pc_i);
+//                 // TODO: 这个模块可能不在执行指令
+//                 // data bypass, wait for data from lsu
+// 				end else if ((lsu_wreg_i != 0) && ~exu_to_lsu & lsu_wd_i & (lsu_wreg_i == (reg1_addr_o & {5{reg1_ren_o}}) | lsu_wreg_i == (reg2_addr_o & {5{reg2_ren_o}}))) begin
+// 					next_state = STATE_DATA_BYPASS;
+//                     $display("data_bypass-[lsu & idu]--pc: %x!", pc_i);
+// 				end
     // TODO: if change to pipeline, fence.i logic should be modified
     // assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
 
-wire reg1_ren = (alusel_o[1:0] == `ALU_SEL1_REG1);
-wire reg2_ren = (alusel_o[3:2] == `ALU_SEL2_REG2);
+assign reg1_ren_o = (alusel_o[1:0] == `ALU_SEL1_REG1);
+assign reg2_ren_o = (alusel_o[3:2] == `ALU_SEL2_REG2);
     
 // controller look-up lut
 // inst: R-type: wd_o aluop_o alusel_o
@@ -193,12 +194,12 @@ assign {wd_o, aluop_o, alusel_o, store_type_o, load_type_o, ebreak_flag_o} = ({o
                                                               ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LBU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LBU_8}, ~`EBREAK_FLAG}  :         // L-sb
                                                               ({opcode, func3}              == {`TYPE_I_LOAD_OPCODE, `TYPE_I_LHU_FUNC3})       ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_LHU_16}, ~`EBREAK_FLAG}  :        // L-sh
                                                               ({opcode}                     == {`TYPE_J_JAL_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :            // J-jal
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BEQ_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BNE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_SUB, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLT_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLTU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
-                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGEU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BEQ_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BNE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLT_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGE_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BLTU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
+                                                              ({opcode, func3}              == {`TYPE_B_OPCODE, `TYPE_B_BGEU_FUNC3})       ? {~`EN_REG_WRITE, `ALU_OP_OR, {`ALU_SEL2_REG2,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}:        // B-beq
                                                               ({opcode}                     == {`TYPE_U_AUIPC_OPCODE})                    ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}    :        // U-auipc
                                                               ({opcode}                     == {`TYPE_U_LUI_OPCODE})                      ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_ZERO, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // U-lui  
                                                               0;         
@@ -209,7 +210,7 @@ assign  {branch_type_o, jmp_target_o, jmp_flag_o, csr_flag_o} = ({opcode, func3}
                                                                 ({opcode, func3} == {`TYPE_B_OPCODE, `TYPE_B_BGE_FUNC3})             ? {`BRANCH_BGE,     32'b0,             ~`EN_JMP, `CSR_INVALID}:         // B-beq
                                                                 ({opcode, func3} == {`TYPE_B_OPCODE, `TYPE_B_BLTU_FUNC3})            ? {`BRANCH_BLTU,    32'b0,             ~`EN_JMP, `CSR_INVALID}:         // B-beq
                                                                 ({opcode, func3} == {`TYPE_B_OPCODE, `TYPE_B_BGEU_FUNC3})            ? {`BRANCH_BGEU,    32'b0,             ~`EN_JMP, `CSR_INVALID}:         // B-beq
-                                                                ({opcode, func3} == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3})       ? {`BRANCH_INVALID, reg1_data_i + imm_o, `EN_JMP , `CSR_INVALID} :         // I-jalr
+                                                                ({opcode, func3} == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3})       ? {`BRANCH_INVALID, reg1_o + imm_o, `EN_JMP , `CSR_INVALID} :         // I-jalr
                                                                 ({opcode}        == {`TYPE_J_JAL_OPCODE})                            ? {`BRANCH_INVALID, pc_i + imm_o,        `EN_JMP, `CSR_INVALID} :         // J-jal 
                                                                 ({inst_i}        == {`TYPE_I_ECALL})                                 ? {`BRANCH_INVALID, 32'b0,             ~`EN_JMP, `CSR_ECALL}  :         // I-ecall 
                                                                 ({inst_i}        == {`TYPE_I_MRET})                                  ? {`BRANCH_INVALID, 32'b0,             ~`EN_JMP, `CSR_MRET}   :         // I-mret 
@@ -221,6 +222,25 @@ ysyx_23060025_immGen my_gen (
     .inst       (inst_i),
     .imm        (imm_o)
 );
+
+// 比较逻辑
+wire signed [31:0] reg1_signed = $signed(reg1_o);
+wire signed [31:0] reg2_signed = $signed(reg2_o);
+
+// 定义分支类型与比较结果的映射
+wire [6:0] branch_result = {
+    (reg1_o >= reg2_o),   // BRANCH_BGEU    (3'b110)
+    (reg1_o < reg2_o),    // BRANCH_BLTU    (3'b101)
+    (reg1_signed >= reg2_signed),   // BRANCH_BGE     (3'b100)
+    (reg1_o < reg2_o),    // BRANCH_BLT     (3'b011)
+    (reg1_o != reg2_o),   // BRANCH_BNE     (3'b010)
+    (reg1_o == reg2_o),    // BRANCH_BEQ     (3'b001)
+    1'b0                            // BRANCH_invalid     (3'b000)
+};
+
+assign branch_flag_o = branch_result[branch_type_o];
+
+
 
 endmodule
 

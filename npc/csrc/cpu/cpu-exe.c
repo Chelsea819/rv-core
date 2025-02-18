@@ -153,12 +153,15 @@ size_t read_index = 0;
 extern "C" void pc_node_init(int pc, int dnpc){
   pc_write[write_index].pc = pc;
   pc_write[write_index].dnpc = dnpc;
-  printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].pc, pc_write[write_index].dnpc);
+  printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].dnpc, pc_write[write_index].pc);
   write_index = (write_index + 1) % PC_FIFO_LEN;
 }
 
 void pc_get(){
-  printf("dnpc: 0x%08x pc: 0x%08x\n",pc_read[read_index].dnpc, pc_read[read_index].pc);
+  if(pc_read[read_index].pc == 0x30000000 - 4){
+    read_index = (read_index + 1) % PC_FIFO_LEN;
+  }
+  // printf("dnpc: 0x%08x pc: 0x%08x\n",pc_read[read_index].dnpc, pc_read[read_index].pc);
   cpu.pc = pc_read[read_index].dnpc;
   # if (defined CONFIG_DIFFTEST) || (defined CONFIG_TRACE)
     s.pc = pc_read[read_index].pc;
@@ -342,7 +345,6 @@ void diff_skip(){
 }
 
 static void trace_and_difftest(){
-  printf("trace_and_difftest\n");
 #ifdef CONFIG_ITRACE_COND
   if (CONFIG_ITRACE_COND)
   {
