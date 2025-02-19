@@ -80,7 +80,6 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	input		                		bkwd_valid_i,	// 从设备给出的写回复信号是否有效
 	output		                		bkwd_ready_o	// 主设备已准备好接收写回复信号
     
-    
 );	
     wire [31:0] mem_rdata;
 	wire	 [DATA_LEN - 1:0]    mem_rdata_unaligned	;

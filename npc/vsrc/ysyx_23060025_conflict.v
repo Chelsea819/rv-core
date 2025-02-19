@@ -13,7 +13,7 @@ module ysyx_23060025_conflict (
 	input		[31:0]					idu_pc_i		,
 `endif
 	input		[11:0]					idu_csr_raddr_i	,
-	input		[2:0]					idu_csr_type_i	,
+	input								idu_csr_ren_i	,
 	input								idu_ready_i		,
 	input								idu_ren0_i		,
 	input								idu_ren1_i		,
@@ -21,6 +21,9 @@ module ysyx_23060025_conflict (
 	input		[4:0]					idu_rsc1_i		,
 
 	// exeute-write register information
+	input		[11:0]					exu_csr_waddr_i	,
+	input		[2:0]					exu_csr_type_i	,
+	input		[31:0]			        exu_csr_wdata_i	,
 	input								exu_ready_i		,
 	input								exu_mem_to_reg_i,
 	input								exu_wd_i		,
@@ -28,6 +31,9 @@ module ysyx_23060025_conflict (
 	input		[31:0]			        exu_reg_wdata_i	,
 
 	// lsu-write register information
+	input		[11:0]					lsu_csr_waddr_i	,
+	input		[2:0]					lsu_csr_type_i	,
+	input		[31:0]			        lsu_csr_wdata_i	,
 	input								lsu_ready_i		,
 	input								lsu_mem_to_reg_i,
 	input								lsu_wd_i		,
@@ -39,10 +45,11 @@ module ysyx_23060025_conflict (
 	// is raw
 	output 								conflict_reg0_o	,
 	output 								conflict_reg1_o	,
+	output 								conflict_csr_o	,
 	// 1. lsu 2. exeu+load
 	output 	reg							conflict_id_nop_o,
-	output 		[31:0]					conflict_bypass_data_o,
-	output 								conflict_valid_o
+	output 		[31:0]					conflict_csr_bypass_data_o,
+	output 		[31:0]					conflict_reg_bypass_data_o
 
 );
 	wire [4:0] idu_reg0_addr = {5{idu_ren0_i}} & idu_rsc0_i;
@@ -58,6 +65,12 @@ module ysyx_23060025_conflict (
 	wire exu_busy = ~exu_ready_i;
 	wire idu_busy = ~idu_ready_i;
 
+	wire exu_csr_wen = exu_csr_type_i == `CSR_CSRRW 
+						|| exu_csr_type_i == `CSR_CSRRS
+						|| exu_csr_type_i == `CSR_ECALL;
+	wire lsu_csr_wen = lsu_csr_type_i == `CSR_CSRRW 
+						|| lsu_csr_type_i == `CSR_CSRRS
+						|| lsu_csr_type_i == `CSR_ECALL;
 
 	// not register[0] , not in idle state
 	wire id_exu_conflict_0 = (idu_reg0_addr == exu_wreg_addr) & reg0_not_0 & exu_busy &	idu_busy;
@@ -74,8 +87,13 @@ module ysyx_23060025_conflict (
 	assign conflict_reg0_o = id_exu_conflict_0 | id_lsu_conflict_0;
 	assign conflict_reg1_o = id_exu_conflict_1 | id_lsu_conflict_1;
 
-	assign conflict_valid_o = (con_state == STATE_RUN && next_state == STATE_RUN) || (con_state == STATE_WAIT_LSU && next_state == STATE_RUN);
+	// assign conflict_valid_o = (con_state == STATE_RUN && next_state == STATE_RUN) || (con_state == STATE_WAIT_LSU && next_state == STATE_RUN);
 
+	wire id_exu_csr_conflict = (idu_csr_raddr_i == exu_csr_waddr_i) & idu_csr_ren_i & idu_busy & exu_busy & exu_csr_wen;
+	wire id_lsu_csr_conflict = (idu_csr_raddr_i == lsu_csr_waddr_i) & idu_csr_ren_i & idu_busy & lsu_busy & lsu_csr_wen;
+	assign conflict_csr_o = id_exu_csr_conflict | id_lsu_csr_conflict;
+	
+	
 	parameter 	 STATE_RUN = 1'b0, STATE_WAIT_LSU = 1'b1;
 	reg 	 con_state;
 	reg 	 next_state;
@@ -145,10 +163,14 @@ module ysyx_23060025_conflict (
 		end 
 	end
 
-	assign conflict_bypass_data_o = (id_exu_conflict & ~exu_mem_to_reg_i) ? exu_reg_wdata_i:    // exeute-decoder data relation
+	assign conflict_reg_bypass_data_o = (id_exu_conflict & ~exu_mem_to_reg_i) ? exu_reg_wdata_i:    // exeute-decoder data relation
 									(id_lsu_conflict & ~lsu_mem_to_reg_i) ? lsu_reg_wdata_i:    // lsu-decoder data relation, not load inst
 									// 当时刚好lsu_valid 
 									(con_state == STATE_RUN & id_lsu_conflict) ? lsu_reg_wdata_i: lsu_wreg_data;
+	
+	assign conflict_csr_bypass_data_o = (id_exu_csr_conflict) ? exu_csr_wdata_i:  
+									(id_lsu_csr_conflict) ? lsu_csr_wdata_i:  
+									0;
 	
 
 endmodule

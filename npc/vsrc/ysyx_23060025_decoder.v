@@ -5,6 +5,7 @@ module ysyx_23060025_decoder(
     input           [31:0]                        inst_i                    ,
     input           [31:0]                        reg1_data_i               ,
     input           [31:0]                        reg2_data_i               ,
+    input           [31:0]                        csr_rdata_i	            ,
     input           [31:0]                        pc_i                      ,
 
     // ifu_idu
@@ -12,10 +13,11 @@ module ysyx_23060025_decoder(
     output                                        idu_ready_o               ,
 
     input                                         conflict_id_nop_i         ,
-    input           [31:0]                        conflict_bypass_data_i    ,
+    input           [31:0]                        conflict_reg_bypass_data_i    ,
+    input           [31:0]                        conflict_csr_bypass_data_i    ,
     input                                         conflict_reg0_i           ,
     input                                         conflict_reg1_i           ,
-    input                                         conflict_valid_i          ,
+    input                                         conflict_csr_i           ,
 
     // idu_exu
     output                                        idu_valid_o               ,
@@ -49,7 +51,9 @@ module ysyx_23060025_decoder(
     output                                        fencei_flag_o             ,
     output                                        ebreak_flag_o             ,
     output          [31:0]                        jmp_target_o              ,
-    output          [11:0]                        csr_addr_o                ,
+    output          [31:0]                        csr_rdata_o	            ,
+    output          [11:0]                        csr_raddr_o                ,
+    output          [11:0]                        csr_waddr_o                ,
     output          [2:0]                         csr_flag_o                ,
     output          [31:0]                        imm_o         
 );
@@ -62,14 +66,17 @@ module ysyx_23060025_decoder(
     assign opcode = inst_i[6:0];
     assign pc_o = pc_i;
 
-    assign reg1_o = conflict_reg0_i ? conflict_bypass_data_i : reg1_data_i;
-    assign reg2_o = conflict_reg1_i ? conflict_bypass_data_i : reg2_data_i;
+    assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
+    assign reg1_o = conflict_reg0_i ? conflict_reg_bypass_data_i : reg1_data_i;
+    assign reg2_o = conflict_reg1_i ? conflict_reg_bypass_data_i : reg2_data_i;
     assign wreg_o = inst_i[11:7];
     assign reg1_addr_o = inst_i[19:15];
     assign reg2_addr_o = inst_i[24:20];
 
     assign branch_target_o = pc_i + imm_o;
-    assign csr_addr_o = inst_i[31:20];
+    wire [11:0] csr_addr = inst_i[31:20];
+    assign csr_waddr_o = (csr_flag_o == `CSR_ECALL ? `CSR_MEPC_ADDR : csr_addr);
+    assign csr_raddr_o = (csr_flag_o == `CSR_ECALL ? `CSR_MTVEC_ADDR : csr_flag_o == `CSR_MRET ? `CSR_MEPC_ADDR : csr_addr);
    
 
     assign idu_valid_o = (con_state == STATE_RUN && (next_state == STATE_WAIT_IFU_VALID || next_state == STATE_WAIT_READY)) || con_state == STATE_WAIT_READY;
@@ -78,7 +85,7 @@ module ysyx_23060025_decoder(
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_READY = 2'b10, STATE_IS_RAW = 2'b11;
+    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_READY = 2'b10;
                                                                                                                                                              
 
 	// state trans
@@ -125,11 +132,6 @@ module ysyx_23060025_decoder(
 					next_state = STATE_WAIT_IFU_VALID;
 				end
 			end
-            STATE_IS_RAW: begin
-                if(conflict_valid_i) begin
-                    next_state = STATE_RUN;
-                end
-            end
             default: begin 
 			end 
 		endcase

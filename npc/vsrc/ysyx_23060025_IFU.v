@@ -23,9 +23,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									branch_flag_i	,
 	input                                   jmp_flag_i      ,
     input       [31:0]                   	jmp_target_i    ,
-	input		[1:0]						csr_jmp_i	    ,
-	input		[ADDR_WIDTH - 1:0]			csr_mtvec_pc_i	    ,
-	input		[ADDR_WIDTH - 1:0]			csr_mepc_pc_i	    ,
+	input									csr_jmp_i	    ,
+	input		[ADDR_WIDTH - 1:0]			csr_pc_i	    ,
 
     // get instruction
     output 		[DATA_WIDTH - 1:0]			if_inst_o	,
@@ -198,12 +197,12 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	wire [31:0] pc_next = (branch_flag_i & branch_request_i) ? branch_target_i : 
 							jmp_flag_i 						? jmp_target_i : 
-							csr_jmp_i[1] 					? csr_pc : 
+							csr_jmp_i 						? csr_pc_i : 
 							pc_plus_4;
 
 	// CSR_ECALL       3'b110
 	// CSR_MRET        3'b011
-	wire [31:0] csr_pc = csr_jmp_i[0] ? csr_mepc_pc_i : csr_mtvec_pc_i;
+	// wire [31:0] csr_pc = csr_jmp_i[0] ? csr_mepc_pc_i : csr_mtvec_pc_i;
 
 	always @(posedge clock) begin
 		if(reset) begin

@@ -77,8 +77,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire								if_branch_request_i;	
 	wire			[ADDR_LEN - 1:0]	if_jmp_target_i;
 	wire								if_jmp_flag_i;	
-	wire			[ADDR_LEN - 1:0]	csr_mtvec_pc_o;
-	wire			[ADDR_LEN - 1:0]	csr_mepc_pc_o;
+	// wire			[ADDR_LEN - 1:0]	csr_mtvec_pc_o;
+	// wire			[ADDR_LEN - 1:0]	csr_mepc_pc_o;
 	// wire			[ADDR_LEN - 1:0]	pcPlus		;
 	// wire			[ADDR_LEN - 1:0]	pcBranch	;
 	// wire			[1:0]				pcSrc		;
@@ -108,13 +108,13 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 	wire			[31:0]				csr_rdata_i	;
-	wire			[11:0]				csr_waddr_i	;
 
 	// csr Unit
-	wire			[11:0]				csr_addr_i	;
+	wire			[11:0]				csr_raddr_i	;
+	wire			[11:0]				csr_waddr_i	;
 	wire			[DATA_LEN - 1:0]	csr_wdata_i		;
 	wire			[2:0]				csr_type_i		;
-	wire	        [DATA_LEN - 1:0]    csr_mepc_i		;
+	// wire	        [DATA_LEN - 1:0]    csr_mepc_i		;
 	wire	        [DATA_LEN - 1:0]    csr_mcause_i	;
 
 	// lsu
@@ -209,10 +209,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.branch_flag_i    ( |if_branch_type_i    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
-		.csr_jmp_i     	  (idu_csr_flag_o[1:0]   ),
+		.csr_jmp_i     	  (idu_csr_flag_o[1]   ),
 		// .csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
-		.csr_mtvec_pc_i         ( csr_mtvec_pc_o      ),
-		.csr_mepc_pc_i         ( csr_mepc_pc_o      ),
+		.csr_pc_i         ( idu_csr_rdata_o      ),
+		// .csr_mepc_pc_i         ( csr_mepc_pc_o      ),
 
 		.if_inst_o        	( ifu_inst_o         ),
 		.if_pc_o               	( ifu_pc_o           ),
@@ -279,12 +279,15 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 
 	wire 					conflict_id_nop_o      ;
-	wire 	[31:0]			conflict_bypass_data_o ;
+	wire 	[31:0]			conflict_reg_bypass_data_o ;
+	wire 	[31:0]			conflict_csr_bypass_data_o ;
+	wire 					conflict_csr_o        ;
 	wire 					conflict_reg0_o        ;
 	wire 					conflict_reg1_o        ;
-	wire 					conflict_valid_o       ;
 	wire 					conflict_reg1_ren_i       ;
 	wire 					conflict_reg2_ren_i       ;
+
+	wire 	[31:0]			idu_csr_rdata_o ;
 
 	ysyx_23060025_decoder ysyx_23060025_decoder(
 		.clock              				( clock              ),
@@ -292,6 +295,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_i							(t_id_inst_o),
 		.reg1_data_i					(id_reg1_data_i),
 		.reg2_data_i					(id_reg2_data_i),
+		.csr_rdata_i					(csr_rdata_i		),
 		.pc_i       					(t_id_pc_o),	
 
 		.reg1_ren_o					(conflict_reg1_ren_i),
@@ -305,10 +309,11 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.idu_ready_o           	(idu_ready_o              ),
 
 		.conflict_id_nop_i      				(conflict_id_nop_o     ),
-		.conflict_bypass_data_i 				(conflict_bypass_data_o),
+		.conflict_reg_bypass_data_i 				(conflict_reg_bypass_data_o),
+		.conflict_csr_bypass_data_i 				(conflict_csr_bypass_data_o),
 		.conflict_reg0_i        				(conflict_reg0_o       ),
 		.conflict_reg1_i        				(conflict_reg1_o       ),
-		.conflict_valid_i       				(conflict_valid_o      ),
+		.conflict_csr_i        					(conflict_csr_o       ),
 
 		// idu_exu
 		.idu_valid_o           	( idu_valid_o             ),
@@ -329,6 +334,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wreg_o     					(idu_wreg_o			),
 		.imm_o      					(idu_imm_o			),
 		.csr_flag_o						(idu_csr_flag_o		),
+		.csr_rdata_o					(idu_csr_rdata_o		),
 		.store_type_o					(idu_store_type_o	),
 		.load_type_o					(idu_load_type_o	),
 
@@ -340,7 +346,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.jmp_flag_o						(if_jmp_flag_i),
 		.jmp_target_o					(if_jmp_target_i),
 		
-		.csr_addr_o						(csr_addr_i)
+		.csr_raddr_o						(csr_raddr_i),
+		.csr_waddr_o						(csr_waddr_i)
 		  
 		
 	);
@@ -384,8 +391,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_id_valid_i  		( idu_valid_o	  ),
 		.f_ex_ready_i  		( exu_ready_o	  ),
 
-		.f_csr_csr_rdata_i  	( csr_rdata_i		),
-		.f_csr_csr_waddr_i  	( 	csr_addr_i	),
+		.f_csr_csr_rdata_i  	( idu_csr_rdata_o		),
+		.f_csr_csr_waddr_i  	( 	csr_waddr_i	),
 		.t_ex_csr_waddr_o  		( t_ex_csr_waddr_o		),
 		.t_ex_csr_rdata_o  		( t_ex_csr_rdata_o		),
 
@@ -414,27 +421,39 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 `ifdef BYPASS_TRACE
 		.idu_pc_i             	( idu_pc_o              ),
 `endif
+		.idu_csr_raddr_i             	( csr_raddr_i              ),
+		.idu_csr_ren_i             	( |idu_csr_flag_o              ),
 		.idu_ready_i             	( idu_ready_o              ),
 		.idu_ren0_i             	( conflict_reg1_ren_i              ),
 		.idu_ren1_i             	( conflict_reg2_ren_i              ),
 		.idu_rsc0_i             	( reg_raddr1_i              ),
 		.idu_rsc1_i             	( reg_raddr2_i              ),
+
+		.exu_csr_waddr_i            ( ex_csr_waddr_o             ),
+		.exu_csr_type_i            	( ex_csr_type_o             ),
+		.exu_csr_wdata_i            ( ex_csr_wdata_o             ),
 		.exu_ready_i            	( exu_ready_o             ),
 		.exu_mem_to_reg_i       	( |ex_load_type_o        ),
 		.exu_wd_i               	( ex_wd_o                ),
 		.exu_wreg_i             	( ex_wreg_o              ),
 		.exu_reg_wdata_i        	( ex_alu_result_o         ),
+		
+		.lsu_csr_waddr_i       	( lsu_csr_waddr_o        ),
+		.lsu_csr_type_i       	( lsu_csr_type_o        ),
+		.lsu_csr_wdata_i       	( lsu_csr_wdata_o        ),
 		.lsu_mem_to_reg_i       	( |t_lsu_load_type_o        ),
 		.lsu_ready_i            	( lsu_ready_o             ),
 		.lsu_wd_i               	( lsu_reg_wen_o                ),
 		.lsu_valid_i            	( lsu_valid_o             ),
 		.lsu_wreg_i             	( lsu_wreg_o              ),
 		.lsu_reg_wdata_i        	( lsu_reg_wdata_o         ),
+
+		.conflict_csr_o        		( conflict_csr_o         ),
 		.conflict_reg0_o        	( conflict_reg0_o         ),
 		.conflict_reg1_o        	( conflict_reg1_o         ),
 		.conflict_id_nop_o      	( conflict_id_nop_o       ),
-		.conflict_bypass_data_o 	( conflict_bypass_data_o  ),
-		.conflict_valid_o       	( conflict_valid_o        )
+		.conflict_reg_bypass_data_o 	( conflict_reg_bypass_data_o  ),
+		.conflict_csr_bypass_data_o 	( conflict_csr_bypass_data_o  )
 	);
 
 
@@ -490,9 +509,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_wdata_o		(ex_csr_wdata_o		),
 		.csr_type_o			(ex_csr_type_o	),
 		.csr_waddr_o			(ex_csr_waddr_o  	),
-
 		.csr_mcause_o		(csr_mcause_i),
-		.pc_o				(csr_mepc_i)
+		// TODO:
+		.pc_o				()
 		
 		
 	);
@@ -689,14 +708,14 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	)ysyx_23060025_CSR(
 		.clock           ( clock           ),
 		.reset           ( reset           ),
-		.csr_raddr      ( csr_addr_i      ),
+		.csr_raddr      ( csr_raddr_i      ),
 		.csr_waddr      ( csr_waddr_i      ),
 		.wdata         ( csr_wdata_i         ),
 		.csr_type_i    ( csr_type_i    ),
-		.csr_mepc_i    ( csr_mepc_i    ),  
+		// .csr_mepc_i    ( csr_mepc_i    ),  
 		.csr_mcause_i  ( csr_mcause_i  ),
-		.csr_mtvec_pc_o     ( csr_mtvec_pc_o      ),
-		.csr_mepc_pc_o      ( csr_mepc_pc_o      ),
+		// .csr_mtvec_pc_o     ( csr_mtvec_pc_o      ),
+		// .csr_mepc_pc_o      ( csr_mepc_pc_o      ),
 		.r_data        ( csr_rdata_i     )
 	);
 

@@ -16,13 +16,13 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
     input 		[3:0]					alu_sel		, // choose source number
 	input       [DATA_LEN - 1:0]        imm_i		,
 	input       [DATA_LEN - 1:0]        csr_rdata_i	,
-	input  	    [11:0]     	csr_waddr_i		,
+	input  	    [11:0]     				csr_waddr_i		,
 	input 		[2:0]					csr_flag_i	,
 	input		                		wd_i		,
     input		[4:0]		            wreg_i		,
 	input		[1:0]					store_type_i,
 	input       [2:0]                   load_type_i ,
-	input                                        ebreak_flag_i             ,
+	input                               ebreak_flag_i             ,
 
 
 	// idu_exu
@@ -37,16 +37,16 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 
     // input                                         isu_ready                 ,
     // output                                        exu_ready_o                 ,
-	output  	    [2:0]                load_type_o 	,
-	output  	    [1:0]				store_type_o	,
+	output  	    [2:0]                	load_type_o 	,
+	output  	    [1:0]					store_type_o	,
     output			                		mem_wen_o		,
 	output			[DATA_LEN - 1:0]		mem_wdata_o		,
     output			                		wd_o			,
-    output		   [4:0]		            wreg_o			,
-	output  	   [DATA_LEN - 1:0]     csr_wdata_o		,
-	output  	    [11:0]     csr_waddr_o		,
-	output  	    [2:0]			    csr_type_o		,
-	output  	    [DATA_LEN - 1:0]     csr_mcause_o	,
+    output		    [4:0]		            wreg_o			,
+	output  	    [DATA_LEN - 1:0]     	csr_wdata_o		,
+	output  	    [11:0]     				csr_waddr_o		,
+	output  	    [2:0]			    	csr_type_o		,
+	output  	    [DATA_LEN - 1:0]     	csr_mcause_o	,
 	output			[DATA_LEN - 1:0]		pc_o			,
     output			[DATA_LEN - 1:0]		alu_result_o
 );
@@ -132,8 +132,10 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	// 	`BRANCH_BGEU, ~alu_less
 	// });
 
-	ysyx_23060025_MuxKeyWithDefault #(2,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
+	// TODO: untest
+	ysyx_23060025_MuxKeyWithDefault #(3,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
 		`CSR_CSRRW, reg1_i,
+		`CSR_ECALL, pc_i,
 		`CSR_CSRRS, reg1_i | csr_rdata_i
 	});
 
