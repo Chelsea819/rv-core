@@ -134,17 +134,7 @@ module ysyx_23060025_decoder(
 			end 
 		endcase
 	end
-// if (exu_valid_i &(exu_wreg_i != 0) && exu_wd_i & exu_load_flag_i & (exu_wreg_i == (reg1_addr_o & {5{reg1_ren_o}}) | exu_wreg_i == (reg2_addr_o & {5{reg2_ren_o}}))) begin
-// 					next_state = STATE_DATA_BYPASS;
-//                     $display("data_bypass-[exu & idu]--pc: %x!", pc_i);
-//                 // TODO: 这个模块可能不在执行指令
-//                 // data bypass, wait for data from lsu
-// 				end else if ((lsu_wreg_i != 0) && ~exu_to_lsu & lsu_wd_i & (lsu_wreg_i == (reg1_addr_o & {5{reg1_ren_o}}) | lsu_wreg_i == (reg2_addr_o & {5{reg2_ren_o}}))) begin
-// 					next_state = STATE_DATA_BYPASS;
-//                     $display("data_bypass-[lsu & idu]--pc: %x!", pc_i);
-// 				end
-    // TODO: if change to pipeline, fence.i logic should be modified
-    // assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
+
 
 assign reg1_ren_o = (alusel_o[1:0] == `ALU_SEL1_REG1) | {opcode, func3} == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3};
 assign reg2_ren_o = (alusel_o[3:2] == `ALU_SEL2_REG2) | (store_type_o != `STORE_INVALID);

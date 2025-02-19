@@ -12,7 +12,9 @@
 module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input								reset		,
     input		                		clock		,
-
+`ifdef DIFFTEST
+	output	reg							diff_skip_flag_o,
+`endif
 	// IFU--inst-AXI
 	//Addr Read
 	input		[ADDR_LEN - 1:0]		inst_addr_r_addr_i,
@@ -117,19 +119,28 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 `ifdef N_YOSYS_STA_CHECK
 	// 访问部分设备时。跳过ref的difftest检查
 	// 设备：UART
-	// import "DPI-C" function void diff_skip();
-	// always @(*) begin
-	// 	if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
-	// 		data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L || data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H) begin
-	// 		diff_skip();
-	// 	end
-	// end
+`ifdef DIFFTEST
+	always @(posedge clock) begin
+		if(reset) begin
+			diff_skip_flag_o <= 0;
+		end
+		else if (data_addr_r_valid_i & ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+			(data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L && data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H))) begin
+				diff_skip_flag_o <= 1;
+			end else if (data_addr_w_valid_i & ((data_addr_w_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+			(data_addr_w_addr_i >= `DEVICE_GPIO_ADDR_L && data_addr_w_addr_i <= `DEVICE_GPIO_ADDR_H))) begin
+				diff_skip_flag_o <= 1;
+			end else begin if(next_state == STATE_IDLE)
+				diff_skip_flag_o <= 0;
+			end
+	end
+`endif
 `endif
 
 
 	always @(*) begin
 		if (con_state == STATE_IDLE) begin
-			if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
+			if ((axi_addr_r_addr_o & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
 				axi_device = `AXI_XBAR_CLINT;
 			end else begin
 				axi_device = `AXI_XBAR_SOC;

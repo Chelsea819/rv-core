@@ -237,6 +237,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// );
 
 	// outports wire
+	wire                	diff_skip_flag;
 	wire                	inst_r_last_i;
 	wire [7:0]          	inst_addr_rlen_o;
 	wire [2:0]          	inst_addr_rsize_o;
@@ -256,6 +257,8 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
 		.inst_r_valid_i      	( inst_r_valid_i       ),
 		.inst_r_ready_o      	( inst_r_ready_o       ),
+
+		.diff_skip_flag_i  	( diff_skip_flag   ),
 
 		.data_addr_r_addr_o  	( data_addr_r_addr_o   ),
 		.data_addr_r_valid_o 	( data_addr_r_valid_o  ),
@@ -294,6 +297,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
 
+		.diff_skip_flag_o       ( diff_skip_flag       		   ),
 		.inst_r_data_o       ( inst       		   ),
 		.inst_r_resp_o       ( inst_r_resp_i       ),
 		.inst_r_valid_o      ( inst_r_valid_i      ),

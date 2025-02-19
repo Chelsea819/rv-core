@@ -169,9 +169,21 @@ void pc_get(){
   #endif
   read_index = (read_index + 1) % PC_FIFO_LEN;
 }
+
+void diff_skip_func(){
+#ifdef CONFIG_DIFFTEST
+  printf("diff_skip\n");
+  difftest_skip_ref();
+#endif
+}
+
 char inst_finish = 0;
-void finish_get(char finish){
+void finish_get(char finish, char diff_skip){
   pc_get();
+  if(diff_skip != 0){
+    diff_skip_func();
+    printf("pc:0x%08x\n",cpu.pc);
+  }
   inst_finish = finish;
   // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
   // printf("inst:0x%08x\n",inst);
@@ -335,13 +347,6 @@ void resp_check(char resp){
       #endif
       Assert(0, "[resp_check]-----[code:%u]------[ERROR CODE]",(uint32_t)resp);
   }
-}
-
-void diff_skip(){
-#ifdef CONFIG_DIFFTEST
-  // printf("diff_skip\n");
-  difftest_skip_ref();
-#endif
 }
 
 static void trace_and_difftest(){

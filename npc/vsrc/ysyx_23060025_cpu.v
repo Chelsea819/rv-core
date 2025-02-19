@@ -31,6 +31,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 	// Read data
+`ifdef DIFFTEST
+	input								diff_skip_flag_i	,
+`endif
 	input		[DATA_LEN - 1:0]		data_r_data_i	,
 	input		[1:0]					data_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		data_r_valid_i	,
@@ -69,7 +72,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 	//my_IFU
 	// wire								idu_ready_o	;
-	wire								if_last_finish_i;
 	wire			[ADDR_LEN - 1:0]	if_branch_target_i;
 	wire			[2:0]				if_branch_type_i;
 	wire								if_branch_request_i;	
@@ -96,7 +98,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[DATA_LEN - 1:0]	idu_reg1_o		;
 	wire			[DATA_LEN - 1:0]	idu_reg2_o		;
 	wire			[DATA_LEN - 1:0]	idu_imm_o		;
-	wire			[DATA_LEN - 1:0]	idu_inst_o		;
 	wire			[ADDR_LEN - 1:0]	idu_pc_o			;
 	wire								idu_wd_o			;
 	wire			[4:0]				idu_wreg_o		;
@@ -134,7 +135,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[2:0]				lsu_csr_type_o		;
 	// wire								lsu_memory_inst_o	;
 
-	wire								wb_ready_o		;
 	
 	// assign pc = ifu_pc_o;
 	// assign finish = if_last_finish_i;
@@ -181,38 +181,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		end
 	end
 `endif 
-
-
-// ysyx_23060025_IFU#(
-//     .ADDR_WIDTH       ( 32 ),
-//     .DATA_WIDTH       ( 32 )
-// )ysyx_23060025_IFU(
-//     .clock              ( clock              ),
-//     .reset              ( reset              ),
-// 	.addr_r_addr_o    ( inst_addr_r_addr_o              ),		
-//     .addr_r_valid_o   ( inst_addr_r_valid_o              ),
-//     .addr_r_ready_i   ( inst_addr_r_ready_i              ),
-//     // .r_data_i         ( inst_i              ),
-//     .r_resp_i         ( inst_r_resp_i              ),
-//     .r_valid_i        ( inst_r_valid_i              ),
-//     .r_ready_o        ( inst_r_ready_o              ),
-	
-
-//     .valid            ( ifu_valid_o           ),
-//     .last_finish      ( if_last_finish_i    ),
-//     // .ready            ( idu_ready_o 			),
-//     .branch_request_i ( if_branch_request_i ),
-// 	.branch_target_i  ( if_branch_target_i  ),
-// 	.branch_flag_i    ( |if_branch_type_i    ),
-// 	.jmp_flag_i  	  ( if_jmp_flag_i  ),
-// 	.jmp_target_i     ( if_jmp_target_i    ),
-// 	.csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
-// 	.csr_pc_i         ( if_csr_pc_i      ),
-// 	.addr_r_data_i           ( inst_i           ),
-// 	.id_inst_i        ( id_inst_i           ),
-//     // .inst_invalid_o   ( invalid           ),
-//     .pc               ( ifu_pc_o             )
-// );
 
 	// outports wire
 	wire [DATA_LEN-1:0] 	icache_r_data;
@@ -279,7 +247,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// output declaration of module ysyx_23060025_if_id
 	wire [DATA_LEN-1:0] t_id_inst_o;
 	wire [ADDR_LEN-1:0] t_id_pc_o;
-	wire 				t_id_if_valid_o;
 	
 	ysyx_23060025_if_id #(
 		.ADDR_WIDTH 	(32  ),
@@ -292,8 +259,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_if_valid_i   	(ifu_valid_o    ),
 		.f_id_ready_i   	(idu_ready_o    ),
 		.t_id_inst_o 	(t_id_inst_o  ),
-		.t_id_pc_o   	(t_id_pc_o    ),
-		.t_id_if_valid_o   	(    )
+		.t_id_pc_o   	(t_id_pc_o    )	
 	);
 	
 	ysyx_23060025_RegisterFile ysyx_23060025_RegisterFile(
@@ -383,14 +349,12 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire [3:0]            	t_ex_aluop_o;
 	wire [3:0]            	t_ex_alusel_o;
 	wire [DATA_LEN-1:0] 	t_ex_imm_o;
-	wire [DATA_LEN-1:0] 	t_ex_csr_rdata_o;
 	wire [2:0]            	t_ex_csr_flag_o;
 	wire                  	t_ex_wd_o;
 	wire [1:0]            	t_ex_store_type_o;
 	wire [2:0]            	t_ex_load_type_o;
 	wire [4:0]            	t_ex_wreg_o;
 	wire                  	t_ex_ebreak_flag_o;
-	wire                  	t_ex_id_valid_o;
 
 	ysyx_23060025_id_ex #(
 		.ADDR_WIDTH 	( 32  ),
@@ -425,8 +389,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_ex_wreg_o      	( t_ex_wreg_o       ),
 		.t_ex_store_type_o  ( t_ex_store_type_o         ),
 		.t_ex_load_type_o   ( t_ex_load_type_o       ),
-		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       ),
-		.t_ex_id_valid_o    (        )
+		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       )
 	);
 
 	ysyx_23060025_conflict #(
@@ -529,7 +492,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire [1:0] t_lsu_store_type_o;
 	wire [31:0] t_lsu_csr_wdata_o;
 	wire [2:0] t_lsu_csr_type_o;
-	wire 	   t_lsu_ex_valid_o;
 	wire 	   t_lsu_ebreak_flag_o;
 	
 	ysyx_23060025_ex_lsu #(
@@ -562,11 +524,13 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_lsu_load_type_o  	(t_lsu_load_type_o   ),
 		.t_lsu_store_type_o 	(t_lsu_store_type_o  ),
 		.t_lsu_csr_wdata_o  	(t_lsu_csr_wdata_o   ),
-		.t_lsu_csr_type_o   	(t_lsu_csr_type_o    ),
-		.t_lsu_ex_valid_o    	(	   )
+		.t_lsu_csr_type_o   	(t_lsu_csr_type_o    )
 	);
 	
 	wire lsu_ebreak_flag_o;
+`ifdef DIFFTEST
+	wire lsu_diff_skip_flag_o;
+`endif
 
 	ysyx_23060025_LSU#(
 		.DATA_LEN          ( 32 ),
@@ -574,6 +538,11 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	)ysyx_23060025_LSU(
 		.rstn           ( ~reset           ),
 		.clock           ( clock           		),
+
+	`ifdef DIFFTEST
+		.diff_skip_flag_i  ( diff_skip_flag_i           ),
+		.diff_skip_flag_o  ( lsu_diff_skip_flag_o           		),
+	`endif
 
 		.wd_i          	( t_lsu_wd_o        ),
 		.wreg_i   		( t_lsu_wreg_o      ),
@@ -605,8 +574,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_type_o		( lsu_csr_type_o		),
 		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
 		// .memory_inst_o  ( lsu_memory_inst_o ),
-
-		.mem_rdata_rare_i  ( data_r_data_i   	),
 
 		.addr_r_addr_o     ( data_addr_r_addr_o     ),
 		.addr_r_valid_o    ( data_addr_r_valid_o    ),
@@ -680,7 +647,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_type_i   ( lsu_csr_type_o	   ),
 		// .memory_inst_i( lsu_memory_inst_o  ),
 		.ebreak_flag_i( lsu_ebreak_flag_o  ),
-
+`ifdef DIFFTEST
+		.diff_skip_flag_i  ( lsu_diff_skip_flag_o           ),
+`endif
 		// lsu_wbu 
 		.lsu_valid_i    ( lsu_valid_o	    ),
 		.wbu_ready_o    ( 	wbu_ready_o    ),

@@ -7,7 +7,9 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input       [DATA_LEN - 1:0]        csr_wdata_i	,
     input       [2:0]		            csr_type_i	,
     input       [DATA_LEN - 1:0]        reg_wdata_i	,
-
+`ifdef DIFFTEST
+	input								diff_skip_flag_i,
+`endif
     // lsu_wbu
     input                               lsu_valid_i  ,
     output                              wbu_ready_o  ,
@@ -52,15 +54,11 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 	// 		finish <= lsu_valid_i;
 	// 	end
 	// end
-
-	import "DPI-C" function void finish_get(byte finish);
-		// always @(posedge clock) begin
-		// 	if(finish) begin
-		// 		$display("finish!");
-		// 		finish_get({7'b0,finish});
-		// 	end
-				
-		// end
+wire diff_skip = 1'bz;
+`ifdef DIFFTEST
+assign diff_skip = diff_skip_flag_i;
+`endif
+	import "DPI-C" function void finish_get(byte finish, byte diff_skip);
 	// 检测到ebreak
     import "DPI-C" function void ifebreak_func(byte ebreak_flag);
     always @(posedge clock)
@@ -68,9 +66,11 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 
 	always @(posedge clock) begin
 		// $display("pc = %x dpc = %x",pc,pc_next);
-		if(lsu_valid_i) begin
-			finish_get({7'b0,1'b1});
-		end
+		if(lsu_valid_i & diff_skip) begin
+			finish_get({7'b0,1'b1}, {7'b0,1'b1});
+        end else if(lsu_valid_i) begin
+            finish_get({7'b0,1'b1}, {7'b0,1'b0});
+        end
 			
 	end
 `endif    
