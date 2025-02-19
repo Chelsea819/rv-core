@@ -77,7 +77,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire								if_branch_request_i;	
 	wire			[ADDR_LEN - 1:0]	if_jmp_target_i;
 	wire								if_jmp_flag_i;	
-	wire			[ADDR_LEN - 1:0]	if_csr_pc_i;
+	wire			[ADDR_LEN - 1:0]	csr_mtvec_pc_o;
+	wire			[ADDR_LEN - 1:0]	csr_mepc_pc_o;
 	// wire			[ADDR_LEN - 1:0]	pcPlus		;
 	// wire			[ADDR_LEN - 1:0]	pcBranch	;
 	// wire			[1:0]				pcSrc		;
@@ -106,7 +107,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[2:0]				idu_csr_flag_o	;
 
 
-	wire			[31:0]				ex_csr_rdata_i	;
+	wire			[31:0]				csr_rdata_i	;
 
 	// csr Unit
 	wire			[11:0]				csr_addr_i	;
@@ -206,9 +207,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.branch_flag_i    ( |if_branch_type_i    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
-		.csr_jmp_i     	  (0   ),
+		.csr_jmp_i     	  (idu_csr_flag_o[1:0]   ),
 		// .csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
-		.csr_pc_i         ( if_csr_pc_i      ),
+		.csr_mtvec_pc_i         ( csr_mtvec_pc_o      ),
+		.csr_mepc_pc_i         ( csr_mepc_pc_o      ),
 
 		.if_inst_o        	( ifu_inst_o         ),
 		.if_pc_o               	( ifu_pc_o           ),
@@ -356,6 +358,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire [4:0]            	t_ex_wreg_o;
 	wire                  	t_ex_ebreak_flag_o;
 
+	wire [DATA_LEN-1:0] 	t_ex_csr_rdata_o;
+
 	ysyx_23060025_id_ex #(
 		.ADDR_WIDTH 	( 32  ),
 		.DATA_WIDTH 	( 32  ))
@@ -376,6 +380,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_id_ebreak_flag_i ( idu_ebreak_flag_o	  ),
 		.f_id_valid_i  		( idu_valid_o	  ),
 		.f_ex_ready_i  		( exu_ready_o	  ),
+
+		.f_csr_csr_rdata_i  	( csr_rdata_i		),
+		.t_ex_csr_rdata_o  		( t_ex_csr_rdata_o		),
+
 		
 
 		.t_ex_reg1_o      	( t_ex_reg1_o       ),
@@ -450,7 +458,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.store_type_i		(t_ex_store_type_o	)	,	
 		.load_type_i		(t_ex_load_type_o 	),
 
-		.csr_rdata_i		(ex_csr_rdata_i		),
+		.csr_rdata_i		(t_ex_csr_rdata_o		),
 		// idu_exu
 		.idu_valid_i           	(      idu_valid_o        ),
 		.exu_ready_o           	(      exu_ready_o        ),
@@ -672,8 +680,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_type_i    ( csr_type_i    ),
 		.csr_mepc_i    ( csr_mepc_i    ),  
 		.csr_mcause_i  ( csr_mcause_i  ),
-		.csr_pc_o      ( if_csr_pc_i      ),
-		.r_data        ( ex_csr_rdata_i     )
+		.csr_mtvec_pc_o     ( csr_mtvec_pc_o      ),
+		.csr_mepc_pc_o      ( csr_mepc_pc_o      ),
+		.r_data        ( csr_rdata_i     )
 	);
 
 endmodule

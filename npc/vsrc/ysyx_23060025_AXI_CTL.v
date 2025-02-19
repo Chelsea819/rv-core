@@ -5,7 +5,6 @@
 	> Created Time: 2023年08月05日 星期六 22时12分23秒
  ************************************************************************/
 // clock reset waddr wdata wen wmask
-/* verilator lint_off UNOPTFLAT */
 /* 当多个master同时访问同一个slave时, 获得访问权的master将得到放行, 可以成功访问slave; 
  其他master的请求将阻塞在仲裁器, 等待获得访问权的master访问结束后, 它们才能获得接下来的访问权. */
 `include "ysyx_23060025_define.v"
@@ -124,8 +123,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		if(reset) begin
 			diff_skip_flag_o <= 0;
 		end
-		else if (data_addr_r_valid_i & ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
-			(data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L && data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H))) begin
+		else if (data_addr_r_valid_i & ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L 
+			||(data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L && data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H)
+			||(data_addr_r_addr_i >= `DEVICE_CLINT_ADDR_L && data_addr_r_addr_i <= `DEVICE_CLINT_ADDR_H))) begin
 				diff_skip_flag_o <= 1;
 			end else if (data_addr_w_valid_i & ((data_addr_w_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
 			(data_addr_w_addr_i >= `DEVICE_GPIO_ADDR_L && data_addr_w_addr_i <= `DEVICE_GPIO_ADDR_H))) begin
@@ -190,10 +190,10 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 			AXI_CTL_BUSY_DATA: begin
 				// finish write
-				if (axi_bkwd_valid_i & ~|axi_bkwd_resp_i & data_bkwd_ready_i) begin
+				if (axi_bkwd_valid_i  & data_bkwd_ready_i) begin
 					next_state = STATE_IDLE;			
 				// finish read
-				end else if (axi_r_valid_i & ~|axi_r_resp_i & data_r_ready_i & axi_r_last_i) begin 
+				end else if (axi_r_valid_i & data_r_ready_i & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_DATA;
@@ -201,7 +201,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 			AXI_CTL_BUSY_INST: begin				
 				// finish inst read
-				if (axi_r_valid_i & ~|axi_r_resp_i & inst_r_ready_i & axi_r_last_i) begin 
+				if (axi_r_valid_i  & inst_r_ready_i & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_INST;
@@ -229,20 +229,20 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	
 	// NEXT: AXI_CTL_BUSY_DATA
 	assign {data_addr_r_ready_o, data_addr_w_ready_o, data_w_ready_o} 
-			= (next_state == AXI_CTL_BUSY_DATA) ? {axi_addr_r_ready_i, axi_addr_w_ready_i, axi_w_ready_i} : 0;
+			= (con_state == AXI_CTL_BUSY_DATA) ? {axi_addr_r_ready_i, axi_addr_w_ready_i, axi_w_ready_i} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_INST
 	assign {inst_addr_r_ready_o} 
-			= (next_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i : 0;
+			= (con_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i : 0;
 
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
 	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_burst_o, axi_addr_r_len_o,
 			axi_addr_w_valid_o, axi_addr_w_id_o, axi_addr_w_size_o, 
 			axi_w_valid_o} 
-			= (next_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0,
+			= (con_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0,
 													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i,
 													data_w_valid_i} : 
-				(next_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
+				(con_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
 													1'b0, 4'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;
@@ -252,7 +252,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		axi_addr_w_addr_o	= 0;
 		axi_w_data_o		= 0;
 		axi_w_strb_o		= 0;
-		case(next_state)
+		case(con_state)
 			AXI_CTL_BUSY_INST: begin
 				axi_addr_r_addr_o	= inst_addr_r_addr_i;
 			end
@@ -271,4 +271,3 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign inst_r_data_o = axi_r_data_i;
 
 endmodule
-/* verilator lint_on UNOPTFLAT */

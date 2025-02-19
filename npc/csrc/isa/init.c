@@ -32,42 +32,34 @@
 
 static const uint32_t img[] = {
     // 初始化寄存器
-    0x00100093,  // 0x0000 addi x1, x0, 1       # x1 = 0 + 1 = 1
-    0x00200113,  // 0x0004 addi x2, x0, 2       # x2 = 0 + 2 = 2
-    0x00300193,  // 0x0008 addi x3, x0, 3       # x3 = 0 + 3 = 3
-    0x00400213,  // 0x000c addi x4, x0, 4       # x4 = 0 + 4 = 4
+    0x00100093,  // addi x1, x0, 1       # x1 = 1
+    0x00200113,  // addi x2, x0, 2       # x2 = 2
+    0x00300193,  // addi x3, x0, 3       # x3 = 3
 
-    // 测试 beq：如果 x1 == x2，跳转到 end
-    0x00208463,  // 0x0010 beq x1, x2, 8        # if x1 == x2, jump to end (0x1C)
-    0x00100093,  // 0x0014 addi x1, x0, 1       # x1 = 0 + 1 = 1 (未跳转时执行)
+    // 测试条件分支（beq）
+    0x00208463,  // beq  x1, x2, 8       # if x1 == x2, jump to PC + 8 (不会跳转)
+    0x00400293,  // addi x5, x0, 4       # x5 = 4 (执行)
+    0x00108663,  // beq  x1, x1, 12      # if x1 == x1, jump to PC + 12 (会跳转)
+    0x00500313,  // addi x6, x0, 5       # x6 = 5 (不会执行)
 
-    // 测试 bne：如果 x1 != x2，跳转到 loop_start
-    0x00209463,  // 0x0018 bne x1, x2, 8        # if x1 != x2, jump to loop_start (0x24)
-    0x00100073,  // 0x001c ebreak               # 如果未跳转，触发断点
+    // 跳转到目标地址
+    0x0100006f,  // jal  x0, 16          # jump to PC + 16 (绝对跳转)
+    0x00600393,  // addi x7, x0, 6       # x7 = 6 (不会执行)
 
-    // loop_start: 循环开始
-    0x00108093,  // 0x0020 addi x1, x1, 1       # x1 = x1 + 1 (x1 = 2)
-    0x00208463,  // 0x0024 beq x1, x2, 8        # if x1 == x2, jump to end (0x34)
-    0xff5ff06f,  // 0x0028 jal x0, -12          # jump to loop_start (0x24)
+    // 目标地址
+    0x00700413,  // addi x8, x0, 7       # x8 = 7 (跳转目标)
+    0x00800493,  // addi x9, x0, 8       # x9 = 8
 
-    // end: 结束循环
-    0x00100093,  // 0x002c addi x1, x0, 1       # x1 = 0 + 1 = 1
+    // 测试 jalr
+    0x00048567,  // jalr x10, x9, 0      # jump to x9 + 0 (x10 = PC + 4)
+    0x00900513,  // addi x10, x0, 9      # x10 = 9 (不会执行)
 
-    // 测试 jalr：跳转到 final
-    0x00000297,  // 0x0030 auipc x5, 0          # x5 = PC + 0 = 0x4C
-    0x01428293,  // 修改后的指令：addi x5, x5, 0x28
-    0x00028067,  // 0x0038 jalr x0, x5, 0       # jump to x5 + 0 = 0x54
+    // 目标地址
+    0x00a00593,  // addi x11, x0, 10     # x11 = 10 (jalr 跳转目标)
 
-    // final: 最终代码
-    0x00100093,  // 0x003c addi x1, x0, 1       # x1 = 0 + 1 = 1
-    0x00200113,  // 0x0040 addi x2, x0, 2       # x2 = 0 + 2 = 2
-    0x00300193,  // 0x0044 addi x3, x0, 3       # x3 = 0 + 3 = 3
-    0x00400213,  // 0x0048 addi x4, x0, 4       # x4 = 0 + 4 = 4
-
-    // 结束
-    0x00100073  // 0x0058 ebreak               # 触发断点，停止执行
+    // 结束程序
+    0x00100073   // ebreak               # 触发断点
 };
-
 void init_isa() {
   /* Load built-in image. */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));

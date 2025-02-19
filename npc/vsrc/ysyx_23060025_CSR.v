@@ -13,12 +13,12 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	input		[2:0]					csr_type_i,
 	input		[DATA_WIDTH - 1:0]		csr_mepc_i	,
 	input		[DATA_WIDTH - 1:0]		csr_mcause_i	,
-	output	reg	[DATA_WIDTH - 1:0]		csr_pc_o	,
+	output		[DATA_WIDTH - 1:0]		csr_mtvec_pc_o	,
+	output		[DATA_WIDTH - 1:0]		csr_mepc_pc_o	,
 	output		[DATA_WIDTH - 1:0]		r_data	
 );
 	reg 	[DATA_WIDTH - 1:0] 		csr [5:0]	;
 	wire 	[2:0]  					csr_idx		;
-	reg  mvendorid;
 
 	assign csr_idx = (csr_addr == `CSR_MCAUSE_ADDR)	? `CSR_MCAUSE_IDX :
 					 (csr_addr == `CSR_MSTATUS_ADDR)? `CSR_MSTATUS_IDX :
@@ -28,20 +28,9 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 					 (csr_addr == `CSR_MARCHID_ADDR)	? `CSR_MARCHID_IDX :
 					 `CSR_MTVEC_IDX ;
 
-	// assign csr_pc_o = (csr_type_i == `CSR_ECALL)	? csr[`CSR_MTVEC_IDX] :
-	// 				  (csr_type_i == `CSR_MRET)		? csr[`CSR_MEPC_IDX] :
-	// 				  32'b0 ;
+	assign csr_mtvec_pc_o = csr[`CSR_MTVEC_IDX];
+	assign csr_mepc_pc_o = csr[`CSR_MEPC_IDX];
 	
-	always @(posedge clock) begin
-		if(reset)
-			csr_pc_o <= 32'b0;
-		else if (csr_type_i == `CSR_ECALL) 
-			csr_pc_o <= csr[`CSR_MTVEC_IDX];
-		else if(csr_type_i == `CSR_MRET) begin
-			csr_pc_o <= csr[`CSR_MEPC_IDX];
-		end
-	end
-
 	assign r_data = csr[csr_idx];
 
 	// always @(*) begin
@@ -62,8 +51,5 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 		end
 	end
 
-	// //读取操作数
-	// assign r_data1 = rf[rsc1[3:0]];
-	// assign r_data2 = rf[rsc2[3:0]];
 
 endmodule

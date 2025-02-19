@@ -172,7 +172,7 @@ void pc_get(){
 
 void diff_skip_func(){
 #ifdef CONFIG_DIFFTEST
-  printf("diff_skip\n");
+  // printf("diff_skip\n");
   difftest_skip_ref();
 #endif
 }
@@ -182,7 +182,7 @@ void finish_get(char finish, char diff_skip){
   pc_get();
   if(diff_skip != 0){
     diff_skip_func();
-    printf("pc:0x%08x\n",cpu.pc);
+    // printf("pc:0x%08x\n",cpu.pc);
   }
   inst_finish = finish;
   // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);

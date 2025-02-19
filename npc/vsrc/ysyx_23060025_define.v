@@ -3,9 +3,9 @@
 
 // if need yosys-sta check, delete dpi-c function
 `define N_YOSYS_STA_CHECK 1'b1
-// `define BYPASS_TRACE 1'b1
 `define DIFFTEST 1'b1
 
+// `define BYPASS_TRACE 1'b1
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
@@ -79,12 +79,11 @@
 // `define CSR_CSRRW       2'b01
 // `define CSR_CSRRS       2'b10
 
-
 `define CSR_INVALID     3'b000
 `define CSR_CSRRW       3'b001
-`define CSR_CSRRS       3'b010
+`define CSR_CSRRS       3'b100
 `define CSR_ECALL       3'b110
-`define CSR_MRET        3'b101
+`define CSR_MRET        3'b011
 
 `define TYPE_I_LOAD_OPCODE 7'b0000011
 `define TYPE_I_LB_FUNC3    3'b000

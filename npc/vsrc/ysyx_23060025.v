@@ -257,9 +257,9 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
 		.inst_r_valid_i      	( inst_r_valid_i       ),
 		.inst_r_ready_o      	( inst_r_ready_o       ),
-
+`ifdef DIFFTEST
 		.diff_skip_flag_i  	( diff_skip_flag   ),
-
+`endif
 		.data_addr_r_addr_o  	( data_addr_r_addr_o   ),
 		.data_addr_r_valid_o 	( data_addr_r_valid_o  ),
 		.data_addr_r_ready_i 	( data_addr_r_ready_i  ),
@@ -296,8 +296,9 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_r_last_i   	 ( inst_r_last_i    ),
 		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
-
+`ifdef DIFFTEST
 		.diff_skip_flag_o       ( diff_skip_flag       		   ),
+`endif
 		.inst_r_data_o       ( inst       		   ),
 		.inst_r_resp_o       ( inst_r_resp_i       ),
 		.inst_r_valid_o      ( inst_r_valid_i      ),
