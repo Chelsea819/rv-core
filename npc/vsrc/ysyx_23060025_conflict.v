@@ -12,6 +12,8 @@ module ysyx_23060025_conflict (
 `ifdef BYPASS_TRACE
 	input		[31:0]					idu_pc_i		,
 `endif
+	input		[11:0]					idu_csr_raddr_i	,
+	input		[2:0]					idu_csr_type_i	,
 	input								idu_ready_i		,
 	input								idu_ren0_i		,
 	input								idu_ren1_i		,
@@ -93,10 +95,12 @@ module ysyx_23060025_conflict (
 		case (con_state)
 			STATE_RUN : begin
 				// need wait for exeu inst finish lsu
-				if(id_exu_conflict & exu_mem_to_reg_i) begin
-					next_state = STATE_RUN;
-				// need wait for lsu
-				end else if(id_lsu_conflict & ~lsu_valid_i & lsu_mem_to_reg_i) begin
+				// if(id_exu_conflict & exu_mem_to_reg_i) begin
+				// 	next_state = STATE_RUN;
+				// else if(id_exu_conflict & exu_mem_to_reg_i) begin
+				// 	next_state = STATE_RUN; 
+				// end else 
+				if(id_lsu_conflict & ~lsu_valid_i & lsu_mem_to_reg_i) begin	// need wait for lsu
 					next_state = STATE_WAIT_LSU;
 				end
 			end
@@ -121,6 +125,8 @@ module ysyx_23060025_conflict (
 	always @(posedge clock) begin
 		if(reset) begin
 			conflict_id_nop <= 0;
+		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i))) begin
+			conflict_id_nop <= 1;
 		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i))) begin
 			conflict_id_nop <= 1;
 		end else if((con_state == STATE_WAIT_LSU && lsu_valid_i)) begin

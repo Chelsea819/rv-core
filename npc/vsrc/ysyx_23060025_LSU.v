@@ -22,7 +22,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     input       [2:0]                   load_type_i , 
     input       [1:0]                   store_type_i, 
     input       [DATA_LEN - 1:0]        csr_wdata_i	,
+    input       [11:0]       			csr_waddr_i	,
     input       [2:0]                   csr_type_i	,
+	
 
 
 	// exu_lsu
@@ -45,6 +47,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	output     [DATA_LEN - 1:0]		    wdata_o,
     output      [DATA_LEN - 1:0]        csr_wdata_o	,
     output      [2:0]                   csr_type_o	,
+	output       [11:0]        			csr_waddr_o	,
 	// output                              memory_inst_o ,
 
     // AXI
@@ -89,6 +92,7 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	wire	[DATA_LEN - 1:0]		w_data	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 
 	assign ebreak_flag_o = ebreak_flag_i;
+	assign csr_waddr_o = csr_waddr_i;
 `ifdef DIFFTEST
 	assign diff_skip_flag_o = diff_skip_flag_i;
 `endif

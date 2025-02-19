@@ -16,6 +16,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
     input 		[3:0]					alu_sel		, // choose source number
 	input       [DATA_LEN - 1:0]        imm_i		,
 	input       [DATA_LEN - 1:0]        csr_rdata_i	,
+	input  	    [11:0]     	csr_waddr_i		,
 	input 		[2:0]					csr_flag_i	,
 	input		                		wd_i		,
     input		[4:0]		            wreg_i		,
@@ -36,23 +37,25 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 
     // input                                         isu_ready                 ,
     // output                                        exu_ready_o                 ,
-	output  reg    [2:0]                load_type_o 	,
-	output  reg    [1:0]				store_type_o	,
-    output	reg	                		mem_wen_o		,
-	output	reg	[DATA_LEN - 1:0]		mem_wdata_o		,
-    output	reg	                		wd_o			,
-    output	reg	[4:0]		            wreg_o			,
-	output  reg    [DATA_LEN - 1:0]     csr_wdata_o		,
-	output  reg    [2:0]			    csr_type_o		,
-	output  reg    [DATA_LEN - 1:0]     csr_mcause_o	,
-	output	reg	[DATA_LEN - 1:0]		pc_o			,
-    output	reg	[DATA_LEN - 1:0]		alu_result_o
+	output  	    [2:0]                load_type_o 	,
+	output  	    [1:0]				store_type_o	,
+    output			                		mem_wen_o		,
+	output			[DATA_LEN - 1:0]		mem_wdata_o		,
+    output			                		wd_o			,
+    output		   [4:0]		            wreg_o			,
+	output  	   [DATA_LEN - 1:0]     csr_wdata_o		,
+	output  	    [11:0]     csr_waddr_o		,
+	output  	    [2:0]			    csr_type_o		,
+	output  	    [DATA_LEN - 1:0]     csr_mcause_o	,
+	output			[DATA_LEN - 1:0]		pc_o			,
+    output			[DATA_LEN - 1:0]		alu_result_o
 );
 
 	wire [31:0] src1;
 	wire [31:0] src2;
 	assign wd_o  = wd_i;
 	assign wreg_o  = wreg_i;
+	assign csr_waddr_o = csr_waddr_i;
 	assign mem_wen_o  = |store_type_i;
 	assign mem_wdata_o  = reg2_i;
 	assign load_type_o  = load_type_i;

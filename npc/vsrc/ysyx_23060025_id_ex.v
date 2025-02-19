@@ -28,6 +28,8 @@ module ysyx_23060025_id_ex #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input 		                			f_ex_ready_i				,
 
 	input 		[DATA_WIDTH - 1:0]			f_csr_csr_rdata_i				,
+	input 		[11:0]						f_csr_csr_waddr_i				,
+	output 		[11:0]						t_ex_csr_waddr_o				,
 	output 		[DATA_WIDTH - 1:0]			t_ex_csr_rdata_o				,
 
 	// to idu
@@ -47,6 +49,16 @@ module ysyx_23060025_id_ex #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 );
 	wire wen = f_ex_ready_i & f_id_valid_i;
 
+	ysyx_23060025_Reg #(
+		.WIDTH     	(12  ),
+		.RESET_VAL 	(0  ))
+	id_ex_csr_waddr_reg (
+		.clk  	(clock   ),
+		.rst  	(reset   ),
+		.din  	(f_csr_csr_waddr_i   ),
+		.wen  	(wen   ),
+		.dout 	(t_ex_csr_waddr_o  )
+	);
 	ysyx_23060025_Reg #(
 		.WIDTH     	(DATA_WIDTH  ),
 		.RESET_VAL 	(0  ))

@@ -108,6 +108,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 	wire			[31:0]				csr_rdata_i	;
+	wire			[11:0]				csr_waddr_i	;
 
 	// csr Unit
 	wire			[11:0]				csr_addr_i	;
@@ -133,6 +134,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[4:0]				lsu_wreg_o			;
 	wire			[DATA_LEN - 1:0]	lsu_reg_wdata_o		;
 	wire			[DATA_LEN - 1:0]	lsu_csr_wdata_o		;
+	wire			[11:0]				lsu_csr_waddr_o		;
 	wire			[2:0]				lsu_csr_type_o		;
 	// wire								lsu_memory_inst_o	;
 
@@ -359,6 +361,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire                  	t_ex_ebreak_flag_o;
 
 	wire [DATA_LEN-1:0] 	t_ex_csr_rdata_o;
+	wire [11:0] 	t_ex_csr_waddr_o;
 
 	ysyx_23060025_id_ex #(
 		.ADDR_WIDTH 	( 32  ),
@@ -382,6 +385,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_ex_ready_i  		( exu_ready_o	  ),
 
 		.f_csr_csr_rdata_i  	( csr_rdata_i		),
+		.f_csr_csr_waddr_i  	( 	csr_addr_i	),
+		.t_ex_csr_waddr_o  		( t_ex_csr_waddr_o		),
 		.t_ex_csr_rdata_o  		( t_ex_csr_rdata_o		),
 
 		
@@ -440,7 +445,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire lsu_valid_o;
 	wire lsu_ready_o;
 	wire exu_ebreak_flag_o;
-
+	wire [11:0] ex_csr_waddr_o;
 
 	ysyx_23060025_EXE ysyx_23060025_EXE(
 		.clock              	( clock     	),
@@ -453,6 +458,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.alu_sel			(t_ex_alusel_o    	),		
 		.imm_i				(t_ex_imm_o       	),
 		.csr_flag_i			(t_ex_csr_flag_o  	),
+		.csr_waddr_i			(t_ex_csr_waddr_o  	),
 		.wd_i				(t_ex_wd_o        	),	
 		.wreg_i				(t_ex_wreg_o      	),
 		.store_type_i		(t_ex_store_type_o	)	,	
@@ -483,6 +489,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.store_type_o		(ex_store_type_o		),
 		.csr_wdata_o		(ex_csr_wdata_o		),
 		.csr_type_o			(ex_csr_type_o	),
+		.csr_waddr_o			(ex_csr_waddr_o  	),
 
 		.csr_mcause_o		(csr_mcause_i),
 		.pc_o				(csr_mepc_i)
@@ -500,6 +507,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire [1:0] t_lsu_store_type_o;
 	wire [31:0] t_lsu_csr_wdata_o;
 	wire [2:0] t_lsu_csr_type_o;
+	wire [11:0] t_lsu_csr_waddr_o;
 	wire 	   t_lsu_ebreak_flag_o;
 	
 	ysyx_23060025_ex_lsu #(
@@ -521,6 +529,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.f_lsu_ready_i    		(lsu_ready_o	   ),
 
 		.f_ex_ebreak_flag_i           	(      exu_ebreak_flag_o        ),
+		.f_ex_csr_waddr_i  			( 	ex_csr_waddr_o	),
+		.t_lsu_csr_waddr_o  		( t_lsu_csr_waddr_o		),
 		.t_lsu_ebreak_flag_o           	(      t_lsu_ebreak_flag_o        ),
 
 
@@ -561,6 +571,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.store_type_i	( t_lsu_store_type_o),
 		.csr_wdata_i	( t_lsu_csr_wdata_o ),
 		.csr_type_i		( t_lsu_csr_type_o  ),
+		.csr_waddr_i	( t_lsu_csr_waddr_o  ),
 
 		
 
@@ -581,6 +592,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wdata_o  		( lsu_reg_wdata_o		),
 		.csr_type_o		( lsu_csr_type_o		),
 		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
+		.csr_waddr_o	( lsu_csr_waddr_o  ),
 		// .memory_inst_o  ( lsu_memory_inst_o ),
 
 		.addr_r_addr_o     ( data_addr_r_addr_o     ),
@@ -652,6 +664,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wreg_i       ( lsu_wreg_o		   ),
 		.reg_wdata_i  ( lsu_reg_wdata_o ),
 		.csr_wdata_i  ( lsu_csr_wdata_o ),
+		.csr_waddr_i  ( lsu_csr_waddr_o ),
 		.csr_type_i   ( lsu_csr_type_o	   ),
 		// .memory_inst_i( lsu_memory_inst_o  ),
 		.ebreak_flag_i( lsu_ebreak_flag_o  ),
@@ -666,6 +679,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wreg_o   	  ( reg_waddr_i ),
 		.wdata_o  	  ( reg_wdata_i ),
 		.csr_type_o   ( csr_type_i  ),
+		.csr_waddr_o  ( csr_waddr_i ),
 		.csr_wdata_o  ( csr_wdata_i  )
 	);
 
@@ -675,7 +689,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	)ysyx_23060025_CSR(
 		.clock           ( clock           ),
 		.reset           ( reset           ),
-		.csr_addr      ( csr_addr_i      ),
+		.csr_raddr      ( csr_addr_i      ),
+		.csr_waddr      ( csr_waddr_i      ),
 		.wdata         ( csr_wdata_i         ),
 		.csr_type_i    ( csr_type_i    ),
 		.csr_mepc_i    ( csr_mepc_i    ),  
