@@ -146,7 +146,7 @@ module ysyx_23060025_decoder(
     // TODO: if change to pipeline, fence.i logic should be modified
     // assign fencei_flag_o = (inst_i   == `TYPE_I_FENCEI) && (con_state == IDU_WAIT_IDU_VALID);
 
-assign reg1_ren_o = (alusel_o[1:0] == `ALU_SEL1_REG1);
+assign reg1_ren_o = (alusel_o[1:0] == `ALU_SEL1_REG1) | {opcode, func3} == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3};
 assign reg2_ren_o = (alusel_o[3:2] == `ALU_SEL2_REG2) | (store_type_o != `STORE_INVALID);
     
 // controller look-up lut
@@ -175,7 +175,7 @@ assign {wd_o, aluop_o, alusel_o, store_type_o, load_type_o, ebreak_flag_o} = ({o
                                                               ({opcode, func3}                              == {`TYPE_I_BASE_OPCODE, `TYPE_I_ANDI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_AND, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-andi
                                                               ({opcode, func3}                              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTI_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_SIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-ori
                                                               ({opcode, func3}                              == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLTIU_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_LESS_UNSIGNED, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :        // I-andi
-                                                              ({opcode, func3}                              == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :            // I-jalr
+                                                              ({opcode, func3}                              == {`TYPE_I_JALR_OPCODE, `TYPE_I_JALR_FUNC3}) ? {`EN_REG_WRITE, `ALU_OP_ADD, {`ALU_SEL2_4,`ALU_SEL1_PC, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :            // I-jalr
                                                               ({opcode, func3, imm_o[11:5]}                 == {`TYPE_I_BASE_OPCODE, `TYPE_I_SLLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_LEFT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
                                                               ({opcode, func3, imm_o[11:5]}                 == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRLI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_LOGIC, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
                                                               ({opcode, func3, imm_o[11:5]}                 == {`TYPE_I_BASE_OPCODE, `TYPE_I_SRAI_FUNC3_IMM}) ? {`EN_REG_WRITE, `ALU_OP_RIGHT_ARITH, {`ALU_SEL2_IMM,`ALU_SEL1_REG1, `STORE_INVALID, `LOAD_INVALID}, ~`EBREAK_FLAG}  :         // I-slli
