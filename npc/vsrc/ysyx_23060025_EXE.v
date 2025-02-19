@@ -97,11 +97,14 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 			end
             // 等待idu完成译码
 			STATE_RUN: begin
-				if(~lsu_ready_i) 
+				if(~lsu_ready_i) begin
 					next_state = STATE_WAIT_LSU_READY;
-				else if(~idu_valid_i) begin
+				end else begin
 					next_state = STATE_WAIT_IDU_VALID;
 				end
+				// else if(~idu_valid_i) begin
+				// 	next_state = STATE_WAIT_IDU_VALID;
+				// end
 			end
             // 等待exu空闲，下个时钟周期传递信息
             STATE_WAIT_LSU_READY: begin 
@@ -115,7 +118,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 		endcase
 	end
 	assign exu_valid_o = (con_state == STATE_RUN || con_state == STATE_WAIT_LSU_READY);
-	assign exu_ready_o = (con_state == STATE_RUN || con_state == STATE_WAIT_IDU_VALID);
+	assign exu_ready_o = (con_state == STATE_WAIT_IDU_VALID);
 
 	// ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
 	// 	`BRANCH_BEQ, alu_zero,

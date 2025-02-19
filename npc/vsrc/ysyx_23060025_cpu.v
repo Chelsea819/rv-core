@@ -308,6 +308,14 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.r_data2	(id_reg2_data_i)
 	);
 
+	wire 					conflict_id_nop_o      ;
+	wire 	[31:0]			conflict_bypass_data_o ;
+	wire 					conflict_reg0_o        ;
+	wire 					conflict_reg1_o        ;
+	wire 					conflict_valid_o       ;
+	wire 					conflict_reg1_ren_i       ;
+	wire 					conflict_reg2_ren_i       ;
+
 	ysyx_23060025_decoder ysyx_23060025_decoder(
 		.clock              				( clock              ),
 		.reset              				( reset              ),
@@ -316,6 +324,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reg2_data_i					(id_reg2_data_i),
 		.pc_i       					(t_id_pc_o),	
 
+		.reg1_ren_o					(conflict_reg1_ren_i),
+		.reg2_ren_o					(conflict_reg2_ren_i),
+
 		.fencei_flag_o    					(icache_fencei_flag),	
 		.ebreak_flag_o    					(idu_ebreak_flag_o),	
 
@@ -323,20 +334,16 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.ifu_valid_i           	( ifu_valid_o             ),
 		.idu_ready_o           	(idu_ready_o              ),
 
+		.conflict_id_nop_i      				(conflict_id_nop_o     ),
+		.conflict_bypass_data_i 				(conflict_bypass_data_o),
+		.conflict_reg0_i        				(conflict_reg0_o       ),
+		.conflict_reg1_i        				(conflict_reg1_o       ),
+		.conflict_valid_i       				(conflict_valid_o      ),
+
 		// idu_exu
 		.idu_valid_o           	( idu_valid_o             ),
 		.exu_ready_i           	(exu_ready_o              ),
-		.exu_valid_i           	(exu_valid_o              ),
 
-		// data_bypass
-		.exu_wd_i           	( ex_wd_o             ),
-		.exu_load_flag_i           	( |ex_load_type_o             ),
-		.exu_wreg_i           	(ex_wreg_o              ),
-		.exu_reg_wdata_i           	( ex_alu_result_o             ),
-		.lsu_wd_i           	(     lsu_reg_wen_o         ),
-		.lsu_wreg_i           	(lsu_wreg_o              ),
-		.lsu_valid_i           	(lsu_valid_o              ),
-		.lsu_reg_wdata_i           	(lsu_reg_wdata_o              ),
 
 
 		// .exu_ready   					(exu_ready_o),
@@ -421,6 +428,39 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       ),
 		.t_ex_id_valid_o    (        )
 	);
+
+	ysyx_23060025_conflict #(
+		.STATE_RUN      	( 0  ),
+		.STATE_WAIT_LSU 	( 1  ))
+	u_ysyx_23060025_conflict(
+		.clock                  	( clock                   ),
+		.reset                  	( reset                   ),
+`ifdef BYPASS_TRACE
+		.idu_pc_i             	( idu_pc_o              ),
+`endif
+		.idu_ready_i             	( idu_ready_o              ),
+		.idu_ren0_i             	( conflict_reg1_ren_i              ),
+		.idu_ren1_i             	( conflict_reg2_ren_i              ),
+		.idu_rsc0_i             	( reg_raddr1_i              ),
+		.idu_rsc1_i             	( reg_raddr2_i              ),
+		.exu_ready_i            	( exu_ready_o             ),
+		.exu_mem_to_reg_i       	( |ex_load_type_o        ),
+		.exu_wd_i               	( ex_wd_o                ),
+		.exu_wreg_i             	( ex_wreg_o              ),
+		.exu_reg_wdata_i        	( ex_alu_result_o         ),
+		.lsu_mem_to_reg_i       	( |t_lsu_load_type_o        ),
+		.lsu_ready_i            	( lsu_ready_o             ),
+		.lsu_wd_i               	( lsu_reg_wen_o                ),
+		.lsu_valid_i            	( lsu_valid_o             ),
+		.lsu_wreg_i             	( lsu_wreg_o              ),
+		.lsu_reg_wdata_i        	( lsu_reg_wdata_o         ),
+		.conflict_reg0_o        	( conflict_reg0_o         ),
+		.conflict_reg1_o        	( conflict_reg1_o         ),
+		.conflict_id_nop_o      	( conflict_id_nop_o       ),
+		.conflict_bypass_data_o 	( conflict_bypass_data_o  ),
+		.conflict_valid_o       	( conflict_valid_o        )
+	);
+
 
 	wire exu_valid_o;
 	wire exu_ready_o;

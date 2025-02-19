@@ -101,7 +101,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 `else
 	// assign out_psel = (next_state == STATE_RUN) & ~reset;
 `endif
-	assign ifu_valid_o = out_pready;
+	assign ifu_valid_o = (out_pready || con_state == STATE_WAIT_IDU_READY);
 
 `ifdef N_YOSYS_STA_CHECK
 
@@ -134,10 +134,10 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 					// (out_prdata == `TYPE_I_FENCEI)  | 
 					(out_prdata == `TYPE_I_EBREAK));
 
-	import "DPI-C" function void inst_invalid_get(byte invalid);
+	import "DPI-C" function void inst_invalid_get(byte invalid, int pc);
 		always @(posedge clock) begin
 			if(out_pready)
-				inst_invalid_get({7'b0, inst_invalid});
+				inst_invalid_get({7'b0, inst_invalid}, pc);
 		end
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
@@ -165,13 +165,15 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		case(con_state) 
 			// get jmp branch pc from decoder
 			STATE_PRE_IFU: begin
-				next_state = STATE_RUN;
+				if(idu_valid_i | idu_ready_i) begin
+					next_state = STATE_RUN;
+				end
 			end
 			STATE_RUN: begin
-				if (out_prdata == `TYPE_I_EBREAK) begin
+				if (out_pready & out_prdata == `TYPE_I_EBREAK) begin
 					next_state = STATE_STOP;
 				// idu busy
-				end else if (out_pready == 1'b1 & ~idu_ready_i) begin
+				end else if (out_pready & ~idu_ready_i) begin
 					next_state = STATE_WAIT_IDU_READY;
 				end else if (out_pready)  begin
 					next_state = STATE_PRE_IFU;

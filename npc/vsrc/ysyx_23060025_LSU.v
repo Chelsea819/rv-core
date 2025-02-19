@@ -94,7 +94,10 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	reg			[1:0]			        	next_state	;
     parameter [1:0] STATE_WAIT_EXE_VALID = 2'b00, LSU_WAIT_ADDR_PASS = 2'b01, STATE_DATA_LOAD = 2'b11, LSU_WAIT_WB_READY = 2'b10;
 
-    assign lsu_valid_o = (con_state == LSU_WAIT_WB_READY);
+    // assign lsu_valid_o = (next_state == LSU_WAIT_WB_READY);
+    assign lsu_valid_o = (con_state == LSU_WAIT_ADDR_PASS && next_state == STATE_WAIT_EXE_VALID) 
+						|| (con_state == STATE_DATA_LOAD && next_state == STATE_WAIT_EXE_VALID) 
+						|| next_state == LSU_WAIT_WB_READY;
     assign lsu_ready_o = (con_state == STATE_WAIT_EXE_VALID);
 
 	// state trans
@@ -117,7 +120,11 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 			end
 			LSU_WAIT_ADDR_PASS: begin 
 				if(~(mem_to_reg | mem_wen_i)) begin 
-                    next_state = LSU_WAIT_WB_READY; 
+					if(wbu_ready_i) begin
+						next_state = STATE_WAIT_EXE_VALID;
+					end else begin
+						next_state = LSU_WAIT_WB_READY;
+					end
                 end else if (mem_to_reg & addr_r_ready_i) begin // read
 					next_state = STATE_DATA_LOAD;
                 end else if (mem_wen_i & addr_w_ready_i & w_ready_i & mem_wen_i) begin // read
@@ -126,10 +133,15 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 			end
 			STATE_DATA_LOAD: begin 
 				if (r_valid_i | (~|bkwd_resp_i & bkwd_valid_i)) begin
-					next_state = LSU_WAIT_WB_READY;
+					if(wbu_ready_i) begin
+						next_state = STATE_WAIT_EXE_VALID;
+					end else begin
+						next_state = LSU_WAIT_WB_READY;
+					end
+					
 				end
 			end
-            // 等待exu空闲，下个时钟周期传递信息
+            // 等待exu空闲，下LSU_WAIT_WB_READY个时钟周期传递信息
             LSU_WAIT_WB_READY: begin
 				if (wbu_ready_i) begin
 					next_state = STATE_WAIT_EXE_VALID;
@@ -139,6 +151,17 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 			end
 		endcase
 	end
+	// reg [31:0] r_data_reg;
+	
+	// always @(posedge clock) begin
+	// 	if(~rstn) begin
+	// 		r_data_reg <= 0;
+	// 	end else if(next_state == LSU_WAIT_WB_READY) begin
+	// 		r_data_reg <= mem_rdata_rare_i;
+	// 	end
+	// end
+
+	wire [31:0] r_data = mem_rdata_rare_i;
 
 
 // delay test
@@ -324,15 +347,15 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		0x80000012 addr_unaligned[1:0] == 2'b10---- 【00_01_02_03】--[02_03_00_00]  
 		0x80000013 addr_unaligned[1:0] == 2'b11---- 【00_01_02_03】--[03_00_00_00]
 	*/
-	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {mem_rdata_rare_i} :
-								(addr_unaligned[1:0] == 2'b01 ) ? {{mem_rdata_rare_i[23:0]}, 8'b0} :
-								(addr_unaligned[1:0] == 2'b10 ) ? {{mem_rdata_rare_i[15:0]}, 16'b0} :
-								(addr_unaligned[1:0] == 2'b11 ) ? {{mem_rdata_rare_i[7:0], 24'b0}} : 0;
+	// assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {r_data} :
+	// 							(addr_unaligned[1:0] == 2'b01 ) ? {{r_data[23:0]}, 8'b0} :
+	// 							(addr_unaligned[1:0] == 2'b10 ) ? {{r_data[15:0]}, 16'b0} :
+	// 							(addr_unaligned[1:0] == 2'b11 ) ? {{r_data[7:0], 24'b0}} : 0;
 
-	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {mem_rdata_rare_i} :
-								(addr_unaligned[1:0] == 2'b01 ) ? {8'b0, {mem_rdata_rare_i[31:8]}} :
-								(addr_unaligned[1:0] == 2'b10 ) ? {16'b0, {mem_rdata_rare_i[31:16]}} :
-								(addr_unaligned[1:0] == 2'b11 ) ? {{24'b0, mem_rdata_rare_i[31:24]}} : 0;
+	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {r_data} :
+								(addr_unaligned[1:0] == 2'b01 ) ? {8'b0, {r_data[31:8]}} :
+								(addr_unaligned[1:0] == 2'b10 ) ? {16'b0, {r_data[31:16]}} :
+								(addr_unaligned[1:0] == 2'b11 ) ? {{24'b0, r_data[31:24]}} : 0;
 								
     assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
                     (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[15]}}, mem_rdata_unaligned[15:0]}: 

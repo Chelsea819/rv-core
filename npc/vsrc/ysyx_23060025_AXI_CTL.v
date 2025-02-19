@@ -117,13 +117,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 `ifdef N_YOSYS_STA_CHECK
 	// 访问部分设备时。跳过ref的difftest检查
 	// 设备：UART
-	import "DPI-C" function void diff_skip();
-	always @(*) begin
-		if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
-			data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L || data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H) begin
-			diff_skip();
-		end
-	end
+	// import "DPI-C" function void diff_skip();
+	// always @(*) begin
+	// 	if ((data_addr_r_addr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+	// 		data_addr_r_addr_i >= `DEVICE_GPIO_ADDR_L || data_addr_r_addr_i <= `DEVICE_GPIO_ADDR_H) begin
+	// 		diff_skip();
+	// 	end
+	// end
 `endif
 
 

@@ -123,7 +123,7 @@ PERF_IMG ?= $(WORK_DIR)/img/microbench-riscv32e-ysyxsoc.bin
 
 run:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!
-	$(EXE)  $(ARGS) 
+	$(EXE)  $(ARGS) $(IMG)
 
 gdb:$(BIN)
 	$(call git_commit, "sim RTL") #DO NOT REMOVE THIS LINE!!!

@@ -43,6 +43,7 @@ extern "C" void sdram_write(int32_t addr, int32_t data, char mask) {
     // d = 0b1101
     addr = addr & 0x03ffffff;
     uint8_t mask_t = (uint8_t)mask;
+    
 #ifdef CONFIG_MTRACE
     Log("sdram_write ---  [addr: 0x%08x data: 0x%08x pc: 0x%08x mask: %x]", addr, data, cpu.pc, mask_t);
 #endif

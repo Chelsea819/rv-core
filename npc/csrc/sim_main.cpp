@@ -105,6 +105,5 @@ int main(int argc, char **argv, char **env) {
 #endif
   delete dut;
   nvboard_quit();
-  // exit(EXIT_SUCCESS);
   return is_exit_status_bad();
 }

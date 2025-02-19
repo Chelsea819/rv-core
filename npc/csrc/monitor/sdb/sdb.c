@@ -13,8 +13,6 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
-#include <cstdint>
-#include <cstdlib>
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
@@ -119,10 +117,10 @@ static int cmd_si(char *args){
   cpu_exec(n);
   return 0;
 }
-
+int is_exit_status_bad();
 static int cmd_q(char *args)
 {
-  if(npc_state.state != NPC_ABORT)
+  if(npc_state.state == NPC_END && npc_state.halt_ret == 0)
     npc_state.state = NPC_QUIT;
   return -1;
 }

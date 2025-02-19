@@ -112,7 +112,7 @@ void _trm_init() {
   if (heap.start == 0) {
     halt(1);
   }
-  __am_uart_init();
+  // __am_uart_init();
 
   // int (*funcPtr)(const char *) = &main;
   // funcPtr = (int (*)(const char *))((char *)funcPtr - (char *)_text_start + (char *)SRAM_ADDR);

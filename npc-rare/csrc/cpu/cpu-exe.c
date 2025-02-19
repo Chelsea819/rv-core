@@ -153,7 +153,7 @@ size_t read_index = 0;
 extern "C" void pc_node_init(int pc, int dnpc){
   pc_write[write_index].pc = pc;
   pc_write[write_index].dnpc = dnpc;
-  printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].dnpc, pc_write[write_index].pc);
+  // printf("[init] dnpc: 0x%08x pc: 0x%08x\n",pc_write[write_index].dnpc, pc_write[write_index].pc);
   write_index = (write_index + 1) % PC_FIFO_LEN;
 }
 
@@ -438,14 +438,15 @@ void inst_get(int inst){
   // printf("get inst! \n");
 }
 
+uint32_t invalid_pc = 0;
 char inst_invalid = 0;
-void inst_invalid_get(char invalid){
+void inst_invalid_get(char invalid, int pc){
   inst_invalid = invalid;
+  invalid_pc = (uint32_t)pc;
   // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
   // printf("inst:0x%08x\n",inst);
   // printf("get inst! \n");
 }
-
 
 
 

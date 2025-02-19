@@ -3,6 +3,7 @@
 
 // if need yosys-sta check, delete dpi-c function
 `define N_YOSYS_STA_CHECK 1'b1
+// `define BYPASS_TRACE 1'b1
 
 
 `define TYPE_R_OPCODE     7'b0110011

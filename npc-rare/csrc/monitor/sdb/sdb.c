@@ -119,7 +119,7 @@ static int cmd_si(char *args){
 
 static int cmd_q(char *args)
 {
-  if(npc_state.state != NPC_ABORT)
+  if(npc_state.state == NPC_END && npc_state.halt_ret == 0)
     npc_state.state = NPC_QUIT;
   return -1;
 }

@@ -32,47 +32,40 @@
 
 static const uint32_t img[] = {
     // 初始化寄存器
-    0x00100093,  // addi x1, x0, 1       # x1 = 0 + 1 = 1
-    0x00200113,  // addi x2, x0, 2       # x2 = 0 + 2 = 2
-    0x00300193,  // addi x3, x0, 3       # x3 = 0 + 3 = 3
-    0x00400213,  // addi x4, x0, 4       # x4 = 0 + 4 = 4
+    0x00100093,  // 0x0000 addi x1, x0, 1       # x1 = 0 + 1 = 1
+    0x00200113,  // 0x0004 addi x2, x0, 2       # x2 = 0 + 2 = 2
+    0x00300193,  // 0x0008 addi x3, x0, 3       # x3 = 0 + 3 = 3
+    0x00400213,  // 0x000c addi x4, x0, 4       # x4 = 0 + 4 = 4
 
     // 测试 beq：如果 x1 == x2，跳转到 end
-    0x00208463,  // beq x1, x2, 8        # if x1 == x2, jump to end (0x1C)
-    0x00100093,  // addi x1, x0, 1       # x1 = 0 + 1 = 1 (未跳转时执行)
+    0x00208463,  // 0x0010 beq x1, x2, 8        # if x1 == x2, jump to end (0x1C)
+    0x00100093,  // 0x0014 addi x1, x0, 1       # x1 = 0 + 1 = 1 (未跳转时执行)
 
     // 测试 bne：如果 x1 != x2，跳转到 loop_start
-    0x00209463,  // bne x1, x2, 8        # if x1 != x2, jump to loop_start (0x24)
-    0x00100073,  // ebreak               # 如果未跳转，触发断点
+    0x00209463,  // 0x0018 bne x1, x2, 8        # if x1 != x2, jump to loop_start (0x24)
+    0x00100073,  // 0x001c ebreak               # 如果未跳转，触发断点
 
     // loop_start: 循环开始
-    0x00108093,  // addi x1, x1, 1       # x1 = x1 + 1 (x1 = 2)
-    0x00208463,  // beq x1, x2, 8        # if x1 == x2, jump to end (0x34)
-    0xff5ff06f,  // jal x0, -12          # jump to loop_start (0x24)
+    0x00108093,  // 0x0020 addi x1, x1, 1       # x1 = x1 + 1 (x1 = 2)
+    0x00208463,  // 0x0024 beq x1, x2, 8        # if x1 == x2, jump to end (0x34)
+    0xff5ff06f,  // 0x0028 jal x0, -12          # jump to loop_start (0x24)
 
     // end: 结束循环
-    0x00100093,  // addi x1, x0, 1       # x1 = 0 + 1 = 1
-
-    // 测试 jal：跳转到 function
-    0x0100006f,  // jal x0, 16           # jump to function (0x44)
-
-    // function: 函数
-    0x00108093,  // addi x1, x1, 1       # x1 = x1 + 1 (x1 = 2)
-    0x00008067,  // jalr x0, x1, 0       # jump to x1 + 0 = 0x2 (无效地址，仅测试指令)
+    0x00100093,  // 0x002c addi x1, x0, 1       # x1 = 0 + 1 = 1
 
     // 测试 jalr：跳转到 final
-    0x00000297,  // auipc x5, 0          # x5 = PC + 0 = 0x4C
-    0x00828293,  // addi x5, x5, 8       # x5 = 0x4C + 8 = 0x54
-    0x00028067,  // jalr x0, x5, 0       # jump to x5 + 0 = 0x54
+    0x00000297,  // 0x0030 auipc x5, 0          # x5 = PC + 0 = 0x4C
+    0x01428293,  // 修改后的指令：addi x5, x5, 0x28
+    0x00028067,  // 0x0038 jalr x0, x5, 0       # jump to x5 + 0 = 0x54
 
     // final: 最终代码
-    0x00100093,  // addi x1, x0, 1       # x1 = 0 + 1 = 1
-    0x00200113,  // addi x2, x0, 2       # x2 = 0 + 2 = 2
-    0x00300193,  // addi x3, x0, 3       # x3 = 0 + 3 = 3
-    0x00400213,  // addi x4, x0, 4       # x4 = 0 + 4 = 4
+    0x00100093,  // 0x003c addi x1, x0, 1       # x1 = 0 + 1 = 1
+    0x00200113,  // 0x0040 addi x2, x0, 2       # x2 = 0 + 2 = 2
+    0x00300193,  // 0x0044 addi x3, x0, 3       # x3 = 0 + 3 = 3
+    0x00400213,  // 0x0048 addi x4, x0, 4       # x4 = 0 + 4 = 4
 
     // 结束
-    0x00100073  // ebreak               # 触发断点，停止执行
+    0x00100073  // 0x0058 ebreak               # 触发断点，停止执行
 };
 
 void init_isa() {
