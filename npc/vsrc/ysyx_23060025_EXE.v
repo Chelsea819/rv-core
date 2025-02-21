@@ -69,7 +69,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void exu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_WAIT_LSU_READY) begin
+		if (con_state == STATE_WAIT_IDU_VALID && next_state == STATE_RUN) begin
 			exu_p_counter_update();
 		end
 	end

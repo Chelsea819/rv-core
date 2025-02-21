@@ -709,7 +709,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.clock           ( clock           ),
 		.reset           ( reset           ),
 		.csr_raddr      ( csr_raddr_i      ),
-		.csr_waddr      ( csr_waddr_i      ),
+		.csr_waddr      ( lsu_csr_waddr_o      ),
 		.wdata         ( csr_wdata_i         ),
 		.csr_type_i    ( csr_type_i    ),
 		// .csr_mepc_i    ( csr_mepc_i    ),  

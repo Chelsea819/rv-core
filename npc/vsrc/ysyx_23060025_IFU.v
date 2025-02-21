@@ -32,8 +32,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// IFU-AXI
 	// Addr Read
-	output	reg [ADDR_WIDTH - 1:0]		out_paddr,
-	output	reg	                		out_psel,
+	output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
+	output			                		out_psel,
 
 	// Read data
 	input		                		out_pready	,	// icache read data ready
@@ -76,7 +76,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg			[3:0]		r_ready_delay;
 
 	// assign out_psel = (con_state == STATE_RUN) & ~reset & (addr_r_valid_delay == RANDOM_DELAY);
-	assign out_psel = (con_state == STATE_RUN) & ~reset;
+	assign out_psel = (con_state == STATE_RUN);
 	assign out_prdata = (con_state == STATE_READ) & (r_ready_delay == RANDOM_DELAY);
 
 	// r addr delay
@@ -109,8 +109,10 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(posedge clock) begin
 		if(reset)begin
 		end
-		else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN)
+		else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
 			pc_node_init(pc, pc_next);
+		end
+			
 	end
 	// 检测到ebreak
     // import "DPI-C" function void ifebreak_func(int inst);
@@ -124,14 +126,14 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 					({out_prdata[14:12], out_prdata[6:0]} == {`TYPE_I_JALR_FUNC3, `TYPE_I_JALR_OPCODE}) |			 //I-jalr
 					({out_prdata[6:0]} == `TYPE_B_OPCODE) |			 //B-beq
 					((out_prdata[6:0] == `TYPE_I_LOAD_OPCODE) & (out_prdata[14:12] == `TYPE_I_LB_FUNC3 | out_prdata[14:12] == `TYPE_I_LH_FUNC3 | out_prdata[14:12] == `TYPE_I_LW_FUNC3 | out_prdata[14:12] == `TYPE_I_LBU_FUNC3 | out_prdata[14:12] == `TYPE_I_LHU_FUNC3)) |	 //I-lb lh lw lbu lhu
-					// ((out_prdata[6:0] == `TYPE_I_CSR_OPCODE) & (out_prdata[14:12] == `TYPE_I_CSRRW_FUNC3 | out_prdata[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
+					((out_prdata[6:0] == `TYPE_I_CSR_OPCODE) & (out_prdata[14:12] == `TYPE_I_CSRRW_FUNC3 | out_prdata[14:12] == `TYPE_I_CSRRS_FUNC3)) |	 //I-csrrw csrrs
 					((out_prdata[6:0] == `TYPE_S_OPCODE) & (out_prdata[14:12] == `TYPE_S_SB_FUNC3 | out_prdata[14:12] == `TYPE_S_SH_FUNC3 | out_prdata[14:12] == `TYPE_S_SW_FUNC3))	|		//S-sb sh sw
 					((out_prdata[6:0] == `TYPE_I_BASE_OPCODE) & (out_prdata[14:12] == `TYPE_I_SLTI_FUNC3 || out_prdata[14:12] == `TYPE_I_SLTIU_FUNC3 || out_prdata[14:12] == `TYPE_I_ADDI_FUNC3 || out_prdata[14:12] == `TYPE_I_XORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ORI_FUNC3 || out_prdata[14:12] == `TYPE_I_ANDI_FUNC3 || 
 														{out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SLLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRLI_FUNC3_IMM || {out_prdata[14:12], out_prdata[31:25]} == `TYPE_I_SRAI_FUNC3_IMM)) |	 //I-addi slli srli srai xori ori andi
 					(out_prdata[6:0] == `TYPE_R_OPCODE) | //R
-					// (out_prdata == `TYPE_I_ECALL) | 
-					// (out_prdata == `TYPE_I_MRET)  | 
-					// (out_prdata == `TYPE_I_FENCEI)  | 
+					(out_prdata == `TYPE_I_ECALL) | 
+					(out_prdata == `TYPE_I_MRET)  | 
+					(out_prdata == `TYPE_I_FENCEI)  | 
 					(out_prdata == `TYPE_I_EBREAK));
 
 	import "DPI-C" function void inst_invalid_get(byte invalid, int pc);
@@ -141,9 +143,17 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
+	import "DPI-C" function void pre_ifu_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_RUN) begin
+		if (con_state == STATE_RUN && next_state != STATE_RUN) begin
 			ifu_p_counter_update();
+		end
+	end
+	always @(posedge clock) begin
+		if(reset) begin
+			
+		end else if (next_state == STATE_PRE_IFU) begin
+			pre_ifu_counter_update();
 		end
 	end
 	`endif
@@ -163,7 +173,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(*) begin
 		next_state = con_state;
 		case(con_state) 
-			// get jmp branch pc from decoder
+			/* get jmp branch pc from decoder, valid-> exists instruction before this inst; 
+			 								   ready-> not exists		*/
 			STATE_PRE_IFU: begin
 				if(idu_valid_i | idu_ready_i) begin
 					next_state = STATE_RUN;
@@ -222,7 +233,9 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 	end
 
-	assign out_psel = (con_state == STATE_RUN && next_state == STATE_RUN) & ~reset;
+	// assign out_paddr = pc_next;
+
+	assign out_psel = (con_state == STATE_RUN && next_state == STATE_RUN);
 
 	// 给下一级使用的寄存器：inst/pc
 	assign if_inst_o = out_prdata;

@@ -300,14 +300,14 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 `ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void lsu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == LSU_WAIT_WB_READY) begin
+		if (con_state == STATE_WAIT_EXE_VALID && next_state == LSU_WAIT_ADDR_PASS) begin
 			lsu_p_counter_update();
 		end
 	end
 
 	import "DPI-C" function void lsu_delay_counter_update();
 	always @(posedge clock) begin
-		if (con_state == LSU_WAIT_ADDR_PASS) begin
+		if ((con_state == LSU_WAIT_ADDR_PASS && (mem_to_reg | mem_wen_i)) || con_state == STATE_DATA_LOAD) begin
 			lsu_delay_counter_update();
 		end
 	end

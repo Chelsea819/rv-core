@@ -138,26 +138,46 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 `endif
 
 
-	always @(*) begin
-		if (con_state == STATE_IDLE) begin
-			if ((axi_addr_r_addr_o & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
-				axi_device = `AXI_XBAR_CLINT;
+	always @(posedge clock) begin
+		if (next_state == AXI_CTL_BUSY_DATA) begin
+			if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
+				axi_device <= `AXI_XBAR_CLINT;
 			end else begin
-				axi_device = `AXI_XBAR_SOC;
+				axi_device <= `AXI_XBAR_SOC;
 			end
-		end else begin
-			axi_device = axi_device_tmp;
+		end else if(next_state == STATE_IDLE) begin
+			axi_device <= `AXI_XBAR_SOC;
 		end
 	end
 
 
-	always @(posedge clock ) begin
-		if (reset) begin
-			axi_device_tmp <= 0;
-		end else begin
-			axi_device_tmp <= axi_device;
-		end
-	end
+	// always @(posedge clock ) begin
+	// 	if (reset) begin
+	// 		axi_device_tmp <= 0;
+	// 	end else begin
+	// 		axi_device_tmp <= axi_device;
+	// 	end
+	// end
+	// always @(*) begin
+	// 	if (next_state == AXI_CTL_BUSY_DATA) begin
+	// 		if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
+	// 			axi_device = `AXI_XBAR_CLINT;
+	// 		end else begin
+	// 			axi_device = `AXI_XBAR_SOC;
+	// 		end
+	// 	end else begin
+	// 		axi_device = axi_device_tmp;
+	// 	end
+	// end
+
+
+	// always @(posedge clock ) begin
+	// 	if (reset) begin
+	// 		axi_device_tmp <= 0;
+	// 	end else begin
+	// 		axi_device_tmp <= axi_device;
+	// 	end
+	// end
 
 
 	// always @(*) begin

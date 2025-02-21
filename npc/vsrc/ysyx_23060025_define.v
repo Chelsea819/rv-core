@@ -4,6 +4,7 @@
 // if need yosys-sta check, delete dpi-c function
 `define N_YOSYS_STA_CHECK 1'b1
 `define DIFFTEST 1'b1
+`define PERFORMANCE_COUNTER 1'b1
 
 // `define BYPASS_TRACE 1'b1
 
@@ -70,7 +71,6 @@
 `define STORE_SB_MASK     32'h000000ff
 `define STORE_SH_MASK     32'h0000ffff
 `define STORE_SW_MASK     32'hffffffff
-
 `define TYPE_I_CSR_OPCODE  7'b1110011
 `define TYPE_I_CSRRW_FUNC3 3'b001
 `define TYPE_I_CSRRS_FUNC3 3'b010
@@ -115,8 +115,6 @@
 `define EN_REG_WRITE        1'b1
 `define EN_JMP       1'b1
 
-// `define TYPE_I_OPCODE 7'b0000011
-// `define TYPE_I_OPCODE 7'b0000011
 
 
 // ALU

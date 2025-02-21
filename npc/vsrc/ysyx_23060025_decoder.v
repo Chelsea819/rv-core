@@ -64,17 +64,20 @@ module ysyx_23060025_decoder(
     assign func3 = inst_i[14:12];
     assign func7 = inst_i[31:25];
     assign opcode = inst_i[6:0];
-    assign pc_o = pc_i;
-
-    assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
-    assign reg1_o = conflict_reg0_i ? conflict_reg_bypass_data_i : reg1_data_i;
-    assign reg2_o = conflict_reg1_i ? conflict_reg_bypass_data_i : reg2_data_i;
     assign wreg_o = inst_i[11:7];
     assign reg1_addr_o = inst_i[19:15];
     assign reg2_addr_o = inst_i[24:20];
-
-    assign branch_target_o = pc_i + imm_o;
     wire [11:0] csr_addr = inst_i[31:20];
+    
+    // data relation
+    assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
+    assign reg1_o = conflict_reg0_i ? conflict_reg_bypass_data_i : reg1_data_i;
+    assign reg2_o = conflict_reg1_i ? conflict_reg_bypass_data_i : reg2_data_i;
+    
+    // output 
+    assign pc_o = pc_i;
+    assign branch_target_o = pc_i + imm_o;
+    
     assign csr_waddr_o = (csr_flag_o == `CSR_ECALL ? `CSR_MEPC_ADDR : csr_addr);
     assign csr_raddr_o = (csr_flag_o == `CSR_ECALL ? `CSR_MTVEC_ADDR : csr_flag_o == `CSR_MRET ? `CSR_MEPC_ADDR : csr_addr);
    
@@ -100,7 +103,7 @@ module ysyx_23060025_decoder(
     `ifdef PERFORMANCE_COUNTER
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
 	always @(posedge clock) begin
-		if (con_state == IDU_WAIT_IDU_VALID && next_state == STATE_WAIT_EXU_READY) begin
+		if (con_state == STATE_RUN && next_state != STATE_RUN) begin
 			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
 		end
 	end

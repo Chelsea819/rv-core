@@ -45,15 +45,24 @@ static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 bool ifbreak = false;
 
-#define INST_TYPE_NUM       6
-#define TYPE_COUNT          0  
+#define INST_TYPE_BUFFER    10
+size_t inst_type_buff_rptr = 0;
+size_t inst_type_buff_wptr = 0;
+
+#define INST_TYPE_NUM       7
+
 #define TYPE_MEM            1
 #define TYPE_JMP            2
 #define TYPE_CSR            3
 #define TYPE_STATE_TRANS    4
 #define TYPE_FENCEI         5
+#define TYPE_COUNT          6
+
+uint64_t data_relation_inst = 0;
+uint64_t data_relation_delay = 0;
 
 uint64_t ifu_p_counter = 0;
+uint64_t pre_ifu_delay = 0;
 uint64_t lsu_p_counter = 0;
 uint64_t lsu_delay_counter = 0;
 uint64_t exu_p_counter = 0;
@@ -66,13 +75,24 @@ uint64_t idu_state_trans_p_counter = 0;
 uint64_t idu_fence_p_counter = 0;
 
 // 当前执行的指令是哪种指令
-bool type_flag[INST_TYPE_NUM] = {0};
+int type_flag[INST_TYPE_BUFFER] = {0};
 // 每种指令运行的周期总数
 uint64_t inst_type_cycle[INST_TYPE_NUM] = {0};
 
 extern "C" void ifu_p_counter_update(){
   ifu_p_counter ++;
 }
+extern "C" void pre_ifu_counter_update(){
+  pre_ifu_delay ++;
+}
+
+extern "C" void data_relation_inst_update(){
+  data_relation_inst ++;
+}
+extern "C" void data_relation_delay_update(){
+  data_relation_delay ++;
+}
+
 extern "C" void exu_p_counter_update(){
   exu_p_counter ++;
 }
@@ -98,6 +118,7 @@ extern "C" void lsu_delay_counter_update(){
 
 
 extern "C" void idu_p_counter_update(char opcode, char func3){
+  
   switch (opcode) {
     // 计算
     case TYPE_I_BASE_OPCODE:
@@ -105,14 +126,14 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
     case TYPE_U_AUIPC_OPCODE:
     case TYPE_R_OPCODE:
       idu_count_p_counter ++;
-      type_flag[TYPE_COUNT] = true;
+      type_flag[inst_type_buff_wptr] = TYPE_COUNT;
       break;
 
     // 访存
     case TYPE_S_OPCODE:
     case TYPE_I_LOAD_OPCODE:
       idu_memory_p_counter ++;
-      type_flag[TYPE_MEM] = true;
+      type_flag[inst_type_buff_wptr] = TYPE_MEM;
       break;
 
     // 跳转
@@ -120,7 +141,7 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
     case TYPE_J_JAL_OPCODE:
     case TYPE_I_JALR_OPCODE:
       idu_jmp_p_counter ++;
-      type_flag[TYPE_JMP] = true;
+      type_flag[inst_type_buff_wptr] = TYPE_JMP;
       break;
 
     
@@ -130,22 +151,24 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
         // ebreak -- opcod
         // ecall -- opcode
         // mret
-        type_flag[TYPE_STATE_TRANS] = true;
+        type_flag[inst_type_buff_wptr] = TYPE_STATE_TRANS;
         idu_state_trans_p_counter ++;
       } else {
         // csr指令
-        type_flag[TYPE_CSR] = true;
+        type_flag[inst_type_buff_wptr] = TYPE_CSR;
         idu_csr_p_counter ++;
       }
       break;
 
     case TYPE_I_FENCEI_OPCODE:
-      type_flag[TYPE_FENCEI] = true;
+      type_flag[inst_type_buff_wptr] = TYPE_FENCEI;
       idu_fence_p_counter ++;
       break;
     default: 
       break;
   }
+  // printf("type_flag[%d]: %d\n", inst_type_buff_wptr, type_flag[inst_type_buff_wptr]);
+  inst_type_buff_wptr = (inst_type_buff_wptr + 1) % INST_TYPE_BUFFER;
 }
 
 size_t write_index = 0;
@@ -488,20 +511,16 @@ void per_inst_cycle(){
   }while(inst_finish == 0);
   inst_finish = 0;
   size_t i = 0;
-  // while (1) {
-  //   if(i >= INST_TYPE_NUM){dut->final();
-  //       #ifdef CONFIG_WAVE
-  //       tfp->close();	//关闭波形跟踪文件
-  //       #endif 
-  //       panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);}
-  //   if (type_flag[i]) {
-  //     inst_type_cycle[i] = inst_type_cycle[i] + (clk_cycle - inst_cycle);
-  //     type_flag[i] = false;
-  //     break;
-  //   }
-  //   i ++;
-  // }
-  // printf("finished dut.pc = [0x%08x]!\n",cpu.pc);
+  size_t idx = type_flag[inst_type_buff_rptr];
+  if(idx == 0) {dut->final();
+    #ifdef CONFIG_WAVE
+    tfp->close();	//关闭波形跟踪文件
+    #endif 
+    panic("Error inst statistic!--[PC:0x%08x]",cpu.pc);
+  }
+  inst_type_cycle[idx] = inst_type_cycle[idx] + (clk_cycle - inst_cycle);
+  type_flag[inst_type_buff_rptr]= 0;
+  inst_type_buff_rptr = (inst_type_buff_rptr + 1) % INST_TYPE_BUFFER;
 }
 
 /* let CPU conduct current command and renew PC */
@@ -762,6 +781,7 @@ static void statistic()
     printf("IPC                        = %f inst/cycle  \n", (float)g_nr_guest_inst / clk_cycle); 
     printf("CPI                        = %f cycle/inst  \n", (float)clk_cycle / g_nr_guest_inst); 
 
+    printf("pre_ifu_delay              = %lu\tcycle --[%f\t cycle/inst]\n", pre_ifu_delay, (float)pre_ifu_delay/ifu_p_counter); 
     printf("ifu_p_counter              = %lu\tinst\n", ifu_p_counter); 
     printf("lsu_p_counter              = %lu\tinst\n", lsu_p_counter); 
     printf("lsu_avg_delay_counter      = %f\tcycle\n", (float)lsu_delay_counter/lsu_p_counter); 
@@ -772,6 +792,8 @@ static void statistic()
     printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
     printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
     printf("idu_fence_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_fence_p_counter, (float)inst_type_cycle[TYPE_FENCEI]/idu_fence_p_counter, (float)idu_fence_p_counter/g_nr_guest_inst*100); 
+    printf("data_relation_inst(need load) = %lu\tinst --\t[%f%%]\n", data_relation_inst, (float)data_relation_inst/g_nr_guest_inst*100); 
+    printf("data_relation_delay           = %lu\tcycle --[%f cycle/inst]\n", data_relation_delay, (float)data_relation_delay/data_relation_inst); 
     // access_time--cache接收访存请求到得出命中结果所需的时间
     // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;

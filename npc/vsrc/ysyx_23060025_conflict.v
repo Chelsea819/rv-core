@@ -139,12 +139,27 @@ module ysyx_23060025_conflict (
 		end
 	end
 `endif
+
+`ifdef N_YOSYS_STA_CHECK
+    `ifdef PERFORMANCE_COUNTER
+    import "DPI-C" function void data_relation_inst_update();
+    import "DPI-C" function void data_relation_delay_update();
+	always @(posedge clock) begin
+		if (con_state == STATE_RUN && next_state == STATE_WAIT_LSU) begin
+			data_relation_inst_update();
+		end
+	end
+	always @(posedge clock) begin
+		if (next_state == STATE_WAIT_LSU) begin
+			data_relation_delay_update();
+		end
+	end
+    `endif
+`endif
 	reg conflict_id_nop;
 	always @(posedge clock) begin
 		if(reset) begin
 			conflict_id_nop <= 0;
-		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i))) begin
-			conflict_id_nop <= 1;
 		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i))) begin
 			conflict_id_nop <= 1;
 		end else if((con_state == STATE_WAIT_LSU && lsu_valid_i)) begin

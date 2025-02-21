@@ -29,7 +29,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input   	[31:0] 	out_rdata	,
 	output 	         	out_rready	
 );
-	localparam	[2:0]	STATE_IDLE = 3'b00, STATE_CHECK = 3'b01, STATE_ADDR_HAND_SHAK = 3'b10, STATE_LOAD = 3'b11, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100, STATE_FENCE = 3'b111;
+	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_ADDR_HAND_SHAK = 3'b010, STATE_LOAD = 3'b011, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100, STATE_FENCE = 3'b111;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
 	parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
