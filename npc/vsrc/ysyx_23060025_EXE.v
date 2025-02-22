@@ -105,9 +105,6 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 				end else begin
 					next_state = STATE_WAIT_IDU_VALID;
 				end
-				// else if(~idu_valid_i) begin
-				// 	next_state = STATE_WAIT_IDU_VALID;
-				// end
 			end
             // 等待exu空闲，下个时钟周期传递信息
             STATE_WAIT_LSU_READY: begin 
@@ -123,44 +120,66 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	assign exu_valid_o = (con_state == STATE_RUN || con_state == STATE_WAIT_LSU_READY);
 	assign exu_ready_o = (con_state == STATE_WAIT_IDU_VALID);
 
-	// ysyx_23060025_MuxKeyWithDefault #(6,3,1) branch_request_mux (branch_request_o , branch_type_i, 1'b0, {
-	// 	`BRANCH_BEQ, alu_zero,
-	// 	`BRANCH_BNE, ~alu_zero,
-	// 	`BRANCH_BLT, alu_less,
-	// 	`BRANCH_BGE, ~alu_less,
-	// 	`BRANCH_BLTU, alu_less,
-	// 	`BRANCH_BGEU, ~alu_less
-	// });
+	wire csr_cssrw = csr_flag_i == `CSR_CSRRW;
+	wire csr_cssrs = csr_flag_i == `CSR_CSRRS;
+	wire csr_ecall = csr_flag_i == `CSR_ECALL;
 
-	// TODO: untest
-	ysyx_23060025_MuxKeyWithDefault #(3,3,32) csr_wdata_choose (csr_wdata_o , csr_flag_i, 32'b0, {
-		`CSR_CSRRW, reg1_i,
-		`CSR_ECALL, pc_i,
-		`CSR_CSRRS, reg1_i | csr_rdata_i
-	});
+	wire [31:0] csr_csrrs_res = reg1_i | csr_rdata_i;
+	
+	assign csr_wdata_o = {32{csr_cssrw}} & reg1_i 
+				| {32{csr_cssrs}} & pc_i 
+				| {32{csr_ecall}} & csr_csrrs_res ;
 
 	assign csr_type_o = csr_flag_i;
 
 	ysyx_23060025_ALU my_alu(
-		.src1				(src1),
-		.src2				(src2),
-		.alu_control		(alu_control),
-		.result				(alu_result_o )
+		.src1						(src1),
+		.src2						(src2),
+		.alu_op_sel_add				(alu_op_sel_add),
+		.alu_op_sel_sub				(alu_op_sel_sub),
+		.alu_op_sel_xor				(alu_op_sel_xor),
+		.alu_op_sel_or				(alu_op_sel_or),
+		.alu_op_sel_and				(alu_op_sel_and),
+		.alu_op_sel_right_logic		(alu_op_sel_right_logic),
+		.alu_op_sel_right_arithe	(alu_op_sel_right_arithe),
+		.alu_op_sel_less_unsigned	(alu_op_sel_less_unsigned),
+		.alu_op_sel_less_signed		(alu_op_sel_less_signed),
+		.alu_op_sel_left_logic		(alu_op_sel_left_logic ),
+		.result						(alu_result_o )
 	);
 
-	ysyx_23060025_MuxKeyWithDefault #(4,2,32) src1_choose (src1, alu_sel[1:0], 32'b0, {
-		`ALU_SEL1_ZERO, 32'b0,
-		`ALU_SEL1_REG1, reg1_i,
-		`ALU_SEL1_PC,   pc_i,
-		`ALU_SEL1_CSR,  csr_rdata_i
-	});
+	wire aluop1_sel_zero = alu_sel[1:0] == `ALU_SEL1_ZERO;
+	wire aluop1_sel_reg1 = alu_sel[1:0] == `ALU_SEL1_REG1;
+	wire aluop1_sel_pc = alu_sel[1:0] == `ALU_SEL1_PC;
+	wire aluop1_sel_csr = alu_sel[1:0] == `ALU_SEL1_CSR;
 
-	ysyx_23060025_MuxKeyWithDefault #(4,2,32) src2_choose (src2, alu_sel[3:2], 32'b0, {
-		`ALU_SEL1_ZERO, 32'b0,
-		`ALU_SEL2_REG2, reg2_i,
-		`ALU_SEL2_IMM, 	imm_i,
-		`ALU_SEL2_4, 	32'b100
-	});
+	wire aluop2_sel_zero 	= alu_sel[3:2] == `ALU_SEL2_ZERO;
+	wire aluop2_sel_reg2 	= alu_sel[3:2] == `ALU_SEL2_REG2;
+	wire aluop2_sel_imm 	= alu_sel[3:2] == `ALU_SEL2_IMM;
+	wire aluop2_sel_4 		= alu_sel[3:2] == `ALU_SEL2_4;
+
+	assign src1 = {32{aluop1_sel_zero}} & 32'b0 
+				| {32{aluop1_sel_reg1}} & reg1_i 
+				| {32{aluop1_sel_pc}} & pc_i 
+				| {32{aluop1_sel_csr}} & csr_rdata_i ;
+
+	assign src2 = {32{aluop2_sel_zero}} & 32'b0 
+				| {32{aluop2_sel_reg2}} & reg2_i 
+				| {32{aluop2_sel_imm}} & imm_i 
+				| {32{aluop2_sel_4}} & 32'b100 ;
+
+	wire alu_op_sel_add = (alu_control == `ALU_OP_ADD);
+
+    wire alu_op_sel_sub = (alu_control == `ALU_OP_SUB);
+    wire alu_op_sel_xor = (alu_control == `ALU_OP_XOR);
+    wire alu_op_sel_or  = (alu_control == `ALU_OP_OR);
+
+    wire alu_op_sel_and				= (alu_control == `ALU_OP_AND);
+    wire alu_op_sel_right_logic 	= (alu_control == `ALU_OP_RIGHT_LOGIC);
+    wire alu_op_sel_right_arithe 	= (alu_control == `ALU_OP_RIGHT_ARITH);
+    wire alu_op_sel_left_logic 		= (alu_control == `ALU_OP_LEFT_LOGIC);
+    wire alu_op_sel_less_unsigned 	= (alu_control == `ALU_OP_LESS_UNSIGNED);
+    wire alu_op_sel_less_signed 	= (alu_control == `ALU_OP_LESS_SIGNED);
 
 
 endmodule

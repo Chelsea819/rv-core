@@ -73,7 +73,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	//my_IFU
 	// wire								idu_ready_o	;
 	wire			[ADDR_LEN - 1:0]	if_branch_target_i;
-	wire			[2:0]				if_branch_type_i;
+	wire								if_branch_type_i;
 	wire								if_branch_request_i;	
 	wire			[ADDR_LEN - 1:0]	if_jmp_target_i;
 	wire								if_jmp_flag_i;	
@@ -206,7 +206,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.branch_request_i ( if_branch_request_i ),
 		.branch_target_i  ( if_branch_target_i  ),
-		.branch_flag_i    ( |if_branch_type_i    ),
+		.branch_flag_i    ( if_branch_type_i    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
 		.csr_jmp_i     	  (idu_csr_flag_o[1]   ),

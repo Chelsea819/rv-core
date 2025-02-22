@@ -68,7 +68,7 @@
 `define STORE_SW_32     2'b10
 `define STORE_INVALID   2'b00
 
-`define STORE_SB_MASK     32'h000000ff
+`define STORE_SB_MASK     32'h0000less_unsigned00ff
 `define STORE_SH_MASK     32'h0000ffff
 `define STORE_SW_MASK     32'hffffffff
 `define TYPE_I_CSR_OPCODE  7'b1110011
