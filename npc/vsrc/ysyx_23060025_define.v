@@ -2,9 +2,9 @@
 `include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
-`define N_YOSYS_STA_CHECK 1'b1
-`define DIFFTEST 1'b1
-`define PERFORMANCE_COUNTER 1'b1
+// `define N_YOSYS_STA_CHECK 1'b1
+// `define DIFFTEST 1'b1
+// `define PERFORMANCE_COUNTER 1'b1
 
 // `define BYPASS_TRACE 1'b1
 
@@ -104,7 +104,7 @@
 `define MEM_MASK_32    8'b1111
 
 
-`define BRANCH_INVALID        3'b000 
+`define BRANCH_INVALID 3'b000 
 `define BRANCH_BEQ     3'b001 
 `define BRANCH_BNE     3'b010  
 `define BRANCH_BLT     3'b011 
@@ -130,7 +130,7 @@
 `define ALU_SEL2_4     2'b11
 
 // alu_op operator
-`define ALU_OP_ADD          4'b0000
+`define ALU_OP_INVALID      4'b0000
 `define ALU_OP_SUB          4'b0001
 `define ALU_OP_XOR          4'b0010
 `define ALU_OP_OR           4'b0011
@@ -140,6 +140,8 @@
 `define ALU_OP_LEFT_LOGIC   4'b0111
 `define ALU_OP_LESS_SIGNED    4'b1000
 `define ALU_OP_LESS_UNSIGNED   4'b1001
+`define ALU_OP_ADD             4'b1010
+
 // `define TYPE_ALU_OP_PC   4'b0010
 
 
