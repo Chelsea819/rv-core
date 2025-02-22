@@ -21,6 +21,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									branch_request_i,	
 	input		[ADDR_WIDTH - 1:0]			branch_target_i	,
 	input									branch_flag_i	,
+	input									ebreak_flag_i	,
 	input                                   jmp_flag_i      ,
     input       [31:0]                   	jmp_target_i    ,
 	input									csr_jmp_i	    ,
@@ -101,7 +102,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 `else
 	// assign out_psel = (next_state == STATE_RUN) & ~reset;
 `endif
-	assign ifu_valid_o = (out_pready || con_state == STATE_WAIT_IDU_READY);
+	assign ifu_valid_o = (out_pready || state_wait_ready);
 
 `ifdef N_YOSYS_STA_CHECK
 
@@ -158,6 +159,11 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 	`endif
 `endif
+	
+	wire state_pre_ifu = (con_state == STATE_PRE_IFU);
+	wire state_run = (con_state == STATE_RUN);
+	wire state_wait_ready = (con_state == STATE_WAIT_IDU_READY);
+	wire nxt_state_run = (next_state == STATE_RUN);
 
 	parameter [1:0] STATE_PRE_IFU = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_IDU_READY = 2'b11, STATE_STOP = 2'b10;
 
@@ -176,15 +182,14 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			/* get jmp branch pc from decoder, valid-> exists instruction before this inst; 
 			 								   ready-> not exists		*/
 			STATE_PRE_IFU: begin
-				if(idu_valid_i | idu_ready_i) begin
+				if(ebreak_flag_i & idu_valid_i) begin
+					next_state = STATE_STOP;
+				end else if(idu_valid_i | idu_ready_i) begin
 					next_state = STATE_RUN;
 				end
 			end
 			STATE_RUN: begin
-				if (out_pready & out_prdata == `TYPE_I_EBREAK) begin
-					next_state = STATE_STOP;
-				// idu busy
-				end else if (out_pready & ~idu_ready_i) begin
+				if (out_pready & ~idu_ready_i) begin
 					next_state = STATE_WAIT_IDU_READY;
 				end else if (out_pready)  begin
 					next_state = STATE_PRE_IFU;
@@ -214,12 +219,12 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// CSR_ECALL       3'b110
 	// CSR_MRET        3'b011
 	// wire [31:0] csr_pc = csr_jmp_i[0] ? csr_mepc_pc_i : csr_mtvec_pc_i;
-
+	wire pc_addr_update = state_pre_ifu & nxt_state_run;
 	always @(posedge clock) begin
 		if(reset) begin
 			pc <= `PC_RESET_VAL - 4;
 		// only when STATE_PRE_IFU has just one cycle
-		end else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
+		end else if(pc_addr_update) begin
 			pc <= pc_next;
 		end
 	end
@@ -228,19 +233,17 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(posedge clock) begin
 		if(reset) begin
 			out_paddr <= 0;
-		end else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
+		end else if(pc_addr_update) begin
 			out_paddr <= pc_next;
 		end
 	end
 
-	// assign out_paddr = pc_next;
 
-	assign out_psel = (con_state == STATE_RUN && next_state == STATE_RUN);
+	assign out_psel = (state_run & nxt_state_run);
 
 	// 给下一级使用的寄存器：inst/pc
 	assign if_inst_o = out_prdata;
 	assign if_pc_o = pc;
-
 
 
 endmodule

@@ -37,6 +37,14 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	// parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
 	parameter	PASS_TIMES = (2 ** CACHE_LINE_OFF_ADDR_W) / 4;
 	// parameter	PASS_TIMES_W = $clog2(PASS_TIMES);
+
+	// wire state_idle = (con_state == STATE_IDLE);
+	wire state_check = (con_state == STATE_CHECK);
+	wire state_addr_handshake = (con_state == STATE_ADDR_HAND_SHAK);
+	wire state_load = (con_state == STATE_LOAD);
+	// wire state_update = (con_state == STATE_UPDATE_REG);
+	wire state_pass = (con_state == STATE_PASS);
+	// wire state_fence = (con_state == STATE_FENCE);
 	
 
 	reg	[2:0] con_state;
@@ -70,7 +78,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 		import "DPI-C" function void cache_hit_statistic();
 		always @(posedge clock) begin
-			if (con_state == STATE_CHECK && next_state == STATE_PASS) begin
+			if (state_check && next_state == STATE_PASS) begin
 				cache_hit_statistic();
 			end
 		end
@@ -141,7 +149,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			for (i = 0; i < CACHE_LINE_NUM; i = i + 1) begin
 				cache_reg[i] <= 0; // 使用非阻塞赋值
 			end
-		end else if(con_state == STATE_LOAD && out_rvalid) begin
+		end else if(state_load && out_rvalid) begin
 			cache_reg[addr_index] <= cache_reg[addr_index] >> 32 | {out_rdata, {(CACHE_LINE_W-32){1'b0}}};
 		end
 	end
@@ -164,9 +172,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	assign out_arsize = load_rsize;
 	assign out_arlen = load_rlen;
-	assign out_arvalid = (con_state == STATE_ADDR_HAND_SHAK);
-	assign out_rready = (con_state == STATE_LOAD);
-	assign in_pready = (con_state == STATE_PASS);
+	assign out_arvalid = state_addr_handshake;
+	assign out_rready = state_load;
+	assign in_pready = state_pass;
 	assign in_prdata = prdata;
 	assign out_arburst = `AXI_ADDR_BURST_INCR;
 	assign out_araddr = load_raddr;

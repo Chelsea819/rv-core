@@ -207,6 +207,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.branch_request_i ( if_branch_request_i ),
 		.branch_target_i  ( if_branch_target_i  ),
 		.branch_flag_i    ( if_branch_type_i    ),
+		.ebreak_flag_i    ( idu_ebreak_flag_o    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
 		.csr_jmp_i     	  (idu_csr_flag_o[1]   ),
