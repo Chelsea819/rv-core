@@ -106,7 +106,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	reg				[1:0]			        con_state	;
 	reg				[1:0]		        	next_state	;
-	reg 				 					axi_device_tmp;
 
 	// assign axi_addr_r_len_o = 0;
 	// assign axi_addr_r_burst_o = `AXI_ADDR_BURST_FIXED;
@@ -137,10 +136,11 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 `endif
 `endif
 
+	wire addr_clint = (data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L;
 
 	always @(posedge clock) begin
 		if (next_state == AXI_CTL_BUSY_DATA) begin
-			if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
+			if (addr_clint) begin
 				axi_device <= `AXI_XBAR_CLINT;
 			end else begin
 				axi_device <= `AXI_XBAR_SOC;
@@ -149,35 +149,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			axi_device <= `AXI_XBAR_SOC;
 		end
 	end
-
-
-	// always @(posedge clock ) begin
-	// 	if (reset) begin
-	// 		axi_device_tmp <= 0;
-	// 	end else begin
-	// 		axi_device_tmp <= axi_device;
-	// 	end
-	// end
-	// always @(*) begin
-	// 	if (next_state == AXI_CTL_BUSY_DATA) begin
-	// 		if ((data_addr_r_addr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L) begin
-	// 			axi_device = `AXI_XBAR_CLINT;
-	// 		end else begin
-	// 			axi_device = `AXI_XBAR_SOC;
-	// 		end
-	// 	end else begin
-	// 		axi_device = axi_device_tmp;
-	// 	end
-	// end
-
-
-	// always @(posedge clock ) begin
-	// 	if (reset) begin
-	// 		axi_device_tmp <= 0;
-	// 	end else begin
-	// 		axi_device_tmp <= axi_device;
-	// 	end
-	// end
 
 
 	// always @(*) begin
@@ -231,38 +202,42 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 				next_state = 2'b11;
 		endcase
 	end
+
+	wire state_busy_data = (con_state == AXI_CTL_BUSY_DATA);
+	wire state_busy_inst = (con_state == AXI_CTL_BUSY_INST);
+
 	// NEXT: AXI-CTL-IDLE
 	// finish data read or write
 	assign {data_r_resp_o, data_r_valid_o, 
 			data_bkwd_resp_o, data_bkwd_valid_o} 
-			= (con_state == AXI_CTL_BUSY_DATA && next_state == STATE_IDLE) ? {axi_r_resp_i, axi_r_valid_i,
+			= (state_busy_data && next_state == STATE_IDLE) ? {axi_r_resp_i, axi_r_valid_i,
 																				axi_bkwd_resp_i, axi_bkwd_valid_i} : 
 																				0;
 	// finish inst read
 	assign {inst_r_resp_o, inst_r_valid_o, inst_r_last_i} 
-			= (con_state == AXI_CTL_BUSY_INST) ? {axi_r_resp_i, axi_r_valid_i, axi_r_last_i} : 
+			= state_busy_inst ? {axi_r_resp_i, axi_r_valid_i, axi_r_last_i} : 
 																				0;
 	// finish data read or write OR finish inst read
 	assign {axi_r_ready_o, axi_bkwd_ready_o} 
-			= (con_state == AXI_CTL_BUSY_DATA) ? {data_r_ready_i, data_bkwd_ready_i} : 
-				(con_state == AXI_CTL_BUSY_INST) ? {inst_r_ready_i, 1'b0} : 0;
+			= state_busy_data ? {data_r_ready_i, data_bkwd_ready_i} : 
+				state_busy_inst ? {inst_r_ready_i, 1'b0} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_DATA
 	assign {data_addr_r_ready_o, data_addr_w_ready_o, data_w_ready_o} 
-			= (con_state == AXI_CTL_BUSY_DATA) ? {axi_addr_r_ready_i, axi_addr_w_ready_i, axi_w_ready_i} : 0;
+			= state_busy_data ? {axi_addr_r_ready_i, axi_addr_w_ready_i, axi_w_ready_i} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_INST
 	assign {inst_addr_r_ready_o} 
-			= (con_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i : 0;
+			= state_busy_inst ? axi_addr_r_ready_i : 0;
 
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
-	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_burst_o, axi_addr_r_len_o,
+	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_burst_o, axi_addr_r_len_o, 
 			axi_addr_w_valid_o, axi_addr_w_id_o, axi_addr_w_size_o, 
 			axi_w_valid_o} 
-			= (con_state == AXI_CTL_BUSY_DATA) ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0,
-													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i,
+			= state_busy_data ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0, 
+													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i, 
 													data_w_valid_i} : 
-				(con_state == AXI_CTL_BUSY_INST) ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
+				state_busy_inst ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
 													1'b0, 4'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;

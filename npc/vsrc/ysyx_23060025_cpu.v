@@ -436,6 +436,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.exu_ready_i            	( exu_ready_o             ),
 		.exu_mem_to_reg_i       	( |ex_load_type_o        ),
 		.exu_wd_i               	( ex_wd_o                ),
+		.exu_valid_i            	( exu_valid_o             ),
 		.exu_wreg_i             	( ex_wreg_o              ),
 		.exu_reg_wdata_i        	( ex_alu_result_o         ),
 		
@@ -674,6 +675,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// );
 	
 	wire wbu_ready_o;
+	wire [11:0] wb_csr_waddr_o;
 	ysyx_23060025_wb#(
 		.DATA_LEN     ( 32 )
 	)ysyx_23060025_wb(
@@ -699,7 +701,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.wreg_o   	  ( reg_waddr_i ),
 		.wdata_o  	  ( reg_wdata_i ),
 		.csr_type_o   ( csr_type_i  ),
-		.csr_waddr_o  ( csr_waddr_i ),
+		.csr_waddr_o  ( wb_csr_waddr_o ),
 		.csr_wdata_o  ( csr_wdata_i  )
 	);
 
@@ -710,7 +712,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.clock           ( clock           ),
 		.reset           ( reset           ),
 		.csr_raddr      ( csr_raddr_i      ),
-		.csr_waddr      ( lsu_csr_waddr_o      ),
+		.csr_waddr      ( wb_csr_waddr_o      ),
 		.wdata         ( csr_wdata_i         ),
 		.csr_type_i    ( csr_type_i    ),
 		// .csr_mepc_i    ( csr_mepc_i    ),  

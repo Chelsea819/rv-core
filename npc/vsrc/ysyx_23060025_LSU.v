@@ -83,7 +83,6 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 );	
     wire [31:0] mem_rdata;
 	wire	 [DATA_LEN - 1:0]    mem_rdata_unaligned	;
-	wire 	[1:0] 				 addr_unaligned	;
 	wire 		 				 aligned_store	;
     // reg  [7:0]  mem_rmask;
     wire        					mem_to_reg;
@@ -96,15 +95,17 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	assign diff_skip_flag_o = diff_skip_flag_i;
 `endif
 
+	wire state_exe_valid = (con_state == STATE_WAIT_EXE_VALID);
+	wire state_addr_pass = (con_state == LSU_WAIT_ADDR_PASS);
+	wire state_data_load = (con_state == STATE_DATA_LOAD);
 	reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
     parameter [1:0] STATE_WAIT_EXE_VALID = 2'b00, LSU_WAIT_ADDR_PASS = 2'b01, STATE_DATA_LOAD = 2'b11, LSU_WAIT_WB_READY = 2'b10;
 
-    // assign lsu_valid_o = (next_state == LSU_WAIT_WB_READY);
-    assign lsu_valid_o = (con_state == LSU_WAIT_ADDR_PASS && next_state == STATE_WAIT_EXE_VALID) 
-						|| (con_state == STATE_DATA_LOAD && next_state == STATE_WAIT_EXE_VALID) 
+    assign lsu_valid_o = (state_addr_pass && next_state == STATE_WAIT_EXE_VALID) 
+						|| (state_data_load && next_state == STATE_WAIT_EXE_VALID) 
 						|| next_state == LSU_WAIT_WB_READY;
-    assign lsu_ready_o = (con_state == STATE_WAIT_EXE_VALID);
+    assign lsu_ready_o = state_exe_valid;
 
 	// state trans
 	always @(posedge clock ) begin
@@ -262,17 +263,17 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	end
 // no delay
 `else
-    assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg; // addr valid and load inst
-    assign r_ready_o = (con_state == LSU_WAIT_ADDR_PASS || con_state == STATE_DATA_LOAD);
-    assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i;  // addr valid and store inst
-    assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i;
-    assign bkwd_ready_o = (con_state == LSU_WAIT_ADDR_PASS || con_state == STATE_DATA_LOAD);
+    assign addr_r_valid_o =  state_addr_pass & mem_to_reg; // addr valid and load inst
+    assign r_ready_o = state_addr_pass | state_data_load;
+    assign addr_w_valid_o = state_addr_pass & mem_wen_i;  // addr valid and store inst
+    assign w_valid_o = state_addr_pass & mem_wen_i;
+    assign bkwd_ready_o = state_addr_pass | state_data_load;
 
 `endif
 
     // 写寄存器的信息
     wire		[DATA_LEN - 1:0]		    wdata       ;
-    assign wdata = (mem_to_reg == 1'b1) ? mem_rdata : alu_result_i;
+    assign wdata = mem_to_reg ? mem_rdata : alu_result_i;
 
 	assign addr_r_addr_o = alu_result_i;
 	assign addr_w_addr_o = alu_result_i;
@@ -281,12 +282,14 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
                     (store_type_i == `STORE_SW_32) ? `AXI_W_STRB_32 : 
                     0;
 	assign w_data = mem_wdata_i;
+	
 	assign addr_r_size_o = (load_type_i == `LOAD_LB_8)  ? `AXI_ADDR_SIZE_1 : 
 							(load_type_i == `LOAD_LH_16) ? `AXI_ADDR_SIZE_2: 
 							(load_type_i == `LOAD_LBU_8) ? `AXI_ADDR_SIZE_1: 
 							(load_type_i == `LOAD_LHU_16) ? `AXI_ADDR_SIZE_2: 
 							// (load_type_i == `LOAD_LW_32) ? `AXI_ADDR_SIZE_4: 
 							`AXI_ADDR_SIZE_4;
+							
 	assign addr_w_size_o = (store_type_i == `STORE_SB_8)? `AXI_ADDR_SIZE_1 :
 							(store_type_i == `STORE_SH_16) ? `AXI_ADDR_SIZE_2 :
 							// (store_type_i == `STORE_SW_32) ? `AXI_ADDR_SIZE_4 : 
@@ -300,36 +303,40 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 `ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void lsu_p_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_WAIT_EXE_VALID && next_state == LSU_WAIT_ADDR_PASS) begin
+		if (state_exe_valid & next_state == LSU_WAIT_ADDR_PASS) begin
 			lsu_p_counter_update();
 		end
 	end
 
 	import "DPI-C" function void lsu_delay_counter_update();
 	always @(posedge clock) begin
-		if ((con_state == LSU_WAIT_ADDR_PASS && (mem_to_reg | mem_wen_i)) || con_state == STATE_DATA_LOAD) begin
+		if ((state_addr_pass & (mem_to_reg | mem_wen_i)) || state_data_load) begin
 			lsu_delay_counter_update();
 		end
 	end
 	`endif
 `endif
 
-	assign {w_strb_o, w_data_o} = (addr_w_addr_o[1:0] == 2'b00 || aligned_store == 1'b0) ? {w_strb, w_data} :
-					(addr_w_addr_o[1:0] == 2'b01 ) ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
-					(addr_w_addr_o[1:0] == 2'b10 ) ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
-					(addr_w_addr_o[1:0] == 2'b11 ) ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
+
+	wire n_aligned_store = ~aligned_store;
+	wire aligned = (alu_result_i[1:0] == 2'b00) | n_aligned_store;
+
+	assign {w_strb_o, w_data_o} = aligned ? {w_strb, w_data} :
+					alu_result_i[1:0] == 2'b01 ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
+					alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
+					alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
 
     assign wdata_o = wdata;
 
 
-	assign addr_unaligned = alu_result_i[1:0];
+	// wire addr_unaligned = alu_result_i[1:0];
 
-	assign aligned_store = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H) || 
-							(alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H) ||
-							(alu_result_i >= `DEVICE_SDRAM_ADDR_L && alu_result_i <= `DEVICE_SDRAM_ADDR_H) ||
-							(alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H) ||
-							(alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
+	wire addr_sram = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H);
+	wire addr_flash = (alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H);
+	wire addr_sdram = (alu_result_i >= `DEVICE_SDRAM_ADDR_L && alu_result_i <= `DEVICE_SDRAM_ADDR_H);
+	wire addr_psram = (alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
 
+	assign aligned_store = addr_sram | addr_flash | addr_sdram | addr_psram;
 
     assign  mem_to_reg = |load_type_i;
 
@@ -344,15 +351,12 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		0x80000012 addr_unaligned[1:0] == 2'b10---- 【00_01_02_03】--[02_03_00_00]  
 		0x80000013 addr_unaligned[1:0] == 2'b11---- 【00_01_02_03】--[03_00_00_00]
 	*/
-	// assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {r_data} :
-	// 							(addr_unaligned[1:0] == 2'b01 ) ? {{r_data[23:0]}, 8'b0} :
-	// 							(addr_unaligned[1:0] == 2'b10 ) ? {{r_data[15:0]}, 16'b0} :
-	// 							(addr_unaligned[1:0] == 2'b11 ) ? {{r_data[7:0], 24'b0}} : 0;
 
-	assign mem_rdata_unaligned = (addr_unaligned[1:0] == 2'b00  || aligned_store == 1'b0) ? {r_data} :
-								(addr_unaligned[1:0] == 2'b01 ) ? {8'b0, {r_data[31:8]}} :
-								(addr_unaligned[1:0] == 2'b10 ) ? {16'b0, {r_data[31:16]}} :
-								(addr_unaligned[1:0] == 2'b11 ) ? {{24'b0, r_data[31:24]}} : 0;
+	assign mem_rdata_unaligned = (alu_result_i[1:0] == 2'b00 || n_aligned_store) ? {r_data} :
+								alu_result_i[1:0] == 2'b01 ? {8'b0, {r_data[31:8]}} :
+								alu_result_i[1:0] == 2'b10 ? {16'b0, {r_data[31:16]}} :
+								alu_result_i[1:0] == 2'b11 ? {{24'b0, r_data[31:24]}} : 0;
+
 								
     assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
                     (load_type_i == `LOAD_LH_16) ? {{16{mem_rdata_unaligned[15]}}, mem_rdata_unaligned[15:0]}: 

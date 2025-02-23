@@ -27,6 +27,7 @@ module ysyx_23060025_conflict (
 	input								exu_ready_i		,
 	input								exu_mem_to_reg_i,
 	input								exu_wd_i		,
+	input								exu_valid_i		,
 	input		[4:0]					exu_wreg_i		,
 	input		[31:0]			        exu_reg_wdata_i	,
 
@@ -118,15 +119,18 @@ module ysyx_23060025_conflict (
 				// else if(id_exu_conflict & exu_mem_to_reg_i) begin
 				// 	next_state = STATE_RUN; 
 				// end else 
-				if(id_lsu_conflict & ~lsu_valid_i & lsu_mem_to_reg_i) begin	// need wait for lsu
+				if(id_lsu_conflict & ~lsu_valid & lsu_mem_to_reg_i) begin	// need wait for lsu
 					next_state = STATE_WAIT_LSU;
 				end
 			end
 			STATE_WAIT_LSU: begin
-				if(lsu_valid_i) begin
+				if(lsu_valid) begin
 					next_state = STATE_RUN;
 				end
 			end 
+			// STATE_DATA_PASS: begin
+			// 	next_state = STATE_RUN;
+			// end
 		endcase
 	end
 `ifdef BYPASS_TRACE
@@ -160,28 +164,56 @@ module ysyx_23060025_conflict (
 	always @(posedge clock) begin
 		if(reset) begin
 			conflict_id_nop <= 0;
-		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i))) begin
+		end else if((con_state == STATE_RUN && (id_exu_conflict & ~exu_mem_to_reg_i & ~exu_valid))) begin
 			conflict_id_nop <= 1;
-		end else if((con_state == STATE_WAIT_LSU && lsu_valid_i)) begin
+		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid))) begin
+			conflict_id_nop <= 1;
+		end else if((con_state == STATE_WAIT_LSU && lsu_valid)) begin
 			conflict_id_nop <= 0;
 		end
 	end
 
-	assign conflict_id_nop_o = (con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid_i)) ? 1 : conflict_id_nop;
+	assign conflict_id_nop_o = (con_state == STATE_RUN && (id_exu_conflict & (exu_mem_to_reg_i || ~exu_mem_to_reg_i & ~exu_valid) || id_lsu_conflict & ~lsu_valid)) ? 1 : conflict_id_nop;
 
 	reg [31:0] lsu_wreg_data;
 	always @(posedge clock) begin
 		if(reset) begin
 			lsu_wreg_data <= 0;
-		end else if(con_state == STATE_WAIT_LSU && lsu_valid_i || con_state == STATE_RUN && lsu_valid_i & id_lsu_conflict) begin
-			lsu_wreg_data <= lsu_reg_wdata_i;
+		end else if(con_state == STATE_WAIT_LSU && lsu_valid || con_state == STATE_RUN && lsu_valid & id_lsu_conflict) begin
+			lsu_wreg_data <= lsu_reg_wdata;
 		end 
 	end
 
-	assign conflict_reg_bypass_data_o = (id_exu_conflict & ~exu_mem_to_reg_i) ? exu_reg_wdata_i:    // exeute-decoder data relation
-									(id_lsu_conflict & ~lsu_mem_to_reg_i) ? lsu_reg_wdata_i:    // lsu-decoder data relation, not load inst
+	reg [31:0] lsu_reg_wdata;
+	reg lsu_valid;
+	always @(posedge clock) begin
+		if(reset) begin
+			lsu_reg_wdata <= 0;
+			lsu_valid <= 0;
+		end else begin
+			lsu_reg_wdata <= lsu_reg_wdata_i;
+			lsu_valid <= lsu_valid_i;
+		end
+	end
+
+	reg [31:0] exu_reg_wdata;
+	reg exu_valid;
+	always @(posedge clock) begin
+		if(reset) begin
+			exu_reg_wdata <= 0;
+			exu_valid <= 0;
+		end else begin
+			exu_reg_wdata <= exu_reg_wdata_i;
+			exu_valid <= exu_valid_i;
+		end
+	end
+
+	
+
+	assign conflict_reg_bypass_data_o = (id_exu_conflict & ~exu_mem_to_reg_i) ? exu_reg_wdata:    // exeute-decoder data relation
+									(id_lsu_conflict & ~lsu_mem_to_reg_i) ? lsu_reg_wdata:    // lsu-decoder data relation, not load inst
 									// 当时刚好lsu_valid 
-									(con_state == STATE_RUN & id_lsu_conflict) ? lsu_reg_wdata_i: lsu_wreg_data;
+									(con_state == STATE_RUN & id_lsu_conflict) ? lsu_reg_wdata: lsu_wreg_data;
 	
 	assign conflict_csr_bypass_data_o = (id_exu_csr_conflict) ? exu_csr_wdata_i:  
 									(id_lsu_csr_conflict) ? lsu_csr_wdata_i:  

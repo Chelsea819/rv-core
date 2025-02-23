@@ -29,23 +29,30 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 );
     assign wbu_ready_o = 1'b1;
 
-    always @(*) begin
-        if(lsu_valid_i) begin
-            wd_o	         =     wd_i; 
-            wreg_o	         =     wreg_i;  	
-            csr_wdata_o	     =     csr_wdata_i; 
-            csr_waddr_o	     =     csr_waddr_i; 
-			csr_type_o		 =	   csr_type_i; 
-            wdata_o          =     reg_wdata_i;  
-        end else begin 
-            wd_o	         =     0; 
-            wreg_o	         =     0;  	
-            csr_wdata_o	     =     0; 
-            csr_waddr_o	     =     0;             
-			csr_type_o		 =	   0; 
-            wdata_o          =     0; 
-        end
-	end
+    // always @(*) begin
+    //     if(lsu_valid_i) begin
+    //         wd_o	         =     wd_i; 
+    //         wreg_o	         =     wreg_i;  	
+    //         csr_wdata_o	     =     csr_wdata_i; 
+    //         csr_waddr_o	     =     csr_waddr_i; 
+	// 		csr_type_o		 =	   csr_type_i; 
+    //         wdata_o          =     reg_wdata_i;  
+    //     end else begin 
+    //         wd_o	         =     0; 
+    //         wreg_o	         =     0;  	
+    //         csr_wdata_o	     =     0; 
+    //         csr_waddr_o	     =     0;             
+	// 		csr_type_o		 =	   0; 
+    //         wdata_o          =     0; 
+    //     end
+	// end
+
+    assign wd_o                 = lsu_valid_i & wd_i;
+    assign wreg_o               = wreg_i;
+    assign csr_wdata_o	     =     csr_wdata_i; 
+    assign csr_waddr_o	     =     csr_waddr_i; 
+    assign csr_type_o		 =	   csr_type_i; 
+    assign wdata_o          =     reg_wdata_i; 
 	
 
 
