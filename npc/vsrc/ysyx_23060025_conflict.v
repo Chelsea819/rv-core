@@ -25,11 +25,8 @@ module ysyx_23060025_conflict (
 	input		[2:0]					exu_csr_type_i	,
 	input		[31:0]			        exu_csr_wdata_i	,
 	input								exu_ready_i		,
-	input								exu_mem_to_reg_i,
 	input								exu_wd_i		,
-	input								exu_valid_i		,
 	input		[4:0]					exu_wreg_i		,
-	input		[31:0]			        exu_reg_wdata_i	,
 
 	// lsu-write register information
 	input		[11:0]					lsu_csr_waddr_i	,
@@ -62,7 +59,7 @@ module ysyx_23060025_conflict (
 	wire reg0_not_0 = ~(idu_reg0_addr == 0);
 	wire reg1_not_0 = ~(idu_reg1_addr == 0);
 
-	wire lsu_busy = ~lsu_ready_i;
+	wire lsu_busy = ~lsu_ready_i | lsu_valid;
 	wire exu_busy = ~exu_ready_i;
 	wire idu_busy = ~idu_ready_i;
 
@@ -119,7 +116,7 @@ module ysyx_23060025_conflict (
 				// else if(id_exu_conflict & exu_mem_to_reg_i) begin
 				// 	next_state = STATE_RUN; 
 				// end else 
-				if(id_lsu_conflict & ~lsu_valid & lsu_mem_to_reg_i) begin	// need wait for lsu
+				if(id_lsu_conflict & ~lsu_valid) begin	// need wait for lsu
 					next_state = STATE_WAIT_LSU;
 				end
 			end
@@ -164,16 +161,15 @@ module ysyx_23060025_conflict (
 	always @(posedge clock) begin
 		if(reset) begin
 			conflict_id_nop <= 0;
-		end else if((con_state == STATE_RUN && (id_exu_conflict & ~exu_mem_to_reg_i & ~exu_valid))) begin
-			conflict_id_nop <= 1;
-		end else if((con_state == STATE_RUN && (id_exu_conflict & exu_mem_to_reg_i || id_lsu_conflict & ~lsu_valid))) begin
+		end else if((con_state == STATE_RUN && (id_exu_conflict || id_lsu_conflict & ~lsu_valid))) begin
 			conflict_id_nop <= 1;
 		end else if((con_state == STATE_WAIT_LSU && lsu_valid)) begin
 			conflict_id_nop <= 0;
 		end
 	end
 
-	assign conflict_id_nop_o = (con_state == STATE_RUN && (id_exu_conflict & (exu_mem_to_reg_i || ~exu_mem_to_reg_i & ~exu_valid) || id_lsu_conflict & ~lsu_valid)) ? 1 : conflict_id_nop;
+	assign conflict_id_nop_o = (con_state == STATE_RUN && (id_exu_conflict || id_lsu_conflict & ~lsu_valid)) ? 1 : 
+								(con_state == STATE_RUN && (id_lsu_conflict & lsu_valid)) ? 0 : conflict_id_nop;
 
 	reg [31:0] lsu_wreg_data;
 	always @(posedge clock) begin
@@ -196,22 +192,8 @@ module ysyx_23060025_conflict (
 		end
 	end
 
-	reg [31:0] exu_reg_wdata;
-	reg exu_valid;
-	always @(posedge clock) begin
-		if(reset) begin
-			exu_reg_wdata <= 0;
-			exu_valid <= 0;
-		end else begin
-			exu_reg_wdata <= exu_reg_wdata_i;
-			exu_valid <= exu_valid_i;
-		end
-	end
 
-	
-
-	assign conflict_reg_bypass_data_o = (id_exu_conflict & ~exu_mem_to_reg_i) ? exu_reg_wdata:    // exeute-decoder data relation
-									(id_lsu_conflict & ~lsu_mem_to_reg_i) ? lsu_reg_wdata:    // lsu-decoder data relation, not load inst
+	assign conflict_reg_bypass_data_o = (id_lsu_conflict & ~lsu_mem_to_reg_i) ? lsu_reg_wdata:    // lsu-decoder data relation, not load inst
 									// 当时刚好lsu_valid 
 									(con_state == STATE_RUN & id_lsu_conflict) ? lsu_reg_wdata: lsu_wreg_data;
 	

@@ -17,22 +17,37 @@ module ysyx_23060025_lsu_wb #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input 		[DATA_WIDTH - 1:0]			f_lsu_reg_wdata_i     	,
     input 		[DATA_WIDTH - 1:0]		    f_lsu_csr_wdata_i    		,
 	input 		[2:0]						f_lsu_csr_type_i  	  		,
-	input 									f_lsu_memory_inst_i		,
 	input 									f_lsu_valid_i		,
 	input 									f_lsu_ebreak_flag_i		,
 	input 									f_wb_ready_i		,
-
+	input 		[11:0]						f_lsu_csr_waddr_o		,
+`ifdef DIFFTEST
+	input								diff_skip_flag_i,
+	output								diff_skip_flag_o,
+`endif
 	// to idu
 	output 									t_wb_reg_wen_o 			,
 	output 		[4:0]						t_wb_wreg_o       			,
     output 		[DATA_WIDTH - 1:0]			t_wb_reg_wdata_o     	  	,
 	output 		[DATA_WIDTH - 1:0]		    t_wb_csr_wdata_o   	 		,
     output 		[2:0]						t_wb_csr_type_o  	  	 		,
-	output 									t_wb_memory_inst_o				,	
 	output 									t_wb_ebreak_flag_o				,	
-	output 									t_wb_lsu_valid_o					
+	output 									t_wb_lsu_valid_o				,	
+	output 		[11:0]						t_wb_csr_waddr_o					
 );
 	wire wen = f_lsu_valid_i & f_wb_ready_i;
+`ifdef DIFFTEST
+	ysyx_23060025_Reg #(
+		.WIDTH     	(1  ),
+		.RESET_VAL 	(0  ))
+	ex_lsu_diff_skip_reg (
+		.clk  	(clock   ),
+		.rst  	(reset   ),
+		.din  	(diff_skip_flag_i   ),
+		.wen  	(wen  ),
+		.dout 	(diff_skip_flag_o  )
+	);
+`endif
 	ysyx_23060025_Reg #(
 		.WIDTH     	(1  ),
 		.RESET_VAL 	(0  ))
@@ -42,6 +57,16 @@ module ysyx_23060025_lsu_wb #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		.din  	(f_lsu_ebreak_flag_i   ),
 		.wen  	(wen  ),
 		.dout 	(t_wb_ebreak_flag_o  )
+	);
+	ysyx_23060025_Reg #(
+		.WIDTH     	(12  ),
+		.RESET_VAL 	(0  ))
+	ex_lsu_csr_waddr_reg (
+		.clk  	(clock   ),
+		.rst  	(reset   ),
+		.din  	(f_lsu_csr_waddr_o   ),
+		.wen  	(wen  ),
+		.dout 	(t_wb_csr_waddr_o  )
 	);
 	ysyx_23060025_Reg #(
 		.WIDTH     	(1  ),
@@ -103,16 +128,7 @@ module ysyx_23060025_lsu_wb #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		.wen  	(wen  ),
 		.dout 	(t_wb_csr_type_o  )
 	);
-	ysyx_23060025_Reg #(
-		.WIDTH     	(1  ),
-		.RESET_VAL 	(0  ))
-	ex_lsu_load_type_reg (
-		.clk  	(clock   ),
-		.rst  	(reset   ),
-		.din  	(f_lsu_memory_inst_i   ),
-		.wen  	(wen  ),
-		.dout 	(t_wb_memory_inst_o  )
-	);
+
 	
 
 endmodule
