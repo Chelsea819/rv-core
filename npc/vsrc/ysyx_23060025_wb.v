@@ -19,13 +19,13 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     // input                               memory_inst_i,
     // output                              wb_ready_o  ,
     // output  reg                         finish      ,
-    output	reg	                		wd_o		,
-    output	reg	[4:0]		            wreg_o		,
-    output  reg [DATA_LEN - 1:0]        csr_wdata_o	,
+    output	    	                	wd_o		,
+    output	   	[4:0]		            wreg_o		,
+    output     [DATA_LEN - 1:0]        csr_wdata_o	,
     output       [11:0]		            csr_waddr_o	,
     output      [2:0]		            csr_type_o	,
 
-    output	reg	[DATA_LEN - 1:0]		wdata_o
+    output	    	[DATA_LEN - 1:0]		wdata_o
 );
     assign wbu_ready_o = 1'b1;
 

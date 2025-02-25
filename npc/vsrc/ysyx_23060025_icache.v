@@ -12,8 +12,8 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	// IFU
 	input  [31:0] 		in_paddr,	// IFU fetch inst addr
 	input         		in_psel,	// IFU sel icache
-	output reg        	in_pready,	// icache read data ready
-	output reg [31:0] 	in_prdata,	// icache read data
+	output 	        	in_pready,	// icache read data ready
+	output 	 [31:0] 	in_prdata,	// icache read data
 
 	input         		in_fence_flag,	// fence.i update
 

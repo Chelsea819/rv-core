@@ -56,7 +56,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	// AXI-sram
     //Addr Read
-	output	reg	[ADDR_LEN - 1:0]		axi_addr_r_addr_o,
+	output			[ADDR_LEN - 1:0]		axi_addr_r_addr_o,
 	output		                		axi_addr_r_valid_o,
 	input		                		axi_addr_r_ready_i,
 	output		[3:0]                	axi_addr_r_id_o,	// 谁发出的读请求
@@ -73,7 +73,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		[3:0]           		axi_r_id_i		,	// 读到的数据给谁？
 
 	// Addr Write
-	output	reg	[ADDR_LEN - 1:0]		axi_addr_w_addr_o,	// 写地址
+	output			[ADDR_LEN - 1:0]		axi_addr_w_addr_o,	// 写地址
 	output		                		axi_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
 	input		                		axi_addr_w_ready_i, // 从设备已准备好接收地址和相关的控制信号
 	output		[3:0]                	axi_addr_w_id_o,	// 谁发出的写请求
@@ -82,8 +82,8 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		[1:0]                	axi_addr_w_burst_o,	// 突发类型，包括突发类型和突发大小信息，该字段决定了每次突发传输时地址的计算方法
 
 	// Write data
-	output	reg	[DATA_LEN - 1:0]		axi_w_data_o	,	// 写出的数据
-	output	reg	[3:0]					axi_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
+	output			[DATA_LEN - 1:0]		axi_w_data_o	,	// 写出的数据
+	output			[3:0]					axi_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	output		                		axi_w_valid_o	,	// 主设备给出的数据和字节选通信号有效
 	input		                		axi_w_ready_i	,	// 从设备已准备好接收数据选通信号
 	output		                		axi_w_last_o	,	// 该信号用于标识当前传输是否为突发传输中的最后一次传输
@@ -101,7 +101,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		                		clint_addr_r_ready_o,
 
 	// Read data
-	input	reg	[DATA_LEN - 1:0]		clint_r_data_o	,
+	input			[DATA_LEN - 1:0]		clint_r_data_o	,
 	input		[1:0]					clint_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	input		                		clint_r_valid_o	,
 	input		                		clint_r_last_o	,

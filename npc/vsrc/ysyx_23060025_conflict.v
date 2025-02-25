@@ -45,7 +45,7 @@ module ysyx_23060025_conflict (
 	output 								conflict_reg1_o	,
 	output 								conflict_csr_o	,
 	// 1. lsu 2. exeu+load
-	output 	reg							conflict_id_nop_o,
+	output 								conflict_id_nop_o,
 	output 		[31:0]					conflict_csr_bypass_data_o,
 	output 		[31:0]					conflict_reg_bypass_data_o
 

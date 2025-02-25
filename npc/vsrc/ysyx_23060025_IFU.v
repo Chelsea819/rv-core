@@ -29,7 +29,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
     // get instruction
     output 		[DATA_WIDTH - 1:0]			if_inst_o	,
-	output reg	[ADDR_WIDTH - 1:0]			if_pc_o			,
+	output 		[ADDR_WIDTH - 1:0]			if_pc_o			,
 
 	// IFU-AXI
 	// Addr Read

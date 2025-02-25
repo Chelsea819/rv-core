@@ -25,7 +25,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// input		[3:0]                	inst_addr_r_id_i,	// 谁发出的读请求
 
 	// Read data
-	output	reg	[DATA_LEN - 1:0]		inst_r_data_o	,
+	output		[DATA_LEN - 1:0]		inst_r_data_o	,
 	output		[1:0]					inst_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		inst_r_valid_o	,
 	input		                		inst_r_ready_i	,
@@ -39,7 +39,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		                		data_addr_r_ready_o,
 
 	// Read data
-	output	reg	[DATA_LEN - 1:0]		data_r_data_o	,
+	output		[DATA_LEN - 1:0]		data_r_data_o	,
 	output		[1:0]					data_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		data_r_valid_o	,
 	input		                		data_r_ready_i	,
