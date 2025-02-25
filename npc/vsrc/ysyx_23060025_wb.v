@@ -51,7 +51,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     assign wreg_o               = wreg_i;
     assign csr_wdata_o	     =     csr_wdata_i; 
     assign csr_waddr_o	     =     csr_waddr_i; 
-    assign csr_type_o		 =	   csr_type_i; 
+    assign csr_type_o		 =	   {3{lsu_valid_i}} & csr_type_i; 
     assign wdata_o          =     reg_wdata_i; 
 	
 
