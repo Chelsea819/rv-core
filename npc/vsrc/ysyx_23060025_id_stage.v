@@ -1,5 +1,5 @@
 `include "ysyx_23060025_define.v"
-module ysyx_23060025_decoder(
+module ysyx_23060025_id_stage(
     input									      clock				        ,
     input									      reset				        ,
     input           [31:0]                        inst_i                    ,
@@ -9,9 +9,8 @@ module ysyx_23060025_decoder(
     input           [31:0]                        pc_i                      ,
 
     // ifu_idu
-    input                                         ifu_valid_i               ,
-    output                                        idu_ready_o               ,
-	output									      ds_valid_o	        ,
+    input                                         fs_to_ds_valid_i               ,
+	output	reg							          ds_valid_o	        ,
 	output									      ds_ready_go_o	        ,
 	output									      ds_allowin_o	        ,
 	output									      ds_to_ex_valid_o	        ,
@@ -24,7 +23,7 @@ module ysyx_23060025_decoder(
     input                                         conflict_csr_i           ,
 
     // idu_exu
-    input                                         exu_ready_i               ,
+    input                                         es_allowin_i               ,
 
     // data bypass
 	// from exeu
@@ -398,16 +397,6 @@ module ysyx_23060025_decoder(
     assign csr_waddr_o = (rv32_ecall ? `CSR_MEPC_ADDR : csr_addr);
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);
    
-    // state machine controller
-    wire con_state_run              = (con_state == STATE_RUN);
-    wire con_state_wait_ifu_valid   = (con_state == STATE_WAIT_IFU_VALID);
-    wire con_state_wait_ready       = (con_state == STATE_WAIT_READY);
-    wire nxt_state_run              = (next_state == STATE_RUN);
-    wire nxt_state_wait_ifu_valid   = (next_state == STATE_WAIT_IFU_VALID);
-    wire nxt_state_wait_ready       = (next_state == STATE_WAIT_READY);
-
-    assign ds_to_ex_valid_o = (con_state_run && (nxt_state_wait_ifu_valid || nxt_state_wait_ready)) || con_state_wait_ready;
-    assign idu_ready_o = con_state_wait_ifu_valid ;
 
     assign reg1_ren_o = aluop1_sel_reg1 | opcode_I_jalr | opcode_B_branch;
     assign reg2_ren_o = aluop2_sel_reg2 | opcode_S_store | opcode_B_branch;
@@ -435,61 +424,35 @@ assign branch_flag_o = rv32_beq & banch_beq_res
                     | rv32_bge & banch_bge_res
                     | rv32_bltu & banch_bltu_res
                     | rv32_bgeu & banch_bgeu_res;
-
-    reg			[1:0]			        	con_state	;
-	reg			[1:0]			        	next_state	;
-    parameter [1:0] STATE_WAIT_IFU_VALID = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_READY = 2'b10;
-                                                                                                                                                             
-
-	// state trans
-	always @(posedge clock ) begin
-		if(reset)
-			con_state <= STATE_WAIT_IFU_VALID;
-		else 
-			con_state <= next_state;
-	end
     
 `ifdef N_YOSYS_STA_CHECK
     `ifdef PERFORMANCE_COUNTER
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
 	always @(posedge clock) begin
-		if (con_state_run && ~nxt_state_run) begin
+		if (ds_ready_go_o && es_allowin_i) begin
 			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
 		end
 	end
     `endif
 `endif
-	// next_state
-	always @(*) begin
-        next_state = con_state;
-		case(con_state) 
-            // 等待ifu取指，下一个时钟周期开始译码
-            STATE_WAIT_IFU_VALID: begin
-				if (ifu_valid_i) begin
-					next_state = STATE_RUN;
-				end
-			end
-            STATE_RUN: begin
-                // 出现了数据相关
-                // 一个信号标志着，空泡期
-                if(conflict_id_nop_i) begin
-                    next_state = STATE_RUN;
-                end else if(~exu_ready_i) begin
-                    next_state = STATE_WAIT_READY;
-                end else begin
-                    next_state = STATE_WAIT_IFU_VALID;
-                end
+
+    assign ds_allowin_o    = !ds_valid_o || ds_ready_go_o && es_allowin_i;
+    assign ds_ready_go_o   = !conflict_id_nop_i;
+    assign ds_to_ex_valid_o = ds_valid_o && ds_ready_go_o;
+    always @(posedge clock) begin   //bug1 no reset; branch no delay slot
+        if (reset) begin
+            ds_valid_o <= 1'b0;
+        end
+        else begin 
+            if (ds_allowin_o) begin   //bug2 ??
+                ds_valid_o <= fs_to_ds_valid_i;
             end
-            STATE_WAIT_READY: begin 
-				if (exu_ready_i) begin
-					next_state = STATE_WAIT_IFU_VALID;
-				end
-			end
-            default: begin 
-			end 
-		endcase
-	end
-    
+        end
+
+        // if (fs_to_ds_valid && ds_allowin) begin
+        //     fs_to_ds_bus_r <= fs_to_ds_bus;
+        // end
+    end
 
 
 endmodule

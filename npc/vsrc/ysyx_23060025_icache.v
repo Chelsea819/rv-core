@@ -45,6 +45,23 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	// wire state_update = (con_state == STATE_UPDATE_REG);
 	wire state_pass = (con_state == STATE_PASS);
 	// wire state_fence = (con_state == STATE_FENCE);
+
+	// reg raddr_buff_enable;
+	// reg  [31:0] raddr_buff;
+	wire [31:0]  raddr     = in_paddr;
+
+	//inst read buffer  use for stall situation
+	// always @(posedge clock) begin
+	// 	// fs_ready_go && ds_allowin -> inst往下一级传递，无需buffer
+	// 	if (reset || state_pass) begin	
+	// 		raddr_buff_enable  <= 1'b0;
+	// 	end
+	// 	// 下一级还没准备好接受数据，需要先存到buffer中
+	// 	else if (in_psel) begin
+	// 		raddr_buff <= in_paddr;
+	// 		raddr_buff_enable  <= 1'b1;
+	// 	end
+	// end
 	
 
 	reg	[2:0] con_state;
@@ -53,9 +70,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	reg	[CACHE_LINE_W-1:0]	cache_reg	[CACHE_LINE_NUM-1:0];
 	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
 
-	wire [TAG_W-1:0]					addr_tag	= in_paddr[ADDR_WIDTH-1:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W];
-	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= in_paddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1:CACHE_LINE_OFF_ADDR_W];
-	wire [CACHE_LINE_OFF_ADDR_W-1:0]	addr_off	= in_paddr[CACHE_LINE_OFF_ADDR_W-1:0];
+	wire [TAG_W-1:0]					addr_tag	= raddr[ADDR_WIDTH-1:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W];
+	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= raddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1:CACHE_LINE_OFF_ADDR_W];
+	wire [CACHE_LINE_OFF_ADDR_W-1:0]	addr_off	= raddr[CACHE_LINE_OFF_ADDR_W-1:0];
 
 	wire check_hit 					= (addr_tag == cache_tag[addr_index][TAG_W-1:0] && cache_tag[addr_index][TAG_W+CACHE_VALID_W-1] == 1);
 

@@ -7,17 +7,18 @@
 `include "ysyx_23060025_define.v"
 `include "ysyx_23060025_define_delay.v"
 
-module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
+module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									clock				,
 	input									reset				,
     // hand signal
 
-	// ifu fs_to_ds_valid_o
-	// output									fs_valid_o	    ,
-	// output									fs_ready_go_o	    ,
-	output									fs_to_ds_valid_o	        ,
-	input									idu_ready_i	        ,
+	// ifu ifu_valid_o
+	// output									ifu_valid_o	        ,
+	// input									idu_ready_i	        ,
 	input									idu_valid_i	        ,
+	input									ds_allowin_i	    ,
+	output									fs_to_ds_valid_o	,
+	
 
     // refresh if_pc_o
 	input									branch_request_i,	
@@ -43,10 +44,7 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input	[31:0]	                	out_prdata	// icache read data
 );
 	wire		[ADDR_WIDTH - 1:0]	        pc_plus_4	;
-	reg			[1:0]				        con_state	;
-	reg			[1:0]			        	next_state	;
 	// reg 		[DATA_WIDTH - 1:0]			out_prdata	;
-	assign fs_to_ds_valid_o = (out_pready || state_wait_ready);
 
 `ifdef N_YOSYS_STA_CHECK
 
@@ -54,8 +52,8 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(posedge clock) begin
 		if(reset)begin
 		end
-		else if(con_state == STATE_PRE_IFU && next_state == STATE_RUN) begin
-			pc_node_init(pc, pc_next);
+		else if(next_state_fs && ~con_state_fs) begin
+			pc_node_init(fs_pc, nextpc);
 		end
 			
 	end
@@ -84,109 +82,104 @@ module ysyx_23060025_IFU #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	import "DPI-C" function void inst_invalid_get(byte invalid, int pc);
 		always @(posedge clock) begin
 			if(out_pready)
-				inst_invalid_get({7'b0, inst_invalid}, pc);
+				inst_invalid_get({7'b0, inst_invalid}, fs_pc);
 		end
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
 	import "DPI-C" function void pre_ifu_counter_update();
 	always @(posedge clock) begin
-		if (con_state == STATE_RUN && next_state != STATE_RUN) begin
+		if(reset) begin
+			
+		end else if (next_state_fs && ~con_state_fs) begin
 			ifu_p_counter_update();
 		end
 	end
 	always @(posedge clock) begin
 		if(reset) begin
 			
-		end else if (next_state == STATE_PRE_IFU) begin
+		end else if (~ebreak_flag_i && ~next_state_fs) begin
 			pre_ifu_counter_update();
 		end
 	end
 	`endif
 `endif
-	
-	wire state_pre_ifu = (con_state == STATE_PRE_IFU);
-	wire state_run = (con_state == STATE_RUN);
-	wire state_wait_ready = (con_state == STATE_WAIT_IDU_READY);
-	wire nxt_state_run = (next_state == STATE_RUN);
-	parameter [1:0] STATE_PRE_IFU = 2'b00, STATE_RUN = 2'b01, STATE_WAIT_IDU_READY = 2'b11, STATE_STOP = 2'b10;
 
-	// state trans
-	always @(posedge clock ) begin
-		if(reset)
-			con_state <= STATE_PRE_IFU;
-		else 
-			con_state <= next_state;
-	end
+	// pre IFU stage
 
-	// next_state
-	always @(*) begin
-		next_state = con_state;
-		case(con_state) 
-			/* get jmp branch pc from decoder, valid-> exists instruction before this inst; 
-			 								   ready-> not exists		*/
-			STATE_PRE_IFU: begin
-				if(ebreak_flag_i & idu_valid_i) begin
-					next_state = STATE_STOP;
-				end else if(idu_valid_i | idu_ready_i) begin
-					next_state = STATE_RUN;
-				end
-			end
-			STATE_RUN: begin
-				if (out_pready & ~idu_ready_i) begin
-					next_state = STATE_WAIT_IDU_READY;
-				end else if (out_pready)  begin
-					next_state = STATE_PRE_IFU;
-				end
-			end
-			STATE_WAIT_IDU_READY: begin 
-				if(idu_ready_i) begin
-					next_state = STATE_PRE_IFU;
-				end
-			end
-			default: begin
-				
-			end
-				
-		endcase
-	end
-	
-	// 访问cache
-	reg [31:0] pc;
-	assign pc_plus_4 = pc + 32'b100;
+	// assign out_psel = (fs_allowin && !pfs_excp && !tlb_excp_lock_pc || flush_sign || btb_pre_error_flush) && !(idle_flush || idle_lock);
 
-	wire [31:0] pc_next = (branch_flag_i & branch_request_i) ? branch_target_i : 
-							jmp_flag_i 						? jmp_target_i : 
-							csr_jmp_i 						? csr_pc_i : 
-							pc_plus_4;
-
-	// CSR_ECALL       3'b110
-	// CSR_MRET        3'b011
-	// wire [31:0] csr_pc = csr_jmp_i[0] ? csr_mepc_pc_i : csr_mtvec_pc_i;
-	wire pc_addr_update = state_pre_ifu & nxt_state_run;
+	reg con_state_fs;	// 0-pre, 1-ifu
+	reg next_state_fs;
 	always @(posedge clock) begin
 		if(reset) begin
-			pc <= `PC_RESET_VAL - 4;
-		// only when STATE_PRE_IFU has just one cycle
-		end else if(pc_addr_update) begin
-			pc <= pc_next;
+			con_state_fs <= 1'b0;
+		end else begin
+			con_state_fs <= 1'b1;
 		end
 	end
-	// assign out_paddr = pc_next;
+
+	assign next_state_fs = con_state_fs ? ~fs_allowin : to_fs_valid & ~ebreak_flag_i;
+	
+	assign out_psel = con_state_fs && next_state_fs;	// 选中icache
+	// assign out_paddr = nextpc;
 
 	always @(posedge clock) begin
 		if(reset) begin
 			out_paddr <= 0;
-		end else if(pc_addr_update) begin
-			out_paddr <= pc_next;
+		end else if(~con_state_fs && next_state_fs) begin
+			out_paddr <= nextpc;
 		end
 	end
 
+	// id得到结果 or id not busy
+	wire to_fs_valid = idu_valid_i | ds_allowin_i;
 
-	assign out_psel = (state_run & nxt_state_run);
+	assign pc_plus_4 = fs_pc + 32'b100;
+	wire [31:0] nextpc = (branch_flag_i & branch_request_i) ? branch_target_i : 
+							jmp_flag_i 						? jmp_target_i : 
+							csr_jmp_i 						? csr_pc_i : 
+							pc_plus_4;
+
+	// IFU stage
+	// 1. 握手相关的信号
+	reg [31:0] fs_pc;
+	
+	// wire fs_ready_go    = out_pready || inst_buff_enable;
+	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
+	wire fs_allowin     = fs_ready_go && ds_allowin_i;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	assign fs_to_ds_valid_o =  fs_ready_go;
+
+	always @(posedge clock) begin
+		if (reset) begin
+			fs_pc        <= `PC_RESET_VAL - 4;  //trick: to make nextpc be 0x1c000000 during reset 
+		end
+		else if (~con_state_fs && to_fs_valid) begin
+			fs_pc        <= nextpc;
+		end
+	end
+
+	// 2. 指令相关的存储
+	reg inst_buff_enable;
+	reg  [31:0] inst_rd_buff;
+	wire [31:0]  fs_inst     = inst_buff_enable ? inst_rd_buff : out_prdata;
+	// wire n_ds_update = out_pready && !ds_allowin_i;
+	// wire ds_update = inst_buff_enable && ds_allowin_i;
+
+	//inst read buffer  use for stall situation
+	always @(posedge clock) begin
+		// fs_ready_go && ds_allowin -> inst往下一级传递，无需buffer
+		if (reset || inst_buff_enable && ds_allowin_i) begin	
+			inst_buff_enable  <= 1'b0;
+		end
+		// 下一级还没准备好接受数据，需要先存到buffer中
+		else if (out_pready && !ds_allowin_i) begin
+			inst_rd_buff <= out_prdata;
+			inst_buff_enable  <= 1'b1;
+		end
+	end
 
 	// 给下一级使用的寄存器：inst/pc
-	assign if_inst_o = out_prdata;
-	assign if_pc_o = pc;
-
+	assign if_inst_o = fs_inst;
+	assign if_pc_o = fs_pc;
 
 endmodule
