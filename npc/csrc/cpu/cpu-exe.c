@@ -412,12 +412,12 @@ static void trace_and_difftest(){
   for(int i = 0; i < RISCV_GPR_NUM; i ++){
     cpu.gpr[i] = R(i);
   }
-  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[0];
-  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[2];
-  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[1];
-  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[3];
-  cpu.mventorid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[4];
-  cpu.marchid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__csr[5];
+  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mcause_r;
+  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mepc_r;
+  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mstatus_r;
+  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mtvec_r;
+  cpu.mventorid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mvendorid_r;
+  cpu.marchid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__marchid_r;
 //  printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
  IFDEF(CONFIG_DIFFTEST, difftest_step(diff.pc, diff.dnpc));
 #endif

@@ -25,21 +25,21 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 );	
 	// addr 
-	parameter [1:0] WAIT_ADDR = 2'b00, WAIT_DATA_GET = 2'b01;
-	reg				[1:0]			        con_state	;
-	reg				[1:0]		        	next_state	;
+	parameter 	 WAIT_ADDR = 1'b0, WAIT_DATA_GET = 1'b1;
+	reg								        con_state	;
+	reg							        	next_state	;
 	// wire						        	mem_ren	;
 	wire			[DATA_LEN - 1:0]	    r_data  ;
 	
-	reg 					[63:0] 				mtime;
-	wire										bit_sel; // 0 低位； 1 高位
+	reg 			[63:0] 					mtime;
+	wire									bit_sel; // 0 低位； 1 高位
 	
 	assign addr_r_ready_o = (con_state == WAIT_ADDR) && rstn;
-	assign r_resp_o = {2{~(con_state == WAIT_DATA_GET) | ~rstn}};
-	// assign mem_ren = (con_state == WAIT_DATA_GET) && rstn;
 
-	assign bit_sel = ~(addr_r_addr_i - `DEVICE_CLINT_ADDR_L == 0);
-	assign r_data = (bit_sel == 0) ?  mtime[DATA_LEN - 1:0] : mtime[63:DATA_LEN];
+	assign r_resp_o = 2'b0;
+
+	assign bit_sel = ~(addr_r_addr_i == `DEVICE_CLINT_ADDR_L);
+	assign r_data = bit_sel ? mtime[63:DATA_LEN] : mtime[DATA_LEN - 1:0];
 
 
 
@@ -94,7 +94,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 // no delay
 `else
-	assign r_valid_o = (con_state == WAIT_DATA_GET) && rstn;
+	assign r_valid_o = (con_state == WAIT_DATA_GET);
 	assign r_last_o = r_valid_o;
 `endif	
 
@@ -124,8 +124,6 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 					next_state = WAIT_DATA_GET;
 				end
 			end
-			default:
-				next_state = 2'b11;
 		endcase
 	end
 
