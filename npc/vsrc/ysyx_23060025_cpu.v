@@ -522,7 +522,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 `endif
 		.idu_csr_raddr_i             	( csr_raddr_i              ),
 		.idu_csr_ren_i             	( |idu_csr_flag_o              ),
-		.idu_ready_i             	( idu_ready_o              ),
+		.idu_busy_i             	( ds_busy              ),
 		.idu_ren0_i             	( conflict_reg1_ren_i              ),
 		.idu_ren1_i             	( conflict_reg2_ren_i              ),
 		.idu_rsc0_i             	( reg_raddr1_i              ),

@@ -429,7 +429,7 @@ assign branch_flag_o = rv32_beq & banch_beq_res
     `ifdef PERFORMANCE_COUNTER
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
 	always @(posedge clock) begin
-		if (ds_ready_go_o && es_allowin_i) begin
+		if (ds_to_ex_valid_o && es_allowin_i) begin
 			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
 		end
 	end

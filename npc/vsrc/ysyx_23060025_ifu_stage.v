@@ -54,6 +54,8 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 		else if(next_state_fs && ~con_state_fs) begin
 			pc_node_init(fs_pc, nextpc);
+		end else if(ebreak_flag_i) begin
+			pc_node_init(fs_pc, nextpc);
 		end
 			
 	end
@@ -114,13 +116,13 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		if(reset) begin
 			con_state_fs <= 1'b0;
 		end else begin
-			con_state_fs <= 1'b1;
+			con_state_fs <= next_state_fs;
 		end
 	end
 
 	assign next_state_fs = con_state_fs ? ~fs_allowin : to_fs_valid & ~ebreak_flag_i;
 	
-	assign out_psel = con_state_fs && next_state_fs;	// 选中icache
+	assign out_psel = con_state_fs && next_state_fs && ~fs_ready_go;	// 选中icache
 	// assign out_paddr = nextpc;
 
 	always @(posedge clock) begin

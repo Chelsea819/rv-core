@@ -14,7 +14,7 @@ module ysyx_23060025_conflict (
 `endif
 	input		[11:0]					idu_csr_raddr_i	,
 	input								idu_csr_ren_i	,
-	input								idu_ready_i		,
+	input								idu_busy_i		,
 	input								idu_ren0_i		,
 	input								idu_ren1_i		,
 	input		[4:0]					idu_rsc0_i		,
@@ -61,7 +61,7 @@ module ysyx_23060025_conflict (
 
 	wire lsu_busy = ~lsu_ready_i | lsu_valid;
 	wire exu_busy = ~exu_ready_i;
-	wire idu_busy = ~idu_ready_i;
+	wire idu_busy = idu_busy_i;
 
 	wire exu_csr_wen = exu_csr_type_i == `CSR_CSRRW 
 						|| exu_csr_type_i == `CSR_CSRRS

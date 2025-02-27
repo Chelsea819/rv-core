@@ -208,6 +208,8 @@ void finish_get(char finish, char diff_skip){
     // printf("pc:0x%08x\n",cpu.pc);
   }
   inst_finish = finish;
+    // printf("finshed-wb!\n");
+
   // printf("s.isa.inst.val:0x%08x\n",s.isa.inst.val);
   // printf("inst:0x%08x\n",inst);
   // printf("get inst! \n");
@@ -343,7 +345,7 @@ void device_update();
 
 void ifebreak_func(char ebreak_flag){
 	// printf("while key = 0x%08x\n",inst);printf("ebreak-called: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst)
-	if(ebreak_flag != 0) { ifbreak = true; } 
+	if(ebreak_flag != 0) { ifbreak = true; printf("ebreak-call");} 
 }
 
 void resp_check(char resp){
@@ -509,6 +511,7 @@ void per_inst_cycle(){
     per_clk_cycle();
     // printf("unfinshed!\n");
   }while(inst_finish == 0);
+  // printf("finshed!\n");
   inst_finish = 0;
   size_t i = 0;
   size_t idx = type_flag[inst_type_buff_rptr];
