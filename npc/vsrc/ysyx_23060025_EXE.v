@@ -22,7 +22,7 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
     input		[4:0]		            wreg_i		,
 	input		[1:0]					store_type_i,
 	input       [2:0]                   load_type_i ,
-	input                               ebreak_flag_i             ,
+	input                               ebreak_flag_i        ,
 
 
 	// idu_exu
@@ -62,6 +62,8 @@ module ysyx_23060025_EXE #(parameter DATA_LEN = 32)(
 	assign store_type_o  = store_type_i;
 	assign pc_o  = pc_i;
 	assign csr_mcause_o  = 32'hb;
+
+	
 
 	assign ebreak_flag_o = ebreak_flag_i;
 

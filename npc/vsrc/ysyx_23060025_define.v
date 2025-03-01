@@ -2,11 +2,14 @@
 `include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
-// `define N_YOSYS_STA_CHECK 1'b1
-// `define DIFFTEST 1'b1
-// `define PERFORMANCE_COUNTER 1'b1
+`define N_YOSYS_STA_CHECK 1'b1
+`define DIFFTEST 1'b1
+`define PERFORMANCE_COUNTER 1'b1
 
 // `define BYPASS_TRACE 1'b1
+
+`define MS_TO_DS_FORWARD_BUS 39
+`define ES_TO_DS_FORWARD_BUS 39
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
@@ -68,7 +71,7 @@
 `define STORE_SW_32     2'b10
 `define STORE_INVALID   2'b00
 
-`define STORE_SB_MASK     32'h0000less_unsigned00ff
+`define STORE_SB_MASK     32'h000000ff
 `define STORE_SH_MASK     32'h0000ffff
 `define STORE_SW_MASK     32'hffffffff
 `define TYPE_I_CSR_OPCODE  7'b1110011

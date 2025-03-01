@@ -210,7 +210,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// finish data read or write
 	assign {data_r_resp_o, data_r_valid_o, 
 			data_bkwd_resp_o, data_bkwd_valid_o} 
-			= (state_busy_data && next_state == STATE_IDLE) ? {axi_r_resp_i, axi_r_valid_i,
+			= (state_busy_data) ? {axi_r_resp_i, axi_r_valid_i,
 																				axi_bkwd_resp_i, axi_bkwd_valid_i} : 
 																				0;
 	// finish inst read

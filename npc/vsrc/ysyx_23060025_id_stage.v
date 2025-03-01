@@ -1,4 +1,5 @@
 `include "ysyx_23060025_define.v"
+
 module ysyx_23060025_id_stage(
     input									      clock				        ,
     input									      reset				        ,
@@ -14,6 +15,10 @@ module ysyx_23060025_id_stage(
 	output									      ds_ready_go_o	        ,
 	output									      ds_allowin_o	        ,
 	output									      ds_to_ex_valid_o	        ,
+
+    //from es forward path
+    input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
+    input  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus,
 
     input                                         conflict_id_nop_i         ,
     input           [31:0]                        conflict_reg_bypass_data_i    ,
@@ -386,9 +391,65 @@ module ysyx_23060025_id_stage(
     assign ebreak_flag_o = rv32_ebreak;
     
     // data relation
-    assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
-    assign reg1_o = conflict_reg0_i ? conflict_reg_bypass_data_i : reg1_data_i;
-    assign reg2_o = conflict_reg1_i ? conflict_reg_bypass_data_i : reg2_data_i;
+    // assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
+    assign csr_rdata_o = csr_rdata_i;
+
+    wire        ms_forward_enable;
+    wire [ 4:0] ms_forward_reg;
+    wire [31:0] ms_forward_data;
+    wire        ms_dep_need_stall;
+    wire        es_dep_need_stall;
+    wire        es_forward_enable;
+    wire [ 4:0] es_forward_reg;
+    wire [31:0] es_forward_data;
+    wire        rf1_forward_stall;
+    wire        rf2_forward_stall;
+
+    assign {es_dep_need_stall,
+        es_forward_enable, 
+        es_forward_reg   ,
+        es_forward_data
+       } = es_to_ds_forward_bus;
+
+    assign {ms_dep_need_stall,
+        ms_forward_enable, 
+        ms_forward_reg   ,
+        ms_forward_data
+       } = ms_to_ds_forward_bus;
+
+    assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
+                                        ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg1_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+                                                                                                                {1'b0, reg1_data_i}; 
+
+    assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg2_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
+                                        ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg2_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+                                                                                                                {1'b0, reg2_data_i};
+    reg [31:0] es_forward_data_reg;
+    reg es_forward_enable_reg;
+    always @(posedge clock) begin
+        if(reset) begin
+            es_forward_data_reg <= 0;
+            es_forward_enable_reg <= 0;
+        end else begin
+            es_forward_data_reg <= es_forward_data;
+            es_forward_enable_reg <= es_forward_enable;
+        end
+    end
+
+    reg [31:0] ms_forward_data_reg;
+    reg ms_forward_enable_reg;
+    reg ms_dep_need_stall_reg;
+    always @(posedge clock) begin
+        if(reset) begin
+            ms_forward_data_reg <= 0;
+            ms_forward_enable_reg <= 0;
+            ms_dep_need_stall_reg <= 0;
+        end else begin
+            ms_forward_enable_reg <= ms_forward_enable & ~es_forward_enable_reg;
+            ms_forward_data_reg <= ms_forward_data;
+            ms_dep_need_stall_reg <= ms_dep_need_stall;
+        end
+    end
     
     // output 
     assign pc_o = pc_i;
@@ -437,7 +498,7 @@ assign branch_flag_o = rv32_beq & banch_beq_res
 `endif
 
     assign ds_allowin_o    = !ds_valid_o || ds_ready_go_o && es_allowin_i;
-    assign ds_ready_go_o   = !conflict_id_nop_i;
+    assign ds_ready_go_o   = ~rf1_forward_stall & ~rf2_forward_stall;
     assign ds_to_ex_valid_o = ds_valid_o && ds_ready_go_o;
     always @(posedge clock) begin   //bug1 no reset; branch no delay slot
         if (reset) begin

@@ -283,6 +283,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 
 	// output declaration of module ysyx_23060025_if_id
+
 	wire [DATA_LEN-1:0] t_id_inst_o;
 	wire [ADDR_LEN-1:0] t_id_pc_o;
 	
@@ -323,6 +324,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 	wire 	[31:0]			idu_csr_rdata_o ;
 	wire 					ds_busy ;
+
+	 wire  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus;
+    wire  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus;
 	ysyx_23060025_id_stage ysyx_23060025_decoder(
 		.clock              				( clock              ),
 		.reset              				( reset              ),
@@ -336,26 +340,34 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reg2_ren_o					(conflict_reg2_ren_i),
 
 		.fencei_flag_o    					(icache_fencei_flag),	
-		.ebreak_flag_o    					(idu_ebreak_flag_o),	
+		.ebreak_flag_o    					(idu_ebreak_flag_o),
+
+		.es_to_ds_forward_bus           	( es_to_ds_forward_bus             ),
+		.ms_to_ds_forward_bus           	(ms_to_ds_forward_bus              ),	
 
 		// ifu_idu
 		.fs_to_ds_valid_i           	( ifu_valid_o             ),
 		.ds_allowin_o           	(idu_ready_o              ),
 
-		.conflict_id_nop_i      				(conflict_id_nop_o     ),
-		.conflict_reg_bypass_data_i 				(conflict_reg_bypass_data_o),
-		.conflict_csr_bypass_data_i 				(conflict_csr_bypass_data_o),
-		.conflict_reg0_i        				(conflict_reg0_o       ),
-		.conflict_reg1_i        				(conflict_reg1_o       ),
-		.conflict_csr_i        					(conflict_csr_o       ),
+		// .conflict_id_nop_i      				(conflict_id_nop_o     ),
+		// .conflict_reg_bypass_data_i 				(conflict_reg_bypass_data_o),
+		// .conflict_csr_bypass_data_i 				(conflict_csr_bypass_data_o),
+		// .conflict_reg0_i        				(conflict_reg0_o       ),
+		// .conflict_reg1_i        				(conflict_reg1_o       ),
+		// .conflict_csr_i        					(conflict_csr_o       ),
+
+		.conflict_id_nop_i      				(0     ),
+		.conflict_reg_bypass_data_i 				(0),
+		.conflict_csr_bypass_data_i 				(0),
+		.conflict_reg0_i        				(0       ),
+		.conflict_reg1_i        				(0       ),
+		.conflict_csr_i        					(0       ),
 
 		// idu_exu
 		.ds_to_ex_valid_o           ( idu_valid_o             ),
 		.es_allowin_i           	(exu_ready_o              ),
 		.ds_valid_o           		(ds_busy         ),
 		.ds_ready_go_o           	(             ),
-
-
 
 		// .exu_ready   					(exu_ready_o),
 		// .idu_ready_o       				(idu_ready_o),
@@ -446,9 +458,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	// 	.jmp_target_o					(if_jmp_target_i),
 		
 	// 	.csr_raddr_o						(csr_raddr_i),
-	// 	.csr_waddr_o						(csr_waddr_i)
-		  
-		
+	// 	.csr_waddr_o						(csr_waddr_i)	
 	// );
 
 	
@@ -511,47 +521,49 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.t_ex_ebreak_flag_o    ( t_ex_ebreak_flag_o       )
 	);
 
-	ysyx_23060025_conflict #(
-		.STATE_RUN      	( 0  ),
-		.STATE_WAIT_LSU 	( 1  ))
-	u_ysyx_23060025_conflict(
-		.clock                  	( clock                   ),
-		.reset                  	( reset                   ),
-`ifdef BYPASS_TRACE
-		.idu_pc_i             	( idu_pc_o              ),
-`endif
-		.idu_csr_raddr_i             	( csr_raddr_i              ),
-		.idu_csr_ren_i             	( |idu_csr_flag_o              ),
-		.idu_busy_i             	( ds_busy              ),
-		.idu_ren0_i             	( conflict_reg1_ren_i              ),
-		.idu_ren1_i             	( conflict_reg2_ren_i              ),
-		.idu_rsc0_i             	( reg_raddr1_i              ),
-		.idu_rsc1_i             	( reg_raddr2_i              ),
+// 	ysyx_23060025_conflict #(
+// 		.STATE_RUN      	( 0  ),
+// 		.STATE_WAIT_LSU 	( 1  ))
+// 	u_ysyx_23060025_conflict(
+// 		.clock                  	( clock                   ),
+// 		.reset                  	( reset                   ),
+// `ifdef BYPASS_TRACE
+// 		.idu_pc_i             	( idu_pc_o              ),
+// `endif
+// 		.idu_csr_raddr_i             	( csr_raddr_i              ),
+// 		.idu_csr_ren_i             	( |idu_csr_flag_o              ),
+// 		.idu_busy_i             	( ds_busy              ),
+// 		.idu_ren0_i             	( conflict_reg1_ren_i              ),
+// 		.idu_ren1_i             	( conflict_reg2_ren_i              ),
+// 		.idu_rsc0_i             	( reg_raddr1_i              ),
+// 		.idu_rsc1_i             	( reg_raddr2_i              ),
 
-		.exu_csr_waddr_i            ( ex_csr_waddr_o             ),
-		.exu_csr_type_i            	( ex_csr_type_o             ),
-		.exu_csr_wdata_i            ( ex_csr_wdata_o             ),
-		.exu_ready_i            	( exu_ready_o             ),
-		.exu_wd_i               	( ex_wd_o                ),
-		.exu_wreg_i             	( ex_wreg_o              ),
+// 		.exu_csr_waddr_i            ( ex_csr_waddr_o             ),
+// 		.exu_csr_type_i            	( ex_csr_type_o             ),
+// 		.exu_csr_wdata_i            ( ex_csr_wdata_o             ),
+// 		.exu_busy_i            	( exu_busy             ),
+// 		.exu_wd_i               	( ex_wd_o                ),
+// 		.exu_wreg_i             	( ex_wreg_o              ),
+// 		.exu_reg_wdata_i              	( ex_alu_result_o              ),
+// 		.exu_mem_to_reg_i              	( |ex_load_type_o              ),
 		
-		.lsu_csr_waddr_i       	( lsu_csr_waddr_o        ),
-		.lsu_csr_type_i       	( lsu_csr_type_o        ),
-		.lsu_csr_wdata_i       	( lsu_csr_wdata_o        ),
-		.lsu_mem_to_reg_i       	( |t_lsu_load_type_o        ),
-		.lsu_ready_i            	( lsu_ready_o             ),
-		.lsu_wd_i               	( lsu_reg_wen_o                ),
-		.lsu_valid_i            	( lsu_valid_o             ),
-		.lsu_wreg_i             	( lsu_wreg_o              ),
-		.lsu_reg_wdata_i        	( lsu_reg_wdata_o         ),
+// 		.lsu_csr_waddr_i       	( lsu_csr_waddr_o        ),
+// 		.lsu_csr_type_i       	( lsu_csr_type_o        ),
+// 		.lsu_csr_wdata_i       	( lsu_csr_wdata_o        ),
+// 		.lsu_mem_to_reg_i       	( |t_lsu_load_type_o        ),
+// 		.lsu_busy_i            	( lsu_busy             ),
+// 		.lsu_wd_i               	( lsu_reg_wen_o                ),
+// 		.lsu_valid_i            	( lsu_valid_o             ),
+// 		.lsu_wreg_i             	( lsu_wreg_o              ),
+// 		.lsu_reg_wdata_i        	( lsu_reg_wdata_o         ),
 
-		.conflict_csr_o        		( conflict_csr_o         ),
-		.conflict_reg0_o        	( conflict_reg0_o         ),
-		.conflict_reg1_o        	( conflict_reg1_o         ),
-		.conflict_id_nop_o      	( conflict_id_nop_o       ),
-		.conflict_reg_bypass_data_o 	( conflict_reg_bypass_data_o  ),
-		.conflict_csr_bypass_data_o 	( conflict_csr_bypass_data_o  )
-	);
+// 		.conflict_csr_o        		( conflict_csr_o         ),
+// 		.conflict_reg0_o        	( conflict_reg0_o         ),
+// 		.conflict_reg1_o        	( conflict_reg1_o         ),
+// 		.conflict_id_nop_o      	( conflict_id_nop_o       ),
+// 		.conflict_reg_bypass_data_o 	( conflict_reg_bypass_data_o  ),
+// 		.conflict_csr_bypass_data_o 	( conflict_csr_bypass_data_o  )
+// 	);
 
 
 	wire exu_valid_o;
@@ -562,8 +574,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire lsu_ready_o;
 	wire exu_ebreak_flag_o;
 	wire [11:0] ex_csr_waddr_o;
+	wire exu_busy;
 
-	ysyx_23060025_EXE ysyx_23060025_EXE(
+	ysyx_23060025_ex_stage ysyx_23060025_EXE(
 		.clock              	( clock     	),
 		.reset              	( reset     	),
 
@@ -582,19 +595,23 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.csr_rdata_i		(t_ex_csr_rdata_o		),
 		// idu_exu
-		.idu_valid_i           	(      idu_valid_o        ),
-		.exu_ready_o           	(      exu_ready_o        ),
+		.ds_to_ex_valid_i           ( idu_valid_o             ),
+		.lsu_allowin_i           	(  lsu_ready_o            ),
+		.es_valid_o           		( exu_busy        ),
+		.es_ready_go_o           	(             ),
+		.es_to_lsu_valid_o           	(    exu_valid_o         ),
+		.es_allowin_o           	(exu_ready_o             ),
 
 		// exu_wbu
-		.exu_valid_o           	(      exu_valid_o        ),
-		.lsu_ready_i           	(      lsu_ready_o        ),
 
 		.ebreak_flag_i           	(      t_ex_ebreak_flag_o        ),
 		.ebreak_flag_o           	(      exu_ebreak_flag_o        ),
 
 		// .isu_ready		(lsu_ready_o),	
 		// .exu_ready_o		(exu_ready_o),
-		// .exu_valid_o		(exu_valid_o),
+
+		.es_to_ds_forward_bus		(es_to_ds_forward_bus),
+		.es_to_ds_valid		(),
 		
 		.wd_o				(ex_wd_o			),	
 		.wreg_o				(ex_wreg_o		),
@@ -612,6 +629,56 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		
 		
 	);
+
+	// ysyx_23060025_EXE ysyx_23060025_EXE(
+	// 	.clock              	( clock     	),
+	// 	.reset              	( reset     	),
+
+	// 	.reg1_i				(t_ex_reg1_o      	),
+	// 	.reg2_i				(t_ex_reg2_o      	),
+	// 	.pc_i				(t_ex_pc_o        	),
+	// 	.alu_control		(t_ex_aluop_o     	),
+	// 	.alu_sel			(t_ex_alusel_o    	),		
+	// 	.imm_i				(t_ex_imm_o       	),
+	// 	.csr_flag_i			(t_ex_csr_flag_o  	),
+	// 	.csr_waddr_i			(t_ex_csr_waddr_o  	),
+	// 	.wd_i				(t_ex_wd_o        	),	
+	// 	.wreg_i				(t_ex_wreg_o      	),
+	// 	.store_type_i		(t_ex_store_type_o	)	,	
+	// 	.load_type_i		(t_ex_load_type_o 	),
+
+	// 	.csr_rdata_i		(t_ex_csr_rdata_o		),
+	// 	// idu_exu
+	// 	.idu_valid_i           	(      idu_valid_o        ),
+	// 	.exu_ready_o           	(      exu_ready_o        ),
+
+	// 	// exu_wbu
+	// 	.exu_valid_o           	(      exu_valid_o        ),
+	// 	.lsu_ready_i           	(      lsu_ready_o        ),
+
+	// 	.ebreak_flag_i           	(      t_ex_ebreak_flag_o        ),
+	// 	.ebreak_flag_o           	(      exu_ebreak_flag_o        ),
+
+	// 	// .isu_ready		(lsu_ready_o),	
+	// 	// .exu_ready_o		(exu_ready_o),
+	// 	// .exu_valid_o		(exu_valid_o),
+		
+	// 	.wd_o				(ex_wd_o			),	
+	// 	.wreg_o				(ex_wreg_o		),
+	// 	.alu_result_o		(ex_alu_result_o		),
+	// 	.mem_wen_o			(ex_mem_wen_o	),	
+	// 	.mem_wdata_o		(ex_mem_wdata_o		),	
+	// 	.load_type_o		(ex_load_type_o		),
+	// 	.store_type_o		(ex_store_type_o		),
+	// 	.csr_wdata_o		(ex_csr_wdata_o		),
+	// 	.csr_type_o			(ex_csr_type_o	),
+	// 	.csr_waddr_o			(ex_csr_waddr_o  	),
+	// 	.csr_mcause_o		(csr_mcause_i),
+	// 	// TODO:
+	// 	.pc_o				()
+		
+		
+	// );
 
 	// output declaration of module ysyx_23060025_ex_lsu
 	wire t_lsu_wd_o;
@@ -662,11 +729,12 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 	
 	wire lsu_ebreak_flag_o;
+	wire lsu_busy;
 `ifdef DIFFTEST
 	wire lsu_diff_skip_flag_o;
 `endif
 
-	ysyx_23060025_LSU#(
+	ysyx_23060025_lsu_stage#(
 		.DATA_LEN          ( 32 ),
 		.ADDR_LEN          ( 32 )
 	)ysyx_23060025_LSU(
@@ -689,15 +757,19 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_type_i		( t_lsu_csr_type_o  ),
 		.csr_waddr_i	( t_lsu_csr_waddr_o  ),
 
-		
+		.lsu_valid_o           	(  lsu_busy            ),
+		.lsu_ready_go_o           (              ),
+
+		.ms_to_ds_forward_bus           (   ms_to_ds_forward_bus           ),
+		.ms_to_ds_valid           	(              ),
 
 		// idu_exu
-		.exu_valid_i           	(   exu_valid_o           ),
-		.lsu_ready_o           	(    lsu_ready_o          ),
+		.ex_to_lsu_valid_i           (   exu_valid_o           ),
+		.lsu_allowin_o           	(    lsu_ready_o          ),
 
 		// exu_wbu
-		.lsu_valid_o           	(     lsu_valid_o         ),
-		.wbu_ready_i           	(    wbu_ready_o          ),
+		.lsu_to_wbu_valid_o           	(     lsu_valid_o         ),
+		.wbu_allowin_i           	(    wbu_ready_o          ),
 
 
 		.ebreak_flag_i   	( t_lsu_ebreak_flag_o 		),
@@ -731,6 +803,72 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.bkwd_valid_i      ( data_bkwd_valid_i      ),
 		.bkwd_ready_o      ( data_bkwd_ready_o      )
 	);
+
+	// ysyx_23060025_LSU#(
+	// 	.DATA_LEN          ( 32 ),
+	// 	.ADDR_LEN          ( 32 )
+	// )ysyx_23060025_LSU(
+	// 	.rstn           ( ~reset           ),
+	// 	.clock           ( clock           		),
+
+	// `ifdef DIFFTEST
+	// 	.diff_skip_flag_i  ( diff_skip_flag_i           ),
+	// 	.diff_skip_flag_o  ( lsu_diff_skip_flag_o           		),
+	// `endif
+
+	// 	.wd_i          	( t_lsu_wd_o        ),
+	// 	.wreg_i   		( t_lsu_wreg_o      ),
+	// 	.alu_result_i   ( t_lsu_alu_result_o	),
+	// 	.mem_wen_i     	( t_lsu_mem_wen_o   ),
+	// 	.mem_wdata_i   	( t_lsu_mem_wdata_o ),
+	// 	.load_type_i	( t_lsu_load_type_o ),
+	// 	.store_type_i	( t_lsu_store_type_o),
+	// 	.csr_wdata_i	( t_lsu_csr_wdata_o ),
+	// 	.csr_type_i		( t_lsu_csr_type_o  ),
+	// 	.csr_waddr_i	( t_lsu_csr_waddr_o  ),
+
+		
+
+	// 	// idu_exu
+	// 	.exu_valid_i           	(   exu_valid_o           ),
+	// 	.lsu_ready_o           	(    lsu_ready_o          ),
+
+	// 	// exu_wbu
+	// 	.lsu_valid_o           	(     lsu_valid_o         ),
+	// 	.wbu_ready_i           	(    wbu_ready_o          ),
+
+
+	// 	.ebreak_flag_i   	( t_lsu_ebreak_flag_o 		),
+	// 	.ebreak_flag_o    ( lsu_ebreak_flag_o   	),
+
+	// 	.wd_o     		( lsu_reg_wen_o			),
+	// 	.wreg_o   		( lsu_wreg_o			),
+	// 	.wdata_o  		( lsu_reg_wdata_o		),
+	// 	.csr_type_o		( lsu_csr_type_o		),
+	// 	.csr_wdata_o    ( lsu_csr_wdata_o	 	),
+	// 	.csr_waddr_o	( lsu_csr_waddr_o  ),
+	// 	// .memory_inst_o  ( lsu_memory_inst_o ),
+
+	// 	.addr_r_addr_o     ( data_addr_r_addr_o     ),
+	// 	.addr_r_valid_o    ( data_addr_r_valid_o    ),
+	// 	.addr_r_ready_i    ( data_addr_r_ready_i    ),
+	// 	.addr_r_size_o	   ( data_addr_r_size_o		),
+	// 	.r_data_i          ( data_r_data_i          ),
+	// 	.r_resp_i          ( data_r_resp_i          ),
+	// 	.r_valid_i         ( data_r_valid_i         ),
+	// 	.r_ready_o         ( data_r_ready_o         ),
+	// 	.addr_w_addr_o     ( data_addr_w_addr_o     ),
+	// 	.addr_w_valid_o    ( data_addr_w_valid_o    ),
+	// 	.addr_w_ready_i    ( data_addr_w_ready_i    ),
+	// 	.addr_w_size_o	   ( data_addr_w_size_o		),
+	// 	.w_data_o          ( data_w_data_o          ),
+	// 	.w_strb_o          ( data_w_strb_o          ),
+	// 	.w_valid_o         ( data_w_valid_o         ),
+	// 	.w_ready_i         ( data_w_ready_i         ),
+	// 	.bkwd_resp_i       ( data_bkwd_resp_i       ),
+	// 	.bkwd_valid_i      ( data_bkwd_valid_i      ),
+	// 	.bkwd_ready_o      ( data_bkwd_ready_o      )
+	// );
 
 //  	wire t_wb_reg_wen_o;
 // 	wire [4:0] t_wb_wreg_o;
