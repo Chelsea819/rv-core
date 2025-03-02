@@ -376,13 +376,13 @@ module ysyx_23060025_id_stage(
 
     assign branch_type_o = opcode_B_branch;
 
-    wire [31:0] jalr_target = reg1_o + imm_o;
-    wire [31:0] jal_target  = pc_i + imm_o;
+    wire [31:0] trans_src1 = rv32_jalr ? reg1_o : pc_i;
+    wire [31:0] trans_src2 = imm_o;
 
-    assign jmp_target_o = {32{rv32_jalr}} & jalr_target
-                        | {32{rv32_jal}} & jal_target;
+    wire [31:0] trans_target_o = trans_src1 + trans_src2;
 
     assign jmp_flag_o = rv32_jal | rv32_jalr;
+    assign jmp_target_o = trans_target_o;
 
     assign csr_flag_o = {3{rv32_ecall}} & `CSR_ECALL
                         | {3{rv32_mret}} & `CSR_MRET
@@ -440,7 +440,7 @@ module ysyx_23060025_id_stage(
 
     assign {ws_forward_enable, 
         ws_forward_reg   ,
-        ws_forward_data     ,
+        ws_forward_data  ,
         ws_csr_waddr     ,
         ws_csr_wdata     ,
         ws_csr_type
@@ -475,7 +475,7 @@ module ysyx_23060025_id_stage(
 
     // output 
     assign pc_o = pc_i;
-    assign branch_target_o = pc_i + imm_o;
+    assign branch_target_o = trans_target_o;
     
     assign csr_waddr_o = (rv32_ecall ? `CSR_MEPC_ADDR : csr_addr);
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);

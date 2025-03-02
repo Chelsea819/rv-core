@@ -40,8 +40,8 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	output			                		out_psel,
 
 	// Read data
-	input		                		out_pready	,	// icache read data ready
-	input	[31:0]	                	out_prdata	// icache read data
+	input		                			out_pready	,	// icache read data ready
+	input	[31:0]	                		out_prdata	// icache read data
 );
 	wire		[ADDR_WIDTH - 1:0]	        pc_plus_4	;
 	// reg 		[DATA_WIDTH - 1:0]			out_prdata	;
@@ -155,7 +155,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		if (reset) begin
 			fs_pc        <= `PC_RESET_VAL - 4;  //trick: to make nextpc be 0x1c000000 during reset 
 		end
-		else if (~con_state_fs && to_fs_valid) begin
+		else if (~con_state_fs && to_fs_valid & need_stall) begin
 			fs_pc        <= nextpc;
 		end
 	end
