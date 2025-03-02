@@ -345,7 +345,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.es_to_ds_forward_bus           	( es_to_ds_forward_bus             ),
 		.ms_to_ds_forward_bus           	(ms_to_ds_forward_bus              ),	
 		.ws_to_ds_forward_bus           	({reg_wen_i, reg_waddr_i, reg_wdata_i,wb_csr_waddr_o,csr_wdata_i, csr_type_i}),	
-
 		// ifu_idu
 		.fs_to_ds_valid_i           	( ifu_valid_o             ),
 		.ds_allowin_o           	(idu_ready_o              ),

@@ -18,7 +18,7 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	// output		[DATA_WIDTH - 1:0]		csr_mepc_pc_o	,
 	output		[DATA_WIDTH - 1:0]		r_data	
 );
-	wire csr_wen = ^csr_type_i;
+	wire csr_wen = ^csr_type_i || csr_ecall;
 	wire csr_ecall = csr_type_i == `CSR_ECALL;
 
 	assign r_data = csr_raddr_mcause 	 	? mcause_r : 
@@ -49,7 +49,7 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	wire mvendorid_ena		= csr_waddr_mvendorid 	& csr_wen;
 	wire marchid_ena		= csr_waddr_marchid 	& csr_wen;
 
-	wire [31:0] mcause_nxt = csr_ecall ? wdata : csr_mcause_i;
+	wire [31:0] mcause_nxt = csr_ecall ? csr_mcause_i : wdata;
 	wire [31:0] mcause_r;
 
 	ysyx_23060025_Reg #(32,0)

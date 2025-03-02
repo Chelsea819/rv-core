@@ -298,7 +298,7 @@ module ysyx_23060025_id_stage(
     assign wd_o = opcode_I_jalr | opcode_I_load | opcode_I_op_imm
                     | opcode_R_op
                     | opcode_J_jal
-                    | opcode_U_auipc | opcode_U_lui;
+                    | opcode_U_auipc | opcode_U_lui | rv32_csrrs | rv32_csrrw;
 
     assign store_type_o = {2{rv32_sb}} & `STORE_SB_8
                             | {2{rv32_sh}} & `STORE_SH_16
@@ -391,7 +391,6 @@ module ysyx_23060025_id_stage(
 
     assign ebreak_flag_o = rv32_ebreak;
     
-    
 
     wire        ms_csr_forward_enable;
     wire        es_csr_forward_enable;
@@ -447,82 +446,33 @@ module ysyx_23060025_id_stage(
         ws_csr_type
        } = ws_to_ds_forward_bus;
 
-    wire id_csr_ren = csr_flag_o == `CSR_CSRRW 
-						|| csr_flag_o == `CSR_CSRRS
-						|| csr_flag_o == `CSR_MRET;
+        wire id_csr_ren = csr_flag_o == `CSR_CSRRW 
+                    || csr_flag_o == `CSR_CSRRS
+                    || csr_flag_o == `CSR_MRET;
 
 
-    wire ws_csr_wen = ws_csr_type == `CSR_CSRRW 
-						|| ws_csr_type == `CSR_CSRRS
-						|| ws_csr_type == `CSR_ECALL;
+        wire ws_csr_wen = ws_csr_type == `CSR_CSRRW 
+                            || ws_csr_type == `CSR_CSRRS
+                            || ws_csr_type == `CSR_ECALL;
+
 
     // data relation
     // assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
-    // assign {csr_rdata_o} = ((csr_raddr_o == es_csr_waddr) && {es_csr_forward_enable | es_csr_forward_enable_reg} && id_csr_ren) ? es_csr_wdata_reg :
-    //                                     ((csr_raddr_o == ms_csr_waddr) && {ms_csr_forward_enable | ms_csr_forward_enable_reg} && id_csr_ren) ? ms_csr_wdata_reg :
-    //                                     ((csr_raddr_o == ws_csr_waddr) && ws_csr_wen && id_csr_ren) ? ws_csr_wdata :
-    //                                                                                                             csr_rdata_i;
+    assign {csr_rdata_o} = ((csr_raddr_o == es_csr_waddr) && {es_csr_forward_enable} && id_csr_ren) ? es_csr_wdata :
+                                        ((csr_raddr_o == ms_csr_waddr) && {ms_csr_forward_enable} && id_csr_ren) ? ms_csr_wdata :
+                                        ((csr_raddr_o == ws_csr_waddr) && ws_csr_wen && id_csr_ren) ? ws_csr_wdata :
+                                                                                                                csr_rdata_i;
 
-    assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
-                                        ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg1_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+    assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data} :
+                                        ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable} && reg1_ren_o) ? {{ms_dep_need_stall}, ms_forward_data} :
                                         ((reg1_addr_o == ws_forward_reg) && ws_forward_enable && reg1_ren_o) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg1_data_i}; 
 
-    assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg2_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
-                                        ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg2_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+    assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable} && reg2_ren_o) ? {es_dep_need_stall, es_forward_data} :
+                                        ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable} && reg2_ren_o) ? {{ms_dep_need_stall}, ms_forward_data} :
                                         ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren_o) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg2_data_i};
-    reg [31:0] es_csr_wdata_reg;
-    reg es_csr_forward_enable_reg;
-    always @(posedge clock) begin
-        if(reset) begin
-            es_csr_wdata_reg <= 0;
-            es_csr_forward_enable_reg <= 0;
-        end else begin
-            es_csr_wdata_reg <= es_csr_wdata;
-            es_csr_forward_enable_reg <= es_csr_forward_enable;
-        end
-    end
 
-    reg [31:0] ms_csr_wdata_reg;
-    reg ms_csr_forward_enable_reg;
-    always @(posedge clock) begin
-        if(reset) begin
-            ms_csr_wdata_reg <= 0;
-            ms_csr_forward_enable_reg <= 0;
-        end else begin
-            ms_csr_wdata_reg <= ms_csr_wdata;
-            ms_csr_forward_enable_reg <= ms_csr_forward_enable;
-        end
-    end
-
-    reg [31:0] es_forward_data_reg;
-    reg es_forward_enable_reg;
-    always @(posedge clock) begin
-        if(reset) begin
-            es_forward_data_reg <= 0;
-            es_forward_enable_reg <= 0;
-        end else begin
-            es_forward_data_reg <= es_forward_data;
-            es_forward_enable_reg <= es_forward_enable;
-        end
-    end
-
-    reg [31:0] ms_forward_data_reg;
-    reg ms_forward_enable_reg;
-    reg ms_dep_need_stall_reg;
-    always @(posedge clock) begin
-        if(reset) begin
-            ms_forward_data_reg <= 0;
-            ms_forward_enable_reg <= 0;
-            ms_dep_need_stall_reg <= 0;
-        end else begin
-            ms_forward_enable_reg <= ms_forward_enable & ~es_forward_enable_reg;
-            ms_forward_data_reg <= ms_forward_data;
-            ms_dep_need_stall_reg <= ms_dep_need_stall;
-        end
-    end
-    
     // output 
     assign pc_o = pc_i;
     assign branch_target_o = pc_i + imm_o;

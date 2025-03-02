@@ -80,6 +80,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	end
 	`endif
 `endif
+
 	wire es_csr_wen = csr_flag_i == `CSR_CSRRW 
 						|| csr_flag_i == `CSR_CSRRS
 						|| csr_flag_i == `CSR_ECALL;
@@ -125,8 +126,8 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire [31:0] csr_csrrs_res = reg1_i | csr_rdata_i;
 	
 	assign csr_wdata_o = {32{csr_cssrw}} & reg1_i 
-				| {32{csr_cssrs}} & pc_i 
-				| {32{csr_ecall}} & csr_csrrs_res ;
+				| {32{csr_cssrs}} & csr_csrrs_res  
+				| {32{csr_ecall}} & pc_i;
 
 	assign csr_type_o = csr_flag_i;
 

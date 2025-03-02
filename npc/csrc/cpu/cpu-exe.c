@@ -345,7 +345,7 @@ void device_update();
 
 void ifebreak_func(char ebreak_flag){
 	// printf("while key = 0x%08x\n",inst);printf("ebreak-called: pc = 0x%08x inst = 0x%08x\n",cpu.pc,dut->inst)
-	if(ebreak_flag != 0) { ifbreak = true; printf("ebreak-call");} 
+	if(ebreak_flag != 0) { ifbreak = true; } 
 }
 
 void resp_check(char resp){
