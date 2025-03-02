@@ -1,4 +1,5 @@
 `include "ysyx_23060025_define.v"
+`define MS_TO_WS_BUS_WD 493
 module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input								reset,
     input		                		wd_i		,
@@ -8,66 +9,86 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input       [2:0]		            csr_type_i	,
     input       [11:0]		            csr_waddr_i	,
     input       [DATA_LEN - 1:0]        reg_wdata_i	,
+    input                               ebreak_flag_i	,
 `ifdef DIFFTEST
 	input								diff_skip_flag_i,
 `endif
     // lsu_wbu
-    input                               lsu_valid_i  ,
-    output                              wbu_ready_o  ,
+    input                               ms_to_ws_valid  ,
+    output                              ws_allowin_o  ,
 
-    input                               ebreak_flag_i,
     // input                               memory_inst_i,
     // output                              wb_ready_o  ,
     // output  reg                         finish      ,
-    output	    	                	wd_o		,
-    output	   	[4:0]		            wreg_o		,
-    output     [DATA_LEN - 1:0]        csr_wdata_o	,
-    output       [11:0]		            csr_waddr_o	,
-    output      [2:0]		            csr_type_o	,
+    output	reg    	                	    wd_o		,
+    output	reg   	[4:0]		            wreg_o		,
+    output  reg   [DATA_LEN - 1:0]          csr_wdata_o	,
+    output  reg     [11:0]		            csr_waddr_o	,
+    output  reg    [2:0]		            csr_type_o	,
 
-    output	    	[DATA_LEN - 1:0]		wdata_o
+    output	reg    	[DATA_LEN - 1:0]		wdata_o
 );
-    assign wbu_ready_o = 1'b1;
 
-    // always @(*) begin
-    //     if(lsu_valid_i) begin
-    //         wd_o	         =     wd_i; 
-    //         wreg_o	         =     wreg_i;  	
-    //         csr_wdata_o	     =     csr_wdata_i; 
-    //         csr_waddr_o	     =     csr_waddr_i; 
-	// 		csr_type_o		 =	   csr_type_i; 
-    //         wdata_o          =     reg_wdata_i;  
-    //     end else begin 
-    //         wd_o	         =     0; 
-    //         wreg_o	         =     0;  	
-    //         csr_wdata_o	     =     0; 
-    //         csr_waddr_o	     =     0;             
-	// 		csr_type_o		 =	   0; 
-    //         wdata_o          =     0; 
+    // wire ws_ready_go = 1;
+    assign ws_allowin_o  = 1;
+    // reg ws_valid;
+    // always @(posedge clock) begin
+    //     if (reset) begin
+    //         ws_valid <= 1'b0;
     //     end
-	// end
+    //     else if (ws_allowin_o) begin
+    //         ws_valid <= ms_to_ws_valid;
+    //     end
+    // end
 
-    assign wd_o                 = lsu_valid_i & wd_i;
-    assign wreg_o               = wreg_i;
-    assign csr_wdata_o	     =     csr_wdata_i; 
-    assign csr_waddr_o	     =     csr_waddr_i; 
-    assign csr_type_o		 =	   {3{lsu_valid_i}} & csr_type_i; 
-    assign wdata_o          =     reg_wdata_i; 
+    always @(posedge clock) begin
+        if(reset) begin
+            wd_o	         <=     0; 
+            wreg_o	         <=     0;  	
+            csr_wdata_o	     <=     0; 
+            csr_waddr_o	     <=     0;             
+			csr_type_o		 <=	   0; 
+            wdata_o          <=     0;
+             
+        end else begin 
+            wd_o	         <=     wd_i & ms_to_ws_valid; 
+            wreg_o	         <=     wreg_i;  	
+            csr_wdata_o	     <=     csr_wdata_i; 
+            csr_waddr_o	     <=     csr_waddr_i; 
+			csr_type_o		 <=	   csr_type_i & {3{ms_to_ws_valid}}; 
+            wdata_o          <=     reg_wdata_i; 
+        end
+	end
+
+    // assign wd_o                 = ms_to_ws_valid & wd_i;
+    // assign wreg_o               = wreg_i;
+    // assign csr_wdata_o	     =     csr_wdata_i; 
+    // assign csr_waddr_o	     =     csr_waddr_i; 
+    // assign csr_type_o		 =	   {3{ms_to_ws_valid}} & csr_type_i; 
+    // assign wdata_o          =     reg_wdata_i; 
 	
 
 
 `ifdef N_YOSYS_STA_CHECK
-	// reg finish;
-	// always @(posedge clock) begin
-	// 	if(reset) begin
-	// 		finish <= 0;
-	// 	end else begin
-	// 		finish <= lsu_valid_i;
-	// 	end
-	// end
+	reg finish;
+	always @(posedge clock) begin
+		if(reset) begin
+			finish <= 0;
+		end else begin
+			finish <= ms_to_ws_valid;
+		end
+	end
+    reg diff;
+	always @(posedge clock) begin
+		if(reset) begin
+			diff <= 0;
+		end else begin
+			diff <= diff_skip_flag_i;
+		end
+	end
 wire diff_skip = 1'bz;
 `ifdef DIFFTEST
-assign diff_skip = diff_skip_flag_i;
+assign diff_skip = diff;
 `endif
 	import "DPI-C" function void finish_get(byte finish, byte diff_skip);
 	// 检测到ebreak
@@ -77,9 +98,9 @@ assign diff_skip = diff_skip_flag_i;
 
 	always @(posedge clock) begin
 		// $display("pc = %x dpc = %x",pc,pc_next);
-		if(lsu_valid_i & diff_skip) begin
+		if(finish & diff_skip) begin
 			finish_get({7'b0,1'b1}, {7'b0,1'b1});
-        end else if(lsu_valid_i) begin
+        end else if(finish) begin
             finish_get({7'b0,1'b1}, {7'b0,1'b0});
         end
 			

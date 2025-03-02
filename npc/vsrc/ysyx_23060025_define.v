@@ -9,6 +9,7 @@
 // `define BYPASS_TRACE 1'b1
 
 `define MS_TO_DS_FORWARD_BUS 39
+`define WS_TO_DS_FORWARD_BUS 38
 `define ES_TO_DS_FORWARD_BUS 39
 
 `define TYPE_R_OPCODE     7'b0110011

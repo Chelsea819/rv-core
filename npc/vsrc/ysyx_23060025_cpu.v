@@ -344,6 +344,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.es_to_ds_forward_bus           	( es_to_ds_forward_bus             ),
 		.ms_to_ds_forward_bus           	(ms_to_ds_forward_bus              ),	
+		.ws_to_ds_forward_bus           	({reg_wen_i, reg_waddr_i, reg_wdata_i}),	
 
 		// ifu_idu
 		.fs_to_ds_valid_i           	( ifu_valid_o             ),
@@ -931,8 +932,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.diff_skip_flag_i  ( lsu_diff_skip_flag_o           ),
 `endif
 		// lsu_wbu 
-		.lsu_valid_i    ( lsu_valid_o	    ),
-		.wbu_ready_o    ( wbu_ready_o    ),
+		.ms_to_ws_valid    ( lsu_valid_o	    ),
+		.ws_allowin_o    ( wbu_ready_o    ),
 
 		.wd_o     	  ( reg_wen_i   ),
 		.wreg_o   	  ( reg_waddr_i ),

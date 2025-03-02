@@ -19,6 +19,7 @@ module ysyx_23060025_id_stage(
     //from es forward path
     input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
     input  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus,
+    input  [`WS_TO_DS_FORWARD_BUS -1:0]             ws_to_ds_forward_bus,
 
     input                                         conflict_id_nop_i         ,
     input           [31:0]                        conflict_reg_bypass_data_i    ,
@@ -402,6 +403,9 @@ module ysyx_23060025_id_stage(
     wire        es_forward_enable;
     wire [ 4:0] es_forward_reg;
     wire [31:0] es_forward_data;
+    wire        ws_forward_enable;
+    wire [ 4:0] ws_forward_reg;
+    wire [31:0] ws_forward_data;
     wire        rf1_forward_stall;
     wire        rf2_forward_stall;
 
@@ -417,12 +421,19 @@ module ysyx_23060025_id_stage(
         ms_forward_data
        } = ms_to_ds_forward_bus;
 
+       assign {ws_forward_enable, 
+        ws_forward_reg   ,
+        ws_forward_data
+       } = ws_to_ds_forward_bus;
+
     assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
                                         ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg1_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+                                        ((reg1_addr_o == ws_forward_reg) && ws_forward_enable && reg1_ren_o) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg1_data_i}; 
 
     assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg2_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
                                         ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg2_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
+                                        ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren_o) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg2_data_i};
     reg [31:0] es_forward_data_reg;
     reg es_forward_enable_reg;
