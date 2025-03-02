@@ -391,40 +391,77 @@ module ysyx_23060025_id_stage(
 
     assign ebreak_flag_o = rv32_ebreak;
     
-    // data relation
-    // assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
-    assign csr_rdata_o = csr_rdata_i;
+    
 
+    wire        ms_csr_forward_enable;
+    wire        es_csr_forward_enable;
+    wire        ws_csr_forward_enable;
     wire        ms_forward_enable;
     wire [ 4:0] ms_forward_reg;
     wire [31:0] ms_forward_data;
     wire        ms_dep_need_stall;
+    wire [ 2:0] ms_csr_type;
+    wire [ 11:0] ms_csr_waddr;
+    wire [31:0] ms_csr_wdata;
     wire        es_dep_need_stall;
     wire        es_forward_enable;
     wire [ 4:0] es_forward_reg;
     wire [31:0] es_forward_data;
+    wire [ 2:0] es_csr_type;
+    wire [ 11:0] es_csr_waddr;
+    wire [31:0] es_csr_wdata;
     wire        ws_forward_enable;
     wire [ 4:0] ws_forward_reg;
     wire [31:0] ws_forward_data;
+    wire [ 2:0] ws_csr_type;
+    wire [ 11:0] ws_csr_waddr;
+    wire [31:0] ws_csr_wdata;
     wire        rf1_forward_stall;
     wire        rf2_forward_stall;
 
     assign {es_dep_need_stall,
         es_forward_enable, 
         es_forward_reg   ,
-        es_forward_data
+        es_forward_data ,
+        es_csr_forward_enable ,
+        es_csr_waddr     ,
+        es_csr_wdata     ,
+        es_csr_type     
        } = es_to_ds_forward_bus;
 
     assign {ms_dep_need_stall,
         ms_forward_enable, 
         ms_forward_reg   ,
-        ms_forward_data
+        ms_forward_data ,
+        ms_csr_forward_enable ,
+        ms_csr_waddr     ,
+        ms_csr_wdata     ,
+        ms_csr_type
        } = ms_to_ds_forward_bus;
 
-       assign {ws_forward_enable, 
+    assign {ws_forward_enable, 
         ws_forward_reg   ,
-        ws_forward_data
+        ws_forward_data     ,
+        ws_csr_waddr     ,
+        ws_csr_wdata     ,
+        ws_csr_type
        } = ws_to_ds_forward_bus;
+
+    wire id_csr_ren = csr_flag_o == `CSR_CSRRW 
+						|| csr_flag_o == `CSR_CSRRS
+						|| csr_flag_o == `CSR_MRET;
+
+
+    wire ws_csr_wen = ws_csr_type == `CSR_CSRRW 
+						|| ws_csr_type == `CSR_CSRRS
+						|| ws_csr_type == `CSR_ECALL;
+
+    // data relation
+    // assign csr_rdata_o = conflict_csr_i ? conflict_csr_bypass_data_i : csr_rdata_i;
+    // assign {csr_rdata_o} = ((csr_raddr_o == es_csr_waddr) && {es_csr_forward_enable | es_csr_forward_enable_reg} && id_csr_ren) ? es_csr_wdata_reg :
+    //                                     ((csr_raddr_o == ms_csr_waddr) && {ms_csr_forward_enable | ms_csr_forward_enable_reg} && id_csr_ren) ? ms_csr_wdata_reg :
+    //                                     ((csr_raddr_o == ws_csr_waddr) && ws_csr_wen && id_csr_ren) ? ws_csr_wdata :
+    //                                                                                                             csr_rdata_i;
 
     assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable | es_forward_enable_reg} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data_reg} :
                                         ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg1_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
@@ -435,6 +472,30 @@ module ysyx_23060025_id_stage(
                                         ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable | ms_forward_enable_reg} && reg2_ren_o) ? {{ms_dep_need_stall | ms_dep_need_stall_reg}, ms_forward_data_reg} :
                                         ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren_o) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg2_data_i};
+    reg [31:0] es_csr_wdata_reg;
+    reg es_csr_forward_enable_reg;
+    always @(posedge clock) begin
+        if(reset) begin
+            es_csr_wdata_reg <= 0;
+            es_csr_forward_enable_reg <= 0;
+        end else begin
+            es_csr_wdata_reg <= es_csr_wdata;
+            es_csr_forward_enable_reg <= es_csr_forward_enable;
+        end
+    end
+
+    reg [31:0] ms_csr_wdata_reg;
+    reg ms_csr_forward_enable_reg;
+    always @(posedge clock) begin
+        if(reset) begin
+            ms_csr_wdata_reg <= 0;
+            ms_csr_forward_enable_reg <= 0;
+        end else begin
+            ms_csr_wdata_reg <= ms_csr_wdata;
+            ms_csr_forward_enable_reg <= ms_csr_forward_enable;
+        end
+    end
+
     reg [31:0] es_forward_data_reg;
     reg es_forward_enable_reg;
     always @(posedge clock) begin
