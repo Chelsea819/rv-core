@@ -204,25 +204,45 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.idu_valid_i           	( idu_valid_o            ),
 
 
-		.branch_request_i ( if_branch_request_i ),
-		.branch_target_i  ( if_branch_target_i  ),
-		.branch_flag_i    ( if_branch_type_i    ),
+		
 		.ebreak_flag_i    ( idu_ebreak_flag_o    ),
 		.jmp_flag_i  	  ( if_jmp_flag_i  ),
 		.jmp_target_i     ( if_jmp_target_i    ),
 		.csr_jmp_i     	  (idu_csr_flag_o[1]   ),
 		// .csr_jmp_i     	  ( ex_csr_flag_i[2]  ),
 		.csr_pc_i         ( idu_csr_rdata_o      ),
-		// .csr_mepc_pc_i         ( csr_mepc_pc_o      ),
-
 		.if_inst_o        	( ifu_inst_o         ),
 		.if_pc_o               	( ifu_pc_o           ),
+		// .csr_mepc_pc_i         ( csr_mepc_pc_o      ),
+
+		.idu_flush_i        	( if_flush_i        ),
+		.idu_flush_pc_i         ( if_flush_pc_i           ),
+		
+		// .bpu_inst_o        	( if_flush_i        ),
+		// .bpu_pc_o         ( if_flush_pc_i           ),
+		.bpu_pc_predict_i        	( bpu_pc_predict_o        ),
+		.bpu_valid_i         ( bpu_valid_o           ),
 
 		.out_paddr    		( icache_addr_r_addr     ),
 		.out_psel   		( icache_addr_r_sel    ),
 		.out_pready   		( icache_r_ready    ),
 		.out_prdata         ( icache_r_data          )
 	);
+
+	// output declaration of module ysyx_23060025_ifu_bpu
+	wire [ADDR_LEN-1:0] bpu_pc_predict_o;
+	wire bpu_valid_o;
+	
+	ysyx_23060025_ifu_bpu #(
+		.ADDR_WIDTH 	(32  ),
+		.DATA_WIDTH 	(32  ))
+	u_ysyx_23060025_ifu_bpu(
+		.bpu_inst_i       	(ifu_inst_o        ),
+		.bpu_pc_i         	(ifu_pc_o          ),
+		.bpu_pc_predict_o 	(bpu_pc_predict_o  ),
+		.bpu_valid_o      	(bpu_valid_o       )
+	);
+	
 
 	// ysyx_23060025_IFU #(
 	// 	.ADDR_WIDTH       ( 32 ),
@@ -325,6 +345,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire 	[31:0]			idu_csr_rdata_o ;
 	wire 					ds_busy ;
 
+	wire 					if_flush_i      ;
+	wire 	[31:0]			if_flush_pc_i ;
+
 	 wire  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus;
     wire  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus;
 	ysyx_23060025_id_stage ysyx_23060025_decoder(
@@ -388,11 +411,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.reg1_addr_o					(reg_raddr1_i),
 		.reg2_addr_o					(reg_raddr2_i),
-		.branch_flag_o					(if_branch_request_i),
-		.branch_type_o					(if_branch_type_i),
-		.branch_target_o				(if_branch_target_i),
 		.jmp_flag_o						(if_jmp_flag_i),
 		.jmp_target_o					(if_jmp_target_i),
+		.ds_to_ex_bpu_flush_o			(if_flush_i),
+		.ds_to_ex_flush_pc_o			(if_flush_pc_i),
 		
 		.csr_raddr_o						(csr_raddr_i),
 		.csr_waddr_o						(csr_waddr_i)

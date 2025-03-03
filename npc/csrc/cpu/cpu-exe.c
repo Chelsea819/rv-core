@@ -180,6 +180,11 @@ extern "C" void pc_node_init(int pc, int dnpc){
   write_index = (write_index + 1) % PC_FIFO_LEN;
 }
 
+extern "C" void pc_node_cancel(){
+  write_index = (write_index + PC_FIFO_LEN - 1) % PC_FIFO_LEN; 
+  // printf("pc_node_cancel!--dnpc: 0x%08x\n", pc_write[write_index].dnpc);
+}
+
 void pc_get(){
   if(pc_read[read_index].pc == 0x30000000 - 4){
     read_index = (read_index + 1) % PC_FIFO_LEN;

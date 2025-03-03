@@ -15,6 +15,8 @@ module ysyx_23060025_id_stage(
 	output									      ds_ready_go_o	        ,
 	output									      ds_allowin_o	        ,
 	output									      ds_to_ex_valid_o	        ,
+    output                                        ds_to_ex_bpu_flush_o,
+    output           [31:0]                       ds_to_ex_flush_pc_o,
 
     //from es forward path
     input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
@@ -50,9 +52,6 @@ module ysyx_23060025_id_stage(
     output          [4:0]                         reg2_addr_o               ,
     output                                        reg1_ren_o               ,
     output                                        reg2_ren_o               ,
-    output                                        branch_flag_o             ,
-    output                                        branch_type_o             ,
-    output          [31:0]                        branch_target_o           ,
     output          [1:0]                         store_type_o              ,
     output          [2:0]                         load_type_o              ,
     output                                        jmp_flag_o                ,
@@ -367,17 +366,8 @@ module ysyx_23060025_id_stage(
                         | {2{aluop2_sel_imm}} & `ALU_SEL2_IMM
                         | {2{aluop2_sel_4}} & `ALU_SEL2_4;
 
-    // assign branch_type_o = {3{rv32_beq}} & `BRANCH_BEQ 
-    //                     | {3{rv32_bne}} & `BRANCH_BNE 
-    //                     | {3{rv32_blt}} & `BRANCH_BLT 
-    //                     | {3{rv32_bge}} & `BRANCH_BGE 
-    //                     | {3{rv32_bltu}} & `BRANCH_BLTU 
-    //                     | {3{rv32_bgeu}} & `BRANCH_BGEU ;
-
-    assign branch_type_o = opcode_B_branch;
-
     wire [31:0] trans_src1 = rv32_jalr ? reg1_o : pc_i;
-    wire [31:0] trans_src2 = imm_o;
+    wire [31:0] trans_src2 = opcode_B_branch & ~branch_flag ? 32'd4 : imm_o;
 
     wire [31:0] trans_target_o = trans_src1 + trans_src2;
 
@@ -475,7 +465,6 @@ module ysyx_23060025_id_stage(
 
     // output 
     assign pc_o = pc_i;
-    assign branch_target_o = trans_target_o;
     
     assign csr_waddr_o = (rv32_ecall ? `CSR_MEPC_ADDR : csr_addr);
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);
@@ -501,13 +490,17 @@ wire banch_blt_res = (reg1_signed < reg2_signed);
 wire banch_bne_res = (reg1_o != reg2_o);
 wire banch_beq_res = (reg1_o == reg2_o);
 
-assign branch_flag_o = rv32_beq & banch_beq_res
+wire branch_flag = rv32_beq & banch_beq_res
                     | rv32_bne & banch_bne_res
                     | rv32_blt & banch_blt_res
                     | rv32_bge & banch_bge_res
                     | rv32_bltu & banch_bltu_res
                     | rv32_bgeu & banch_bgeu_res;
-    
+// guess wrong
+assign ds_to_ex_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
+
+assign ds_to_ex_flush_pc_o = trans_target_o;
+
 `ifdef N_YOSYS_STA_CHECK
     `ifdef PERFORMANCE_COUNTER
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
@@ -536,6 +529,8 @@ assign branch_flag_o = rv32_beq & banch_beq_res
         //     fs_to_ds_bus_r <= fs_to_ds_bus;
         // end
     end
+
+    // idu deal with bpu result 
 
 
 endmodule

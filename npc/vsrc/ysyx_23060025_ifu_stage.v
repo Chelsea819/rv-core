@@ -12,52 +12,57 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									reset				,
     // hand signal
 
-	// ifu ifu_valid_o
-	// output									ifu_valid_o	        ,
-	// input									idu_ready_i	        ,
+	// ifu and idu interface
 	input									idu_valid_i	        ,
 	input									ds_allowin_i	    ,
 	output									fs_to_ds_valid_o	,
 	
 
-    // refresh if_pc_o
-	input									branch_request_i,	
-	input		[ADDR_WIDTH - 1:0]			branch_target_i	,
-	input									branch_flag_i	,
+    // from idu to ifu
 	input									ebreak_flag_i	,
 	input                                   jmp_flag_i      ,
     input       [31:0]                   	jmp_target_i    ,
 	input									csr_jmp_i	    ,
 	input		[ADDR_WIDTH - 1:0]			csr_pc_i	    ,
+	input									idu_flush_i	    ,
+	input		[ADDR_WIDTH - 1:0]			idu_flush_pc_i  ,
 
-    // get instruction
-    output 		[DATA_WIDTH - 1:0]			if_inst_o	,
+    // from ifu to idu
+    output 		[DATA_WIDTH - 1:0]			if_inst_o		,
 	output 		[ADDR_WIDTH - 1:0]			if_pc_o			,
 
-	// IFU-AXI
-	// Addr Read
+	// from ifu to bpu
+	// output 		[DATA_WIDTH - 1:0]			bpu_inst_o,
+	// output 		[ADDR_WIDTH - 1:0]			bpu_pc_o,
+	input 		[ADDR_WIDTH - 1:0]			bpu_pc_predict_i,
+	input 									bpu_valid_i,
+
+	// from ifu to cache
 	output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
 	output			                		out_psel,
-
-	// Read data
 	input		                			out_pready	,	// icache read data ready
-	input	[31:0]	                		out_prdata	// icache read data
+	input		[31:0]	                	out_prdata	// icache read data
 );
-	wire		[ADDR_WIDTH - 1:0]	        pc_plus_4	;
-	// reg 		[DATA_WIDTH - 1:0]			out_prdata	;
 
 `ifdef N_YOSYS_STA_CHECK
 
 	import "DPI-C" function void pc_node_init(int pc, int dnpc);
+	import "DPI-C" function void pc_node_cancel();
 	always @(posedge clock) begin
 		if(reset)begin
 		end
-		else if(next_state_fs && ~con_state_fs) begin
+		else if(next_state_fs && ~con_state_fs && ~con_fs_flush) begin
 			pc_node_init(fs_pc, nextpc);
-		end else if(ebreak_flag_i) begin
+		end  else if(ebreak_flag_i) begin
 			pc_node_init(fs_pc, nextpc);
 		end
-			
+
+		if(reset)begin
+		end
+		else if(con_state_fs && idu_flush && ~con_fs_flush) begin
+			pc_node_cancel();
+			pc_node_init(fs_pc, idu_flush_pc_i);
+		end	
 	end
 	// 检测到ebreak
     // import "DPI-C" function void ifebreak_func(int inst);
@@ -108,7 +113,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// pre IFU stage
 
-	// assign out_psel = (fs_allowin && !pfs_excp && !tlb_excp_lock_pc || flush_sign || btb_pre_error_flush) && !(idle_flush || idle_lock);
 
 	reg con_state_fs;	// 0-pre, 1-ifu
 	reg next_state_fs;
@@ -119,8 +123,13 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			con_state_fs <= next_state_fs;
 		end
 	end
-
-	assign next_state_fs = con_state_fs ? ~fs_allowin : to_fs_valid & ~ebreak_flag_i;
+	/* con_state_fs -> fs_allowin -> 1 -> preIFU
+									-> 0 -> fs
+		con_state_pre_ifu -> to_fs_valid & flush & ～flush_reg(意味着 没被处理过得flush信号) -> fs
+							-> to_fs_valid & ~ebreak_flag_i -> fs	
+	*/
+	assign next_state_fs = con_state_fs ? ~fs_allowin : 
+											to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg);
 	
 	assign out_psel = con_state_fs && next_state_fs && ~fs_ready_go;	// 选中icache
 	// assign out_paddr = nextpc;
@@ -134,28 +143,52 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 
 	// id得到结果 or id not busy
-	wire to_fs_valid = idu_valid_i | ds_allowin_i;
+	wire to_fs_valid = bpu_valid_i | idu_valid_i | ds_allowin_i;
 
-	assign pc_plus_4 = fs_pc + 32'b100;
-	wire [31:0] nextpc = (branch_flag_i & branch_request_i) ? branch_target_i : 
-							jmp_flag_i 						? jmp_target_i : 
-							csr_jmp_i 						? csr_pc_i : 
-							pc_plus_4;
+	// wire [31:0] nextpc = (branch_flag_i & branch_request_i) ? branch_target_i : 
+	// 						jmp_flag_i 						? jmp_target_i : 
+	// 						csr_jmp_i 						? csr_pc_i : 
+	// 						pc_plus_4;
 
+	// TODO: idu_flush_valid
+	wire idu_flush = idu_flush_i & idu_valid_i;
+	wire [31:0] nextpc = idu_flush | con_fs_flush ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
+						 csr_jmp_i 	 ? csr_pc_i : 
+						 jmp_flag_i  ? jmp_target_i : 
+						bpu_pc_predict_i;
+	reg flush_reg;
+	always @(posedge clock) begin
+		if(reset) begin
+			flush_reg <= 0;
+		end else if(~con_state_fs && to_fs_valid) begin
+			flush_reg <= idu_flush;
+		end
+	end
 	// IFU stage
 	// 1. 握手相关的信号
 	reg [31:0] fs_pc;
 	
 	// wire fs_ready_go    = out_pready || inst_buff_enable;
-	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
-	wire fs_allowin     = fs_ready_go && ds_allowin_i;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	wire fs_ready_go    = ~((idu_flush | con_fs_flush) & ~flush_reg) && (out_pready || inst_buff_enable);			// 当前指令准备好传递，inst第一个有效周期开始拉高
+	reg con_fs_flush;
+	always @(posedge clock) begin
+		if(reset) begin
+			con_fs_flush <= 0;
+		end else if(con_state_fs & idu_flush & ~flush_reg) begin
+			con_fs_flush <= 1;
+		end else if(~con_state_fs & next_state_fs) begin
+			con_fs_flush <= 0;
+		end
+	
+	end
+	wire fs_allowin     = fs_ready_go && ds_allowin_i || (con_fs_flush | idu_flush) & out_pready;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
 	assign fs_to_ds_valid_o =  fs_ready_go;
 
 	always @(posedge clock) begin
 		if (reset) begin
 			fs_pc        <= `PC_RESET_VAL - 4;  //trick: to make nextpc be 0x1c000000 during reset 
 		end
-		else if (~con_state_fs && to_fs_valid & need_stall) begin
+		else if (~con_state_fs && to_fs_valid) begin
 			fs_pc        <= nextpc;
 		end
 	end
@@ -183,5 +216,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// 给下一级使用的寄存器：inst/pc
 	assign if_inst_o = fs_inst;
 	assign if_pc_o = fs_pc;
+
 
 endmodule
