@@ -51,15 +51,16 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	always @(posedge clock) begin
 		if(reset)begin
 		end
+		// 1. pre ifu flush --(ok)--> ifu -> ok
+		// 2. pre -> ifu flush(cancel and init) ----> pre ifu --(ok)--> ifu -> ok
 		else if(next_state_fs && ~con_state_fs && ~con_fs_flush) begin
 			pc_node_init(fs_pc, nextpc);
 		end  else if(ebreak_flag_i) begin
 			pc_node_init(fs_pc, nextpc);
 		end
-
 		if(reset)begin
 		end
-		else if(con_state_fs && idu_flush && ~con_fs_flush) begin
+		else if(~con_fs_flush_reg & con_fs_flush) begin
 			pc_node_cancel();
 			pc_node_init(fs_pc, idu_flush_pc_i);
 		end	
@@ -94,6 +95,15 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
 	import "DPI-C" function void pre_ifu_counter_update();
+	reg con_fs_flush_reg;
+	always @(posedge clock) begin
+		if(reset) begin
+			con_fs_flush_reg <= 0;
+		end else begin
+			con_fs_flush_reg <= con_fs_flush;
+		end
+	
+	end
 	always @(posedge clock) begin
 		if(reset) begin
 			
@@ -152,10 +162,14 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// TODO: idu_flush_valid
 	wire idu_flush = idu_flush_i & idu_valid_i;
+	// idu_flush-》 pre刚好碰到valid flush
+	// con_fs_flush -》 ifu->pre ifu->ifu
 	wire [31:0] nextpc = idu_flush | con_fs_flush ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
 						 csr_jmp_i 	 ? csr_pc_i : 
 						 jmp_flag_i  ? jmp_target_i : 
 						bpu_pc_predict_i;
+
+	// 防止id valid拉低，对flush信号进行暂时存储
 	reg flush_reg;
 	always @(posedge clock) begin
 		if(reset) begin
@@ -164,6 +178,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			flush_reg <= idu_flush;
 		end
 	end
+
 	// IFU stage
 	// 1. 握手相关的信号
 	reg [31:0] fs_pc;
@@ -179,9 +194,8 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end else if(~con_state_fs & next_state_fs) begin
 			con_fs_flush <= 0;
 		end
-	
 	end
-	wire fs_allowin     = fs_ready_go && ds_allowin_i || (con_fs_flush | idu_flush) & out_pready;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || (con_fs_flush & out_pready);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
 	assign fs_to_ds_valid_o =  fs_ready_go;
 
 	always @(posedge clock) begin

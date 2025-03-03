@@ -789,7 +789,7 @@ static void statistic()
     printf("IPC                        = %f inst/cycle  \n", (float)g_nr_guest_inst / clk_cycle); 
     printf("CPI                        = %f cycle/inst  \n", (float)clk_cycle / g_nr_guest_inst); 
 
-    printf("pre_ifu_delay              = %lu\tcycle --[%f\t cycle/inst]\n", pre_ifu_delay, (float)pre_ifu_delay/ifu_p_counter); 
+    printf("pre_ifu_delay              = %lu\tcycle --[%f\t cycle/inst]\n", pre_ifu_delay, (float)pre_ifu_delay/g_nr_guest_inst); 
     printf("ifu_p_counter              = %lu\tinst\n", ifu_p_counter); 
     printf("lsu_p_counter              = %lu\tinst\n", lsu_p_counter); 
     printf("lsu_avg_delay_counter      = %f\tcycle\n", (float)lsu_delay_counter/lsu_p_counter); 
