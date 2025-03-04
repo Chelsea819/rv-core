@@ -82,9 +82,13 @@ uint64_t idu_state_trans_p_counter = 0;
 uint64_t idu_fence_p_counter = 0;
 
 bool bootloader_ok = false;
+
+// remove bootloader stage
 void check_if_bootloader(){
-  if(R(5) != 0) {
+  if(bootloader_ok) return;
+  if(R(5) == 23060025) {
     bootloader_ok = true;
+    printf("finish bootloader: dnpc [0x%08x]\n",cpu.pc);
   }
 }
 
