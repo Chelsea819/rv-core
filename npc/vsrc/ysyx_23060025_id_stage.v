@@ -3,16 +3,14 @@
 module ysyx_23060025_id_stage(
     input									      clock				        ,
     input									      reset				        ,
-    input           [31:0]                        inst_i                    ,
+    
     input           [31:0]                        reg1_data_i               ,
     input           [31:0]                        reg2_data_i               ,
     input           [31:0]                        csr_rdata_i	            ,
-    input           [31:0]                        pc_i                      ,
-
+    
     // ifu_idu
     input                                         fs_to_ds_valid_i               ,
 	output	reg							          ds_valid_o	        ,
-	output									      ds_ready_go_o	        ,
 	output									      ds_allowin_o	        ,
 	output									      ds_to_ex_valid_o	        ,
     output                                        ds_to_ex_bpu_flush_o,
@@ -22,13 +20,7 @@ module ysyx_23060025_id_stage(
     input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
     input  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus,
     input  [`WS_TO_DS_FORWARD_BUS -1:0]             ws_to_ds_forward_bus,
-
-    input                                         conflict_id_nop_i         ,
-    input           [31:0]                        conflict_reg_bypass_data_i    ,
-    input           [31:0]                        conflict_csr_bypass_data_i    ,
-    input                                         conflict_reg0_i           ,
-    input                                         conflict_reg1_i           ,
-    input                                         conflict_csr_i           ,
+    input  [`FS_TO_DS_DATA_BUS -1:0]                fs_to_ds_forward_bus,
 
     // idu_exu
     input                                         es_allowin_i               ,
@@ -50,8 +42,7 @@ module ysyx_23060025_id_stage(
     output	        [4:0]		                  wreg_o                    ,
     output          [4:0]                         reg1_addr_o               ,
     output          [4:0]                         reg2_addr_o               ,
-    output                                        reg1_ren_o               ,
-    output                                        reg2_ren_o               ,
+    
     output          [1:0]                         store_type_o              ,
     output          [2:0]                         load_type_o              ,
     output                                        jmp_flag_o                ,
@@ -64,6 +55,21 @@ module ysyx_23060025_id_stage(
     output          [2:0]                         csr_flag_o                ,
     output          [31:0]                        imm_o         
 );
+    wire  [31:0]   pc_i   ;
+    wire  [31:0]   inst_i ;
+    
+    reg  [`FS_TO_DS_DATA_BUS -1:0]   fs_to_ds_forward_bus_reg ;
+    always @(posedge clock) begin
+        if(reset) begin
+            fs_to_ds_forward_bus_reg <= 0;
+        end else if(ds_allowin_o & fs_to_ds_valid_i) begin
+            fs_to_ds_forward_bus_reg <= fs_to_ds_forward_bus;
+        end
+    end
+
+    assign {inst_i, pc_i} = fs_to_ds_forward_bus_reg;
+    wire     reg1_ren  ;
+    wire     reg2_ren  ;
     // 1. opcode match
     //  1.1 bit match
     //      1.1.1 opcode_1_0
@@ -453,14 +459,14 @@ module ysyx_23060025_id_stage(
                                         ((csr_raddr_o == ws_csr_waddr) && ws_csr_wen && id_csr_ren) ? ws_csr_wdata :
                                                                                                                 csr_rdata_i;
 
-    assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable} && reg1_ren_o) ? {es_dep_need_stall, es_forward_data} :
-                                        ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable} && reg1_ren_o) ? {{ms_dep_need_stall}, ms_forward_data} :
-                                        ((reg1_addr_o == ws_forward_reg) && ws_forward_enable && reg1_ren_o) ? {1'b0, ws_forward_data} :
+    assign {rf1_forward_stall, reg1_o} = ((reg1_addr_o == es_forward_reg) && {es_forward_enable} && reg1_ren) ? {es_dep_need_stall, es_forward_data} :
+                                        ((reg1_addr_o == ms_forward_reg) && {ms_forward_enable} && reg1_ren) ? {{ms_dep_need_stall}, ms_forward_data} :
+                                        ((reg1_addr_o == ws_forward_reg) && ws_forward_enable && reg1_ren) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg1_data_i}; 
 
-    assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable} && reg2_ren_o) ? {es_dep_need_stall, es_forward_data} :
-                                        ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable} && reg2_ren_o) ? {{ms_dep_need_stall}, ms_forward_data} :
-                                        ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren_o) ? {1'b0, ws_forward_data} :
+    assign {rf2_forward_stall, reg2_o} = ((reg2_addr_o == es_forward_reg) && {es_forward_enable} && reg2_ren) ? {es_dep_need_stall, es_forward_data} :
+                                        ((reg2_addr_o == ms_forward_reg) && {ms_forward_enable} && reg2_ren) ? {{ms_dep_need_stall}, ms_forward_data} :
+                                        ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg2_data_i};
 
     // output 
@@ -470,8 +476,8 @@ module ysyx_23060025_id_stage(
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);
    
 
-    assign reg1_ren_o = aluop1_sel_reg1 | opcode_I_jalr | opcode_B_branch | rv32_csrrs | rv32_csrrw;
-    assign reg2_ren_o = aluop2_sel_reg2 | opcode_S_store | opcode_B_branch;
+    assign reg1_ren = aluop1_sel_reg1 | opcode_I_jalr | opcode_B_branch | rv32_csrrs | rv32_csrrw;
+    assign reg2_ren = aluop2_sel_reg2 | opcode_S_store | opcode_B_branch;
     
 // controller look-up lut
 // inst: R-type: wd_o aluop_o alusel_o

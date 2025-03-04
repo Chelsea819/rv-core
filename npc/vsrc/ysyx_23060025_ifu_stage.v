@@ -28,8 +28,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input		[ADDR_WIDTH - 1:0]			idu_flush_pc_i  ,
 
     // from ifu to idu
-    output 		[DATA_WIDTH - 1:0]			if_inst_o		,
-	output 		[ADDR_WIDTH - 1:0]			if_pc_o			,
+	output 		[`FS_TO_DS_DATA_BUS - 1:0]	if_to_id_bqu_bus_o,
 
 	// from ifu to bpu
 	// output 		[DATA_WIDTH - 1:0]			bpu_inst_o,
@@ -80,7 +79,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
     // always @(*)
     //     ifebreak_func(out_prdata);
 
-	// TODO: 目前只有 lui I-addi/slti/sltiu/xori/ori/andi/slli/srli/srai R 
 	wire	inst_invalid = ~((out_prdata[6:0] == `TYPE_U_LUI_OPCODE) | // lui
 					(out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
 					(out_prdata[6:0] == `TYPE_J_JAL_OPCODE) | 	 					     //jal
@@ -306,8 +304,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	end
 
 	// 给下一级使用的寄存器：inst/pc
-	assign if_inst_o = fs_inst;
-	assign if_pc_o = fs_pc;
+	assign if_to_id_bqu_bus_o = {fs_inst, fs_pc};
 
 
 endmodule
