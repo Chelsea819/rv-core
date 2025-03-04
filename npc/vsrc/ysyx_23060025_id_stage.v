@@ -482,20 +482,14 @@ module ysyx_23060025_id_stage(
 wire signed [31:0] reg1_signed = $signed(reg1_o);
 wire signed [31:0] reg2_signed = $signed(reg2_o);
 
-// 分支类型与比较结果
-wire banch_bgeu_res = (reg1_o >= reg2_o);
-wire banch_bltu_res = (reg1_o < reg2_o);
-wire banch_bge_res = (reg1_signed >= reg2_signed);
-wire banch_blt_res = (reg1_signed < reg2_signed);
-wire banch_bne_res = (reg1_o != reg2_o);
-wire banch_beq_res = (reg1_o == reg2_o);
 
-wire branch_flag = rv32_beq & banch_beq_res
-                    | rv32_bne & banch_bne_res
-                    | rv32_blt & banch_blt_res
-                    | rv32_bge & banch_bge_res
-                    | rv32_bltu & banch_bltu_res
-                    | rv32_bgeu & banch_bgeu_res;
+
+assign branch_flag = rv32_beq ? reg1_o == reg2_o :
+                    rv32_bne    ? reg1_o != reg2_o  :   
+                    rv32_blt    ? reg1_signed < reg2_signed  :   
+                    rv32_bge    ? reg1_signed >= reg2_signed  :   
+                    rv32_bltu   ? reg1_o < reg2_o :       
+                    rv32_bgeu   ? reg1_o >= reg2_o : 0;
 // guess wrong
 assign ds_to_ex_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
 

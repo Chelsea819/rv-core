@@ -429,12 +429,12 @@ wire banch_blt_res = (reg1_signed < reg2_signed);
 wire banch_bne_res = (reg1_o != reg2_o);
 wire banch_beq_res = (reg1_o == reg2_o);
 
-assign branch_flag_o = rv32_beq & banch_beq_res
-                    | rv32_bne & banch_bne_res
-                    | rv32_blt & banch_blt_res
-                    | rv32_bge & banch_bge_res
-                    | rv32_bltu & banch_bltu_res
-                    | rv32_bgeu & banch_bgeu_res;
+assign branch_flag_o = rv32_beq ? banch_beq_res :
+                    rv32_bne    ? banch_bne_res  :   
+                    rv32_blt    ? banch_blt_res  :   
+                    rv32_bge    ? banch_bge_res  :   
+                    rv32_bltu   ? banch_bltu_res :       
+                    rv32_bgeu   ? banch_bgeu_res : 0;
 
     reg			[1:0]			        	con_state	;
 	reg			[1:0]			        	next_state	;
