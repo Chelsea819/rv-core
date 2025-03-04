@@ -15,6 +15,13 @@
 #define OPCODE_JALR 0b1100111
 #define PC_FIFO_LEN 10
 
+#define CSR_MCAUSE dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mcause_r
+#define CSR_MEPC  dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mepc_r
+#define CSR_MSTATUS  dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mstatus_r
+#define CSR_MTVEC   dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mtvec_r
+#define CSR_MVENTORID  dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mvendorid_r
+#define CSR_MARCHID dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__marchid_r
+
 word_t expr(char *e, bool *success);
 Decode s;
 
@@ -74,33 +81,41 @@ uint64_t idu_csr_p_counter = 0;
 uint64_t idu_state_trans_p_counter = 0;
 uint64_t idu_fence_p_counter = 0;
 
+bool bootloader_ok = false;
+void check_if_bootloader(){
+  if(R(5) != 0) {
+    bootloader_ok = true;
+  }
+}
+
 // 当前执行的指令是哪种指令
 int type_flag[INST_TYPE_BUFFER] = {0};
 // 每种指令运行的周期总数
 uint64_t inst_type_cycle[INST_TYPE_NUM] = {0};
 
 extern "C" void ifu_p_counter_update(){
-  ifu_p_counter ++;
+  if(bootloader_ok) 
+    ifu_p_counter ++;
 }
 extern "C" void pre_ifu_counter_update(){
-  pre_ifu_delay ++;
+  if(bootloader_ok) pre_ifu_delay ++;
 }
 
 extern "C" void data_relation_inst_update(){
-  data_relation_inst ++;
+  if(bootloader_ok) data_relation_inst ++;
 }
 extern "C" void data_relation_delay_update(){
-  data_relation_delay ++;
+  if(bootloader_ok) data_relation_delay ++;
 }
 
 extern "C" void exu_p_counter_update(){
-  exu_p_counter ++;
+  if(bootloader_ok) exu_p_counter ++;
 }
 extern "C" void lsu_p_counter_update(){
-  lsu_p_counter ++;
+  if(bootloader_ok) lsu_p_counter ++;
 }
 extern "C" void lsu_delay_counter_update(){
-  lsu_delay_counter ++;
+  if(bootloader_ok) lsu_delay_counter ++;
 }
 
 #define TYPE_R_OPCODE       0b0110011
@@ -118,7 +133,7 @@ extern "C" void lsu_delay_counter_update(){
 
 
 extern "C" void idu_p_counter_update(char opcode, char func3){
-  
+  if(!bootloader_ok) return;
   switch (opcode) {
     // 计算
     case TYPE_I_BASE_OPCODE:
@@ -419,12 +434,12 @@ static void trace_and_difftest(){
   for(int i = 0; i < RISCV_GPR_NUM; i ++){
     cpu.gpr[i] = R(i);
   }
-  cpu.mcause = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mcause_r;
-  cpu.mepc = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mepc_r;
-  cpu.mstatus = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mstatus_r;
-  cpu.mtvec = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mtvec_r;
-  cpu.mventorid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__mvendorid_r;
-  cpu.marchid = dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_CSR__DOT__marchid_r;
+  cpu.mcause = CSR_MCAUSE;
+  cpu.mepc = CSR_MEPC;
+  cpu.mstatus = CSR_MSTATUS;
+  cpu.mtvec = CSR_MTVEC;
+  cpu.mventorid = CSR_MVENTORID;
+  cpu.marchid = CSR_MARCHID;
 //  printf("trace_and_difftest diff.pc=%x diff.dnpc=%x\n",diff.pc,diff.dnpc);
  IFDEF(CONFIG_DIFFTEST, difftest_step(diff.pc, diff.dnpc));
 #endif
@@ -501,7 +516,7 @@ void per_clk_cycle(){
     #endif
     
   }while(dut->clock == 1);
-  clk_cycle += 1;
+  if(bootloader_ok) clk_cycle += 1;
   // printf("clk = %d\n",dut->clock);
 }
 
@@ -510,6 +525,7 @@ void per_clk_cycle(){
 void per_inst_cycle(){
   // printf("dut.pc = [0x%08x]!\n",cpu.pc);
   uint32_t inst_cycle = clk_cycle;
+  check_if_bootloader();
   do {
     // printf("dut.pc = [0x%08x]!\n",cpu.pc);
     nvboard_update();
@@ -518,6 +534,8 @@ void per_inst_cycle(){
   }while(inst_finish == 0);
   // printf("finshed!\n");
   inst_finish = 0;
+
+  if(!bootloader_ok) return;
   size_t i = 0;
   size_t idx = type_flag[inst_type_buff_rptr];
   if(idx == 0) {dut->final();
@@ -699,7 +717,7 @@ static void execute(uint64_t n) {
   for (; n > 0; n--)
   {
     exec_once();
-    g_nr_guest_inst++;  //记录客户指令的计时器
+    if(bootloader_ok) g_nr_guest_inst++;  //记录客户指令的计时器
     //由于rtl对reg的更改是在下一个时钟周期上升沿，而nemu对reg的更改是即时的
     //所以这里要整个往后延迟一个周期
     #ifdef CONFIG_DIFFTEST
@@ -721,6 +739,7 @@ static void execute(uint64_t n) {
   uint64_t cache_hit = 0;
 
   void cache_cycle_statistic(char state){
+    if(!bootloader_ok) return;
     switch (state){
       // STATE_CHECK STATE_PASS
       case 0b001: // STATE_CHECK
@@ -747,7 +766,8 @@ static void execute(uint64_t n) {
   }
 
   void cache_hit_statistic(){
-    cache_hit ++;
+    if(!bootloader_ok) return;
+      cache_hit ++;
   }
 
 

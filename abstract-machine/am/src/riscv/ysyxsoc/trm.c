@@ -128,12 +128,13 @@ void _trm_init() {
     );
     **/
   
-  // uint32_t ventorid = 0;
-  // uint32_t marchid = 0;
+  // uint32_t ventorid = 0x79737978;
+  // uint32_t marchid = 0x23060025;
 
   // asm volatile("csrrs %0, mvendorid, x0" : "=r" (ventorid));
   // asm volatile("csrrs %0, marchid, x0" : "=r" (marchid));
 
+  asm volatile("csrr t0, marchid");
   // char vendor_id[5] = {0};
   // for (int i = 0; i < 4; i ++) {
   //   vendor_id[i] = BITS(ventorid, (3-i)*8+7, (3-i)*8);

@@ -336,8 +336,9 @@ module ysyx_23060025_LSU #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	wire addr_sdram = (alu_result_i >= `DEVICE_SDRAM_ADDR_L && alu_result_i <= `DEVICE_SDRAM_ADDR_H);
 	wire addr_psram = (alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
 	wire addr_uart = (alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H);
+	wire addr_chiplink = (alu_result_i >= `DEVICE_CHIPLINK_ADDR_L && alu_result_i <= `DEVICE_CHIPLINK_ADDR_H);
 
-	assign aligned_store = addr_sram | addr_flash | addr_sdram | addr_psram | addr_uart;
+	assign aligned_store = addr_sram | addr_flash | addr_sdram | addr_psram | addr_uart | addr_chiplink;
 
     assign  mem_to_reg = |load_type_i;
 

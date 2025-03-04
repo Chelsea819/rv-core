@@ -470,7 +470,7 @@ module ysyx_23060025_id_stage(
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);
    
 
-    assign reg1_ren_o = aluop1_sel_reg1 | opcode_I_jalr | opcode_B_branch;
+    assign reg1_ren_o = aluop1_sel_reg1 | opcode_I_jalr | opcode_B_branch | rv32_csrrs | rv32_csrrw;
     assign reg2_ren_o = aluop2_sel_reg2 | opcode_S_store | opcode_B_branch;
     
 // controller look-up lut
