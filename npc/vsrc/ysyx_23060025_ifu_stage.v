@@ -53,17 +53,27 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 		// 1. pre ifu flush --(ok)--> ifu -> ok
 		// 2. pre -> ifu flush(cancel and init) ----> pre ifu --(ok)--> ifu -> ok
-		else if(next_state_fs && ~con_state_fs && ~con_fs_flush) begin
+		else if(next_state_fs && ~con_state_fs && ~con_fs_flush_sim) begin
 			pc_node_init(fs_pc, nextpc);
 		end  else if(ebreak_flag_i) begin
 			pc_node_init(fs_pc, nextpc);
 		end
 		if(reset)begin
 		end
-		else if(~con_fs_flush_reg & con_fs_flush) begin
+		else if(~con_fs_flush_reg & con_fs_flush_sim) begin
 			pc_node_cancel();
 			pc_node_init(fs_pc, idu_flush_pc_i);
 		end	
+	end
+	reg con_fs_flush_sim;
+	always @(posedge clock) begin
+		if(reset) begin
+			con_fs_flush_sim <= 0;
+		end else if(con_state_fs & idu_flush & ~flush_reg) begin
+			con_fs_flush_sim <= 1;
+		end else if(~con_state_fs & next_state_fs) begin
+			con_fs_flush_sim <= 0;
+		end
 	end
 	// 检测到ebreak
     // import "DPI-C" function void ifebreak_func(int inst);
@@ -100,7 +110,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		if(reset) begin
 			con_fs_flush_reg <= 0;
 		end else begin
-			con_fs_flush_reg <= con_fs_flush;
+			con_fs_flush_reg <= con_fs_flush_sim;
 		end
 	
 	end
@@ -138,8 +148,24 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		con_state_pre_ifu -> to_fs_valid & flush & ～flush_reg(意味着 没被处理过得flush信号) -> fs
 							-> to_fs_valid & ~ebreak_flag_i -> fs	
 	*/
-	assign next_state_fs = con_state_fs ? ~fs_allowin : 
-											to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg);
+	localparam STATE_PRE_IFU = 0, STATE_IFU = 1;
+	always @(*) begin
+		next_state_fs = con_state_fs;
+		case (con_state_fs)
+			STATE_IFU: begin
+				if(fs_allowin) begin
+					next_state_fs = STATE_PRE_IFU;
+				end
+			end
+			STATE_PRE_IFU: begin
+				if(to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg)) begin
+					next_state_fs = STATE_IFU;
+				end
+			end
+		endcase
+	end
+	// assign next_state_fs = con_state_fs ? ~fs_allowin : 
+	// 										to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg);
 	
 	assign out_psel = con_state_fs && next_state_fs && ~fs_ready_go;	// 选中icache
 	// assign out_paddr = nextpc;
@@ -160,11 +186,10 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// 						csr_jmp_i 						? csr_pc_i : 
 	// 						pc_plus_4;
 
-	// TODO: idu_flush_valid
 	wire idu_flush = idu_flush_i & idu_valid_i;
 	// idu_flush-》 pre刚好碰到valid flush
-	// con_fs_flush -》 ifu->pre ifu->ifu
-	wire [31:0] nextpc = idu_flush | con_fs_flush ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
+	// flush_state_is_busy -》 ifu->pre ifu->ifu
+	wire [31:0] nextpc = idu_flush | flush_state_is_busy ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
 						 csr_jmp_i 	 ? csr_pc_i : 
 						 jmp_flag_i  ? jmp_target_i : 
 						bpu_pc_predict_i;
@@ -184,23 +209,65 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg [31:0] fs_pc;
 	
 	// wire fs_ready_go    = out_pready || inst_buff_enable;
-	wire fs_ready_go    = ~((idu_flush | con_fs_flush) & ~flush_reg) && (out_pready || inst_buff_enable);			// 当前指令准备好传递，inst第一个有效周期开始拉高
-	reg con_fs_flush;
+	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
+	reg pre_flush;
+	reg flush_state_is_busy;
+	reg flush_next_is_busy;
+
+	localparam flush_state_idle = 0, flush_state_busy = 1;
 	always @(posedge clock) begin
 		if(reset) begin
-			con_fs_flush <= 0;
-		end else if(con_state_fs & idu_flush & ~flush_reg) begin
-			con_fs_flush <= 1;
-		end else if(~con_state_fs & next_state_fs) begin
-			con_fs_flush <= 0;
+			flush_state_is_busy <= flush_state_idle;
+		end else begin
+			flush_state_is_busy <= flush_next_is_busy;
 		end
 	end
-	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || (con_fs_flush & out_pready);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
-	assign fs_to_ds_valid_o =  fs_ready_go;
+
+	// preifu flush
+	always @(posedge clock) begin
+		if(reset) begin
+			pre_flush <= 0;
+		end else if(~con_state_fs & idu_flush) begin
+			pre_flush <= 1;
+		end else if(~next_state_fs) begin
+			pre_flush <= 0;
+		end	
+	end
+	// ifu flush
+	reg ifu_flush_counter;
+	always @(posedge clock) begin
+		if(reset | flush_state_is_busy && ~flush_next_is_busy) begin
+			ifu_flush_counter <= 0;
+		end else if((flush_state_is_busy | flush_next_is_busy) && ~next_state_fs) begin
+			ifu_flush_counter <= 1;
+		end
+	end
+	always @(*) begin
+		flush_next_is_busy = flush_state_is_busy;
+		case (flush_state_is_busy)
+			flush_state_idle: begin
+				if(con_state_fs & idu_flush & ~pre_flush) begin
+					flush_next_is_busy = flush_state_busy;
+				end
+			end
+			flush_state_busy: begin
+				if(con_state_fs & ~next_state_fs & ifu_flush_counter) begin
+					flush_next_is_busy = flush_state_idle;
+				end
+			end
+		endcase
+	end
+	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || (flush_state_is_busy & out_pready);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	// fs_to_ds_valid_o
+	/* if flush_state_is_busy valid, 0
+		if ~flush_state_is_busy & flush_next_is_busy valid, 0
+		if flush_state_is_busy & ~flush_next_is_busy, 1
+	 */ 
+	assign fs_to_ds_valid_o =  fs_ready_go && (~(~flush_state_is_busy & flush_next_is_busy) & ~(flush_state_is_busy & flush_next_is_busy));
 
 	always @(posedge clock) begin
 		if (reset) begin
-			fs_pc        <= `PC_RESET_VAL - 4;  //trick: to make nextpc be 0x1c000000 during reset 
+			fs_pc        <= `PC_RESET_VAL_SUB_4;  //trick: to make nextpc be 0x1c000000 during reset 
 		end
 		else if (~con_state_fs && to_fs_valid) begin
 			fs_pc        <= nextpc;

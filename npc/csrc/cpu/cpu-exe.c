@@ -88,7 +88,7 @@ void check_if_bootloader(){
   if(bootloader_ok) return;
   if(R(5) == 23060025) {
     bootloader_ok = true;
-    printf("finish bootloader: dnpc [0x%08x]\n",cpu.pc);
+    // printf("finish bootloader: dnpc [0x%08x]\n",cpu.pc);
   }
 }
 

@@ -1,1 +1,2 @@
 `define PC_RESET_VAL    32'h3000_0000
+`define PC_RESET_VAL_SUB_4    `PC_RESET_VAL - 4
