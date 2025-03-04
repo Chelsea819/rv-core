@@ -114,11 +114,22 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 	
 	end
+	
 	always @(posedge clock) begin
 		if(reset) begin
 			
 		end else if (next_state_fs && ~con_state_fs) begin
 			ifu_p_counter_update();
+		end
+	end
+	import "DPI-C" function void bqu_wrong_counter_update();
+	always @(posedge clock) begin
+		if(reset) begin
+			
+		end else if (pre_flush && ~next_state_fs) begin
+			bqu_wrong_counter_update();
+		end else if (con_state_fs && ~next_state_fs && ~fs_to_ds_valid_o) begin
+			bqu_wrong_counter_update();
 		end
 	end
 	always @(posedge clock) begin

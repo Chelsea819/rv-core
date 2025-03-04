@@ -56,19 +56,21 @@ bool ifbreak = false;
 size_t inst_type_buff_rptr = 0;
 size_t inst_type_buff_wptr = 0;
 
-#define INST_TYPE_NUM       7
+#define INST_TYPE_NUM       8
 
 #define TYPE_MEM            1
 #define TYPE_JMP            2
-#define TYPE_CSR            3
-#define TYPE_STATE_TRANS    4
-#define TYPE_FENCEI         5
-#define TYPE_COUNT          6
+#define TYPE_BRANCH         3
+#define TYPE_CSR            4
+#define TYPE_STATE_TRANS    5
+#define TYPE_FENCEI         6
+#define TYPE_COUNT          7
 
 uint64_t data_relation_inst = 0;
 uint64_t data_relation_delay = 0;
 
 uint64_t ifu_p_counter = 0;
+uint64_t bqu_wrong_counter = 0;
 uint64_t pre_ifu_delay = 0;
 uint64_t lsu_p_counter = 0;
 uint64_t lsu_delay_counter = 0;
@@ -77,6 +79,7 @@ uint64_t exu_p_counter = 0;
 uint64_t idu_count_p_counter = 0;
 uint64_t idu_memory_p_counter = 0;
 uint64_t idu_jmp_p_counter = 0;
+uint64_t idu_branch_p_counter = 0;
 uint64_t idu_csr_p_counter = 0;
 uint64_t idu_state_trans_p_counter = 0;
 uint64_t idu_fence_p_counter = 0;
@@ -101,6 +104,12 @@ extern "C" void ifu_p_counter_update(){
   if(bootloader_ok) 
     ifu_p_counter ++;
 }
+
+extern "C" void bqu_wrong_counter_update(){
+  if(bootloader_ok) 
+    bqu_wrong_counter ++;
+}
+
 extern "C" void pre_ifu_counter_update(){
   if(bootloader_ok) pre_ifu_delay ++;
 }
@@ -156,13 +165,16 @@ extern "C" void idu_p_counter_update(char opcode, char func3){
       break;
 
     // 跳转
-    case TYPE_B_OPCODE:
     case TYPE_J_JAL_OPCODE:
     case TYPE_I_JALR_OPCODE:
       idu_jmp_p_counter ++;
       type_flag[inst_type_buff_wptr] = TYPE_JMP;
       break;
-
+    // 跳转
+    case TYPE_B_OPCODE:
+      idu_branch_p_counter ++;
+      type_flag[inst_type_buff_wptr] = TYPE_BRANCH;
+      break;
     
     case TYPE_I_CSR_OPCODE:
       if (func3 == TYPE_I_ECALL_FUNC3) {
@@ -814,6 +826,7 @@ static void statistic()
     printf("CPI                        = %f cycle/inst  \n", (float)clk_cycle / g_nr_guest_inst); 
 
     printf("pre_ifu_delay              = %lu\tcycle --[%f\t cycle/inst]\n", pre_ifu_delay, (float)pre_ifu_delay/g_nr_guest_inst); 
+    printf("bpu_right_precent          = %f%%\n", (float)(idu_branch_p_counter - bqu_wrong_counter)/idu_branch_p_counter*100); 
     printf("ifu_p_counter              = %lu\tinst\n", ifu_p_counter); 
     printf("lsu_p_counter              = %lu\tinst\n", lsu_p_counter); 
     printf("lsu_avg_delay_counter      = %f\tcycle\n", (float)lsu_delay_counter/lsu_p_counter); 
@@ -821,6 +834,7 @@ static void statistic()
     printf("idu_count_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_count_p_counter, (float)inst_type_cycle[TYPE_COUNT]/idu_count_p_counter, (float)idu_count_p_counter/g_nr_guest_inst*100); 
     printf("idu_memory_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_memory_p_counter, (float)inst_type_cycle[TYPE_MEM]/idu_memory_p_counter, (float)idu_memory_p_counter/g_nr_guest_inst*100); 
     printf("idu_jmp_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_jmp_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_jmp_p_counter, (float)idu_jmp_p_counter/g_nr_guest_inst*100); 
+    printf("idu_branch_p_counter       = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_branch_p_counter, (float)inst_type_cycle[TYPE_JMP]/idu_branch_p_counter, (float)idu_branch_p_counter/g_nr_guest_inst*100); 
     printf("idu_csr_p_counter          = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_csr_p_counter, (float)inst_type_cycle[TYPE_CSR]/idu_csr_p_counter, (float)idu_csr_p_counter/g_nr_guest_inst*100); 
     printf("idu_state_trans_p_counter  = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_state_trans_p_counter, (float)inst_type_cycle[TYPE_STATE_TRANS]/idu_state_trans_p_counter, (float)idu_state_trans_p_counter/g_nr_guest_inst*100); 
     printf("idu_fence_p_counter        = %lu\tinst --\t[%f\t cycle/inst] --\t[%f%%]\n", idu_fence_p_counter, (float)inst_type_cycle[TYPE_FENCEI]/idu_fence_p_counter, (float)idu_fence_p_counter/g_nr_guest_inst*100); 
