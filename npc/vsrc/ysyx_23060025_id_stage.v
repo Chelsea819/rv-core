@@ -20,7 +20,8 @@ module ysyx_23060025_id_stage(
     input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
     input  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus,
     input  [`WS_TO_DS_FORWARD_BUS -1:0]             ws_to_ds_forward_bus,
-    input  [`FS_TO_DS_DATA_BUS -1:0]                fs_to_ds_forward_bus,
+    input  [`FS_TO_DS_DATA_BUS -1:0]                fs_to_ds_bus,
+    output [`DS_TO_ES_DATA_BUS -1:0]                ds_to_es_bus,
 
     // idu_exu
     input                                         es_allowin_i               ,
@@ -33,37 +34,56 @@ module ysyx_23060025_id_stage(
 	// input		[31:0]			            lsu_reg_wdata_i	,
 
     // input                                         exu_ready                 ,
-    output          [3:0]                         aluop_o                   ,
-    output          [3:0]                         alusel_o                  ,
-    output          [31:0]                        pc_o                      ,
-    output          [31:0]                        reg1_o                    ,
-    output          [31:0]                        reg2_o                    ,
-    output	                   		              wd_o                      ,
-    output	        [4:0]		                  wreg_o                    ,
     output          [4:0]                         reg1_addr_o               ,
     output          [4:0]                         reg2_addr_o               ,
     
-    output          [1:0]                         store_type_o              ,
-    output          [2:0]                         load_type_o              ,
+    
     output                                        jmp_flag_o                ,
     output                                        fencei_flag_o             ,
     output                                        ebreak_flag_o             ,
     output          [31:0]                        jmp_target_o              ,
     output          [31:0]                        csr_rdata_o	            ,
     output          [11:0]                        csr_raddr_o                ,
-    output          [11:0]                        csr_waddr_o                ,
-    output          [2:0]                         csr_flag_o                ,
-    output          [31:0]                        imm_o         
+    output                                        csr_flag_o                
 );
     wire  [31:0]   pc_i   ;
     wire  [31:0]   inst_i ;
+    wire  [3:0]                         aluop_o                   ;
+    wire  [3:0]                         alusel_o                  ;
+    wire  [31:0]                        pc_o                      ;
+    wire  [31:0]                        reg1_o                    ;
+    wire  [31:0]                        reg2_o                    ;
+    wire  [31:0]                        imm_o                     ;
+    wire             		            wd_o                      ;
+    wire  [4:0]		                    wreg_o                    ;
+    wire  [1:0]                         store_type_o              ;
+    wire  [2:0]                         load_type_o               ;
+    wire  [11:0]                        csr_waddr_o               ;
     
+    wire [2:0] csr_flag;
+    assign csr_flag_o = csr_flag[1];
+    assign ds_to_es_bus = { reg1_o        ,     
+                            reg2_o      ,
+                            pc_o        ,
+                            aluop_o     ,
+                            alusel_o    ,
+                            imm_o       ,
+                            csr_flag  ,
+                            csr_rdata_o ,
+                            csr_waddr_o ,
+                            wd_o        ,
+                            wreg_o      ,
+                            store_type_o ,
+                            load_type_o  ,
+                            ebreak_flag_o};
+
+
     reg  [`FS_TO_DS_DATA_BUS -1:0]   fs_to_ds_forward_bus_reg ;
     always @(posedge clock) begin
         if(reset) begin
             fs_to_ds_forward_bus_reg <= 0;
         end else if(ds_allowin_o & fs_to_ds_valid_i) begin
-            fs_to_ds_forward_bus_reg <= fs_to_ds_forward_bus;
+            fs_to_ds_forward_bus_reg <= fs_to_ds_bus;
         end
     end
 
@@ -380,7 +400,7 @@ module ysyx_23060025_id_stage(
     assign jmp_flag_o = rv32_jal | rv32_jalr;
     assign jmp_target_o = trans_target_o;
 
-    assign csr_flag_o = {3{rv32_ecall}} & `CSR_ECALL
+    assign csr_flag = {3{rv32_ecall}} & `CSR_ECALL
                         | {3{rv32_mret}} & `CSR_MRET
                         | {3{rv32_csrrw}} & `CSR_CSRRW
                         | {3{rv32_csrrs}} & `CSR_CSRRS;
@@ -442,9 +462,9 @@ module ysyx_23060025_id_stage(
         ws_csr_type
        } = ws_to_ds_forward_bus;
 
-        wire id_csr_ren = csr_flag_o == `CSR_CSRRW 
-                    || csr_flag_o == `CSR_CSRRS
-                    || csr_flag_o == `CSR_MRET;
+        wire id_csr_ren = csr_flag == `CSR_CSRRW 
+                    || csr_flag == `CSR_CSRRS
+                    || csr_flag == `CSR_MRET;
 
 
         wire ws_csr_wen = ws_csr_type == `CSR_CSRRW 
@@ -490,7 +510,7 @@ wire signed [31:0] reg2_signed = $signed(reg2_o);
 
 
 
-assign branch_flag = rv32_beq ? reg1_o == reg2_o :
+wire branch_flag = rv32_beq ? reg1_o == reg2_o :
                     rv32_bne    ? reg1_o != reg2_o  :   
                     rv32_blt    ? reg1_signed < reg2_signed  :   
                     rv32_bge    ? reg1_signed >= reg2_signed  :   
@@ -513,7 +533,7 @@ assign ds_to_ex_flush_pc_o = trans_target_o;
 `endif
 
     assign ds_allowin_o    = !ds_valid_o || ds_ready_go_o && es_allowin_i;
-    assign ds_ready_go_o   = ~rf1_forward_stall & ~rf2_forward_stall;
+    wire ds_ready_go_o   = ~rf1_forward_stall & ~rf2_forward_stall;
     assign ds_to_ex_valid_o = ds_valid_o && ds_ready_go_o;
     always @(posedge clock) begin   //bug1 no reset; branch no delay slot
         if (reset) begin

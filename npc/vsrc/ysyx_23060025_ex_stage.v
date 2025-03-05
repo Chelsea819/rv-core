@@ -8,67 +8,85 @@
 module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	input									      clock				        ,
     input									      reset				        ,
-	input		[DATA_LEN - 1:0]		reg1_i		,
-	input		[DATA_LEN - 1:0]		reg2_i		,
-	input		[DATA_LEN - 1:0]		pc_i		,
-    // input		[DATA_LEN - 1:0]		inst		,
-	input 		[3:0]					alu_control	,
-    input 		[3:0]					alu_sel		, // choose source number
-	input       [DATA_LEN - 1:0]        imm_i		,
-	input       [DATA_LEN - 1:0]        csr_rdata_i	,
-	input  	    [11:0]     				csr_waddr_i		,
-	input 		[2:0]					csr_flag_i	,
-	input		                		wd_i		,
-    input		[4:0]		            wreg_i		,
-	input		[1:0]					store_type_i,
-	input       [2:0]                   load_type_i ,
-	input                               ebreak_flag_i             ,
 
 		//to ds forward path
-    output [`ES_TO_DS_FORWARD_BUS -1:0] es_to_ds_forward_bus,
-    output                              es_to_ds_valid      ,
+    output [`ES_TO_DS_FORWARD_BUS -1:0] 		 es_to_ds_forward_bus,
+	input [`DS_TO_ES_DATA_BUS -1:0]              ds_to_es_bus,
+	output [`ES_TO_MS_DATA_BUS -1:0]             es_to_ms_bus,
 
 	// idu_exu
     input                                         ds_to_ex_valid_i           ,
     output                                        es_allowin_o               ,
 
 	output	reg							          es_valid_o	        ,
-	output									      es_ready_go_o	        ,
     // exu_lsu
     output                                        es_to_lsu_valid_o          ,
-    input                                         lsu_allowin_i               ,
-
-	output                                        ebreak_flag_o             ,
-
+    input                                         lsu_allowin_i               
     // input                                         isu_ready                 ,
-    // output                                        es_allowin_o                 ,
-	output  	    [2:0]                	load_type_o 	,
-	output  	    [1:0]					store_type_o	,
-    output			                		mem_wen_o		,
-	output			[DATA_LEN - 1:0]		mem_wdata_o		,
-    output			                		wd_o			,
-    output		    [4:0]		            wreg_o			,
-	output  	    [DATA_LEN - 1:0]     	csr_wdata_o		,
-	output  	    [11:0]     				csr_waddr_o		,
-	output  	    [2:0]			    	csr_type_o		,
-	output  	    [DATA_LEN - 1:0]     	csr_mcause_o	,
-	output			[DATA_LEN - 1:0]		pc_o			,
-    output			[DATA_LEN - 1:0]		alu_result_o
+    // output                                        es_allowin_o                 ,    	
 );
+	wire			[DATA_LEN - 1:0]		alu_result_o;
+	wire  	    	[DATA_LEN - 1:0]     	csr_wdata_o	;
+	wire es_ready_go_o;
+	wire		[DATA_LEN - 1:0]		reg1_i			;
+	wire		[DATA_LEN - 1:0]		reg2_i			;
+	wire		[DATA_LEN - 1:0]		pc_i			;
+	wire 		[3:0]					alu_control		;
+    wire 		[3:0]					alu_sel			; // choose source number
+	wire        [DATA_LEN - 1:0]        imm_i			;
+	wire 		[2:0]					csr_flag_i		;
+	wire		                		wd_i			;
+    wire		[4:0]		            wreg_i			;
+	wire		[1:0]					store_type_i	;
+	wire        [2:0]                   load_type_i 	;
+	wire                                ebreak_flag_i 	;
+
+	wire        [DATA_LEN - 1:0]        csr_rdata_i		;
+	wire  	    [11:0]     				csr_waddr_i		;
+
+	reg [`DS_TO_ES_DATA_BUS -1:0]       ds_to_es_bus_reg;
+	always @(posedge clock) begin
+		if(reset) begin
+			ds_to_es_bus_reg <= 0;
+		end else if(ds_to_ex_valid_i & es_allowin_o) begin
+			ds_to_es_bus_reg <= ds_to_es_bus;
+		end
+	end
+
+	assign { reg1_i		  ,     
+			reg2_i			,
+			pc_i			,
+			alu_control		,
+			alu_sel			,
+			imm_i			,
+			csr_flag_i		,
+			csr_rdata_i		,
+			csr_waddr_i		,
+			wd_i			,
+			wreg_i			,
+			store_type_i	,
+			load_type_i 	,
+			ebreak_flag_i 	} = ds_to_es_bus_reg;
+	
+	assign es_to_ms_bus = {
+					wd_i, 
+					wreg_i,
+					alu_result_o,
+					|store_type_i,
+					reg2_i,
+					load_type_i,
+					store_type_i,
+					csr_wdata_o,
+					csr_flag_i,
+					csr_waddr_i,
+					csr_mcause_o,
+					ebreak_flag_i
+							};
+
 
 	wire [31:0] src1;
 	wire [31:0] src2;
-	assign wd_o  = wd_i;
-	assign wreg_o  = wreg_i;
-	assign csr_waddr_o = csr_waddr_i;
-	assign mem_wen_o  = |store_type_i;
-	assign mem_wdata_o  = reg2_i;
-	assign load_type_o  = load_type_i;
-	assign store_type_o  = store_type_i;
-	assign pc_o  = pc_i;
-	assign csr_mcause_o  = 32'hb;
-
-	assign ebreak_flag_o = ebreak_flag_i;
+	wire [31:0] csr_mcause_o  = 32'hb;
 
 `ifdef N_YOSYS_STA_CHECK
 	`ifdef PERFORMANCE_COUNTER
@@ -99,8 +117,6 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 							   csr_wdata_o ,
 							   csr_flag_i
                               };
-	assign es_to_ds_valid = es_valid_o;
-
 
 	assign es_allowin_o    = !es_valid_o || es_ready_go_o && lsu_allowin_i;
     assign es_ready_go_o   = 1;
@@ -128,8 +144,6 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	assign csr_wdata_o = {32{csr_cssrw}} & reg1_i 
 				| {32{csr_cssrs}} & csr_csrrs_res  
 				| {32{csr_ecall}} & pc_i;
-
-	assign csr_type_o = csr_flag_i;
 
 	ysyx_23060025_ALU my_alu(
 		.src1						(src1),

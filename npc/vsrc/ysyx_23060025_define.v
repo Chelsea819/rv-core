@@ -9,9 +9,12 @@
 // `define BYPASS_TRACE 1'b1
 
 `define MS_TO_DS_FORWARD_BUS 87
+`define MS_TO_WS_BUS 118
 `define WS_TO_DS_FORWARD_BUS 85
 `define ES_TO_DS_FORWARD_BUS 87
 `define FS_TO_DS_DATA_BUS 32+32
+`define DS_TO_ES_DATA_BUS 195
+`define ES_TO_MS_DATA_BUS 156
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
