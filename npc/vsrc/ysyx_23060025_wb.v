@@ -75,6 +75,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 
 `ifdef N_YOSYS_STA_CHECK
 	reg finish;
+    // register
 	always @(posedge clock) begin
 		if(reset) begin
 			finish <= 0;

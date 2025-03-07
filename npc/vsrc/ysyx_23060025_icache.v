@@ -29,7 +29,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input   	[31:0] 	out_rdata	,
 	output 	         	out_rready	
 );
-	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_ADDR_HAND_SHAK = 3'b010, STATE_LOAD = 3'b011, STATE_UPDATE_REG = 3'b101, STATE_PASS = 3'b100, STATE_FENCE = 3'b111;
+	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_ADDR_HAND_SHAK = 3'b010, STATE_LOAD = 3'b011, STATE_FENCE = 3'b111;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
 	parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
@@ -42,27 +42,11 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire state_check = (con_state == STATE_CHECK);
 	wire state_addr_handshake = (con_state == STATE_ADDR_HAND_SHAK);
 	wire state_load = (con_state == STATE_LOAD);
-	// wire state_update = (con_state == STATE_UPDATE_REG);
-	wire state_pass = (con_state == STATE_PASS);
+	// wire state_pass = (con_state == STATE_PASS);
 	// wire state_fence = (con_state == STATE_FENCE);
 
-	// reg raddr_buff_enable;
-	// reg  [31:0] raddr_buff;
 	wire [31:0]  raddr     = in_paddr;
 
-	//inst read buffer  use for stall situation
-	// always @(posedge clock) begin
-	// 	// fs_ready_go && ds_allowin -> inst往下一级传递，无需buffer
-	// 	if (reset || state_pass) begin	
-	// 		raddr_buff_enable  <= 1'b0;
-	// 	end
-	// 	// 下一级还没准备好接受数据，需要先存到buffer中
-	// 	else if (in_psel) begin
-	// 		raddr_buff <= in_paddr;
-	// 		raddr_buff_enable  <= 1'b1;
-	// 	end
-	// end
-	
 
 	reg	[2:0] con_state;
 	reg	[2:0] next_state;
@@ -95,7 +79,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 		import "DPI-C" function void cache_hit_statistic();
 		always @(posedge clock) begin
-			if (state_check && next_state == STATE_PASS) begin
+			if (state_check && check_hit) begin
 				cache_hit_statistic();
 			end
 		end
@@ -122,7 +106,7 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			end
 			STATE_CHECK: begin
 				if(check_hit) begin
-					next_state = STATE_PASS;
+					next_state = STATE_IDLE;
 				end else begin
 					next_state = STATE_ADDR_HAND_SHAK;
 				end
@@ -136,47 +120,27 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			STATE_LOAD: begin
 				// get data over
 				if(out_rvalid && out_rlast) begin
-					next_state = STATE_UPDATE_REG;
+					next_state = STATE_IDLE;
 				// not get enough data and finish this time
 				end 
-			end
-			STATE_UPDATE_REG: begin
-				next_state = STATE_PASS;
-			end
-			STATE_PASS: begin
-				// 连续的访问请求
-				if(in_psel) begin
-					next_state = STATE_CHECK;
-				end else begin
-					next_state = STATE_IDLE;
-				end
 			end
 			STATE_FENCE: begin
 				next_state = STATE_IDLE;
 			end
 			default: begin
-				
 			end
 		endcase
 	end
 
-	integer i, j;
+	integer j;
 	always @(posedge clock) begin
-		if (reset) begin
-			for (i = 0; i < CACHE_LINE_NUM; i = i + 1) begin
-				cache_reg[i] <= 0; // 使用非阻塞赋值
-			end
-		end else if(state_load && out_rvalid) begin
+		if(out_rvalid) begin
 			cache_reg[addr_index] <= cache_reg[addr_index] >> 32 | {out_rdata, {(CACHE_LINE_W-32){1'b0}}};
 		end
 	end
 
 	always @(posedge clock) begin
-		if (reset) begin
-			for (j = 0; j < CACHE_LINE_NUM; j = j + 1) begin
-				cache_tag[j] <= 0; // 使用非阻塞赋值
-			end
-		end else if(next_state == STATE_UPDATE_REG) begin
+		if(out_rvalid & out_rlast) begin
 			// valid--1
 			cache_tag[addr_index] <= {1'b1, addr_tag};
 		end else if(next_state == STATE_FENCE) begin
@@ -186,12 +150,21 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		end
 	end
 
+	reg r_last_valid;
+	always @(posedge clock) begin
+		if(reset) begin
+			r_last_valid <= 0;
+		end else begin
+			r_last_valid <= out_rvalid & out_rlast;
+		end
+	end
+
 
 	assign out_arsize = load_rsize;
 	assign out_arlen = load_rlen;
 	assign out_arvalid = state_addr_handshake;
 	assign out_rready = state_load;
-	assign in_pready = state_pass;
+	assign in_pready = r_last_valid | (state_check & check_hit);
 	assign in_prdata = prdata;
 	assign out_arburst = `AXI_ADDR_BURST_INCR;
 	assign out_araddr = load_raddr;

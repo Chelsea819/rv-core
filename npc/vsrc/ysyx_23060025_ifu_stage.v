@@ -176,7 +176,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// assign next_state_fs = con_state_fs ? ~fs_allowin : 
 	// 										to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg);
 	
-	assign out_psel = con_state_fs && next_state_fs && ~fs_ready_go;	// 选中icache
+	assign out_psel = ~con_state_fs && next_state_fs;	// 选中icache
 	// assign out_paddr = nextpc;
 
 	always @(posedge clock) begin
