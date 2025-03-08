@@ -50,7 +50,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
             csr_wdata_o	     <=     0; 
             csr_mcause_o	 <=     0;             
             csr_waddr_o	     <=     0;             
-			csr_type_o		 <=	   0; 
+			csr_type_o		 <=	    0; 
             wdata_o          <=     0;
              
         end else begin 

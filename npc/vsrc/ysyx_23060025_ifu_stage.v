@@ -141,8 +141,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 `endif
 
 	// pre IFU stage
-
-
 	reg con_state_fs;	// 0-pre, 1-ifu
 	reg next_state_fs;
 	always @(posedge clock) begin
@@ -173,11 +171,8 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			end
 		endcase
 	end
-	// assign next_state_fs = con_state_fs ? ~fs_allowin : 
-	// 										to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg);
 	
 	assign out_psel = ~con_state_fs && next_state_fs;	// 选中icache
-	// assign out_paddr = nextpc;
 
 	always @(posedge clock) begin
 		if(reset) begin
@@ -189,11 +184,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// id得到结果 or id not busy
 	wire to_fs_valid = bpu_valid_i | idu_valid_i | ds_allowin_i;
-
-	// wire [31:0] nextpc = (branch_flag_i & branch_request_i) ? branch_target_i : 
-	// 						jmp_flag_i 						? jmp_target_i : 
-	// 						csr_jmp_i 						? csr_pc_i : 
-	// 						pc_plus_4;
 
 	wire idu_flush = idu_flush_i & idu_valid_i;
 	// idu_flush-》 pre刚好碰到valid flush
@@ -217,7 +207,6 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// 1. 握手相关的信号
 	reg [31:0] fs_pc;
 	
-	// wire fs_ready_go    = out_pready || inst_buff_enable;
 	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
 	reg pre_flush;
 	reg flush_state_is_busy;
@@ -287,8 +276,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	reg inst_buff_enable;
 	reg  [31:0] inst_rd_buff;
 	wire [31:0]  fs_inst     = inst_buff_enable ? inst_rd_buff : out_prdata;
-	// wire n_ds_update = out_pready && !ds_allowin_i;
-	// wire ds_update = inst_buff_enable && ds_allowin_i;
+
 
 	//inst read buffer  use for stall situation
 	always @(posedge clock) begin
