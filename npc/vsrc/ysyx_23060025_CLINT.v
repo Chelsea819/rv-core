@@ -38,7 +38,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	assign r_resp_o = 2'b0;
 
-	assign bit_sel = ~(addr_r_addr_i == `DEVICE_CLINT_ADDR_L);
+	assign bit_sel = addr_r_addr_i[2];
 	assign r_data = bit_sel ? mtime[63:DATA_LEN] : mtime[DATA_LEN - 1:0];
 
 
@@ -50,53 +50,8 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			mtime <= 0;
 	end
 
-// delay test
-`ifdef DELAY_TEST
-	// random delay
-	`ifdef RAN_DELAY
-		reg				[3:0]		        	RANDOM_DELAY;
-		wire			[3:0]		        	delay_num;
-
-		ysyx_23060025_LFSR u_LFSR(
-			.clock          ( clock          ),
-			.rstn         ( rstn         ),
-			.initial_var  ( 4'b1  		 ),
-			.result       ( delay_num    )
-		);
-		
-		always @(posedge clock ) begin
-			if (~rstn) 
-				RANDOM_DELAY <= 4'b1;
-			else if((con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) || (con_state == WAIT_ADDR))
-				RANDOM_DELAY <= delay_num;
-		end
-	// fixed var delay
-	`elsif VAR_DELAY
-		// 当 RAN_DELAY 未定义，但 VAR_DELAY 被定义时，编译这段代码
-		wire				[3:0]		        	RANDOM_DELAY;
-		assign RANDOM_DELAY = `VAR_DELAY;
-	`endif
-
-	reg			[3:0]		r_valid_delay;
-
-	assign r_valid_o = (con_state == WAIT_DATA_GET) && rstn && (r_valid_delay == RANDOM_DELAY);
-	assign r_last_o = r_valid_o;
-
-  // r addr delay
-	always @(posedge clock ) begin
-		if (next_state == WAIT_DATA_GET && (r_valid_delay != RANDOM_DELAY || r_valid_delay == 0))
-			r_valid_delay <= r_valid_delay + 1;
-		else if(next_state == WAIT_DATA_GET && r_valid_delay == RANDOM_DELAY)
-			r_valid_delay <= r_valid_delay;
-		else
-			r_valid_delay <= 4'b0;
-	end
-
-// no delay
-`else
 	assign r_valid_o = (con_state == WAIT_DATA_GET);
-	assign r_last_o = r_valid_o;
-`endif	
+	assign r_last_o = 1;
 
 
 	// state trans
