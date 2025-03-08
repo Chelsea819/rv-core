@@ -18,17 +18,15 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input         		in_fence_flag,	// fence.i update
 
 	// icache access DRAM
-	output     [31:0]	out_araddr	,
-	output 	         	out_arvalid	,
-	input           	out_arready	,
+	output     [31:0]	out_paddr	,
+	output 	         	out_psel	,
 	output 	  	[7:0]  	out_arlen	,
 	output 	  	[2:0]   out_arsize	,
 	input        		out_rvalid	,
 	input           	out_rlast	,
-	output           	out_rready	,
 	input   	[31:0] 	out_rdata	
 );
-	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_ADDR_HAND_SHAK = 3'b010, STATE_LOAD = 3'b011, STATE_FENCE = 3'b111;
+	localparam	[1:0]	STATE_IDLE = 2'b00, STATE_CHECK = 2'b01, STATE_LOAD = 2'b10, STATE_FENCE = 2'b11;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
 	parameter	TAG_W = ADDR_WIDTH-CACHE_LINE_ADDR_W-CACHE_LINE_OFF_ADDR_W;
@@ -39,16 +37,14 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	// wire state_idle = (con_state == STATE_IDLE);
 	wire state_check = (con_state == STATE_CHECK);
-	wire state_addr_handshake = (con_state == STATE_ADDR_HAND_SHAK);
 	wire state_load = (con_state == STATE_LOAD);
-	// wire state_pass = (con_state == STATE_PASS);
 	// wire state_fence = (con_state == STATE_FENCE);
 
 	wire [31:0]  raddr     = in_paddr;
 
 
-	reg	[2:0] con_state;
-	reg	[2:0] next_state;
+	reg	[1:0] con_state;
+	reg	[1:0] next_state;
 
 	reg	[CACHE_LINE_W-1:0]	cache_reg	[CACHE_LINE_NUM-1:0];
 	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
@@ -107,12 +103,6 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				if(check_hit) begin
 					next_state = STATE_IDLE;
 				end else begin
-					next_state = STATE_ADDR_HAND_SHAK;
-				end
-			end
-			STATE_ADDR_HAND_SHAK: begin
-				// hand shake, get data!
-				if(out_arready) begin
 					next_state = STATE_LOAD;
 				end
 			end
@@ -125,8 +115,6 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			end
 			STATE_FENCE: begin
 				next_state = STATE_IDLE;
-			end
-			default: begin
 			end
 		endcase
 	end
@@ -158,14 +146,24 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		end
 	end
 
+	reg psel;
+	always @(posedge clock) begin
+		if(reset | next_state == STATE_IDLE) begin
+			psel <= 0;
+		end else if(next_state == STATE_LOAD) begin
+			psel <= 1;
+		end
+	end
+
 
 	assign out_arsize = load_rsize;
 	assign out_arlen = load_rlen;
-	assign out_arvalid = state_addr_handshake;
-	assign out_rready = state_load;
+	assign out_psel = psel;
+	assign out_paddr = load_raddr;
+
 	assign in_pready = r_last_valid | (state_check & check_hit);
 	assign in_prdata = prdata;
-	assign out_araddr = load_raddr;
+	
 
 endmodule
 /* verilator lint_on WIDTHEXPAND */

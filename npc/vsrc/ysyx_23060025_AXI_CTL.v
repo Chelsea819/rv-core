@@ -18,16 +18,13 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	//Addr Read
 	input		[ADDR_LEN - 1:0]		inst_addr_r_addr_i,
 	input		                		inst_addr_r_valid_i,
-	output		                		inst_addr_r_ready_o,
 	input		[7:0]  					inst_addr_rlen_o	,
 	input		[2:0]  					inst_addr_rsize_o	,
 	// input		[3:0]                	inst_addr_r_id_i,	// 谁发出的读请求
 
 	// Read data
 	output		[DATA_LEN - 1:0]		inst_r_data_o	,
-	output		[1:0]					inst_r_resp_o	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	output		                		inst_r_valid_o	,
-	input		                		inst_r_ready_i	,
 	output		       					inst_r_last_i	,
 
 	// data-AXI
@@ -191,7 +188,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 			AXI_CTL_BUSY_INST: begin				
 				// finish inst read
-				if (axi_r_valid_i  & inst_r_ready_i & axi_r_last_i) begin 
+				if (axi_r_valid_i  & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_INST;
@@ -213,21 +210,17 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 																				axi_bkwd_resp_i, axi_bkwd_valid_i} : 
 																				0;
 	// finish inst read
-	assign {inst_r_resp_o, inst_r_valid_o, inst_r_last_i} 
-			= state_busy_inst ? {axi_r_resp_i, axi_r_valid_i, axi_r_last_i} : 
+	assign {inst_r_valid_o, inst_r_last_i} 
+			= state_busy_inst ? {axi_r_valid_i, axi_r_last_i} : 
 																				0;
 	// finish data read or write OR finish inst read
 	assign {axi_r_ready_o, axi_bkwd_ready_o} 
 			= state_busy_data ? {data_r_ready_i, data_bkwd_ready_i} : 
-				state_busy_inst ? {inst_r_ready_i, 1'b0} : 0;
+				state_busy_inst ? {1'b1, 1'b0} : 0;
 	
 	// NEXT: AXI_CTL_BUSY_DATA
 	assign {data_addr_r_ready_o, data_addr_w_ready_o, data_w_ready_o} 
 			= state_busy_data ? {axi_addr_r_ready_i, axi_addr_w_ready_i, axi_w_ready_i} : 0;
-	
-	// NEXT: AXI_CTL_BUSY_INST
-	assign {inst_addr_r_ready_o} 
-			= state_busy_inst ? axi_addr_r_ready_i : 0;
 
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
 	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_len_o, 
