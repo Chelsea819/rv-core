@@ -39,15 +39,11 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	wire csr_waddr_mstatus 		= 	(csr_waddr == `CSR_MSTATUS_ADDR);
 	wire csr_waddr_mepc 		= 	(csr_waddr == `CSR_MEPC_ADDR);
 	wire csr_waddr_mtvec 		= 	(csr_waddr == `CSR_MTVEC_ADDR);
-	wire csr_waddr_mvendorid 	= 	(csr_waddr == `CSR_MVENDORID_ADDR);
-	wire csr_waddr_marchid 		= 	(csr_waddr == `CSR_MARCHID_ADDR);
 
 	wire mcause_ena 	 	= (csr_ecall | csr_waddr_mcause) & csr_wen;
 	wire mstatus_ena		= csr_waddr_mstatus  	& csr_wen;
 	wire mepc_ena			= csr_waddr_mepc 	 	& csr_wen;
 	wire mtvec_ena			= csr_waddr_mtvec 	 	& csr_wen;
-	wire mvendorid_ena		= csr_waddr_mvendorid 	& csr_wen;
-	wire marchid_ena		= csr_waddr_marchid 	& csr_wen;
 
 	wire [31:0] mcause_nxt = csr_ecall ? csr_mcause_i : wdata;
 	wire [31:0] mcause_r;
@@ -94,51 +90,10 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 		.dout 	( mtvec_r  ),
 		.wen  	( mtvec_ena   )
 	);
-	wire [31:0] mvendorid_nxt = wdata;
-	wire [31:0] mvendorid_r;
-	ysyx_23060025_Reg #(32,32'h79737978)
-	csr_mvendorid(
-		.clk  	( clock   ),
-		.rst  	( reset   ),
-		.din  	( mvendorid_nxt   ),
-		.dout 	( mvendorid_r  ),
-		.wen  	( mvendorid_ena   )
-	);
-	wire [31:0] marchid_nxt = wdata;
-	wire [31:0] marchid_r;
 
-	ysyx_23060025_Reg #(32,32'd23060025)
-	csr_marchid(
-		.clk  	( clock   ),
-		.rst  	( reset   ),
-		.din  	( marchid_nxt   ),
-		.dout 	( marchid_r  ),
-		.wen  	( marchid_ena   )
-	);
-
-	// assign csr_mtvec_pc_o = csr[`CSR_MTVEC_IDX];
-	// assign csr_mepc_pc_o = csr[`CSR_MEPC_IDX];
+	wire [31:0] mvendorid_r = 32'h79737978;
 	
-	// assign r_data = csr[csr_ridx];
-
-	// always @(*) begin
-	// 	$display("MTVEC = [%x] csr_idx = [%b]  wdata = [%b] csr_pc_o = [%x] csr_type_i = [%b]",csr[`CSR_MTVEC_IDX],csr_idx,wdata, csr_pc_o, csr_type_i);
-	// end
-
-	// always @(posedge clock) begin
-	// 	if(reset) begin
-	// 		csr[`CSR_MSTATUS_IDX] <= 32'h1800;
-	// 		csr[`CSR_MVENDORID_IDX] <= 32'h79737978;
-	// 		csr[`CSR_MARCHID_IDX] <= 32'd23060025;
-	// 	end
-	// 	else if (^csr_type_i) 
-	// 		csr[csr_widx] <= wdata;
-	// 	else if(csr_type_i == `CSR_ECALL) begin
-	// 		csr[`CSR_MCAUSE_IDX] <= csr_mcause_i;
-	// 		// TODO: change it to wdata
-	// 		csr[`CSR_MEPC_IDX] <= wdata;
-	// 	end
-	// end
+	wire [31:0] marchid_r = 32'd23060025;
 
 
 endmodule
