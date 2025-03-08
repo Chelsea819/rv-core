@@ -25,7 +25,7 @@
 `define AXI_W_STRB_16 4'b0011    
 `define AXI_W_STRB_32 4'b1111 
 
-`define AXI_R_ID_IF 4'b00
+`define AXI_R_ID_IF 4'b11
 `define AXI_R_ID_LSU 4'b10
 // `define AXI_R_ID_IF 4'b0
 

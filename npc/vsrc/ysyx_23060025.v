@@ -90,71 +90,27 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
     // always @(posedge clock)
     //     clk_cycle_plus();
 
-	// IFU-AXI
-	// Addr Read
-	wire	[ADDR_LEN - 1:0]			inst_addr_r_addr_o;
-	wire	                			inst_addr_r_valid_o;
-
-	// Read data
-	// wire		[DATA_LEN - 1:0]		inst_r_data_i	;
-	wire		                		inst_r_valid_i	;
-
-	wire	[ADDR_LEN - 1:0]		data_addr_r_addr_o	;
-	wire	                		data_addr_r_valid_o	;
-	wire		[2:0]               data_addr_r_size_o	;
-	wire	                		data_addr_r_ready_i	;
-
-
-	// Read data
-	wire		[DATA_LEN - 1:0]		data_r_data_i	;
-	wire		[1:0]					data_r_resp_i	;	// 读操作是否成功，存储器处理读写事物时可能会发生错误
-	wire		                		data_r_valid_i	;
-	wire		                		data_r_ready_o	;
-
-	// Addr Write
-	wire	[ADDR_LEN - 1:0]		data_addr_w_addr_o	;	// 写地址
-	wire		[2:0]               data_addr_w_size_o	;
-	wire	                		data_addr_w_valid_o	;	// 主设备给出的地址和相关控制信号有效
-	wire	                		data_addr_w_ready_i	; // 从设备已准备好接收地址和相关的控制信号
-
-	// Write data
-	wire	[DATA_LEN - 1:0]		data_w_data_o	;	// 写出的数据
-	wire	[3:0]					data_w_strb_o	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
-	wire	                		data_w_valid_o	;	// 主设备给出的数据和字节选通信号有效
-	wire	                		data_w_ready_i	;	// 从设备已准备好接收数据选通信号
-
-	// Backward
-	wire		[1:0]					data_bkwd_resp_i	;	// 写回复信号，写操作是否成功
-	wire		                		data_bkwd_valid_i	;	// 从设备给出的写回复信号是否有效
-	wire		                		data_bkwd_ready_o	;	// 主设备已准备好接收写回复信号
-
 	// Xbar
     //Addr Read
 	wire									axi_device		;
 	wire			[ADDR_LEN - 1:0]		xbar_addr_r_addr_o	;
 	wire		                		xbar_addr_r_valid_o	;
 	wire		                		xbar_addr_r_ready_i	;
-	wire			[3:0]				xbar_addr_r_id_o	;
 	wire			[7:0]				xbar_addr_r_len_o	;
 	wire			[2:0]				xbar_addr_r_size_o	;
-	wire			[1:0]				xbar_addr_r_burst_o	;
 
 	// Read data
 	wire		[DATA_LEN - 1:0]		xbar_r_data_i		;
-	wire		[1:0]					xbar_r_resp_i		;	// 读操作是否成功，存储器处理读写事物时可能会发生错误
 	wire		                		xbar_r_valid_i		;
 	wire		                		xbar_r_ready_o		;
 	wire								xbar_r_last_i		;
-	wire		[3:0]					xbar_r_id_i			;
 
 	// Addr Write
 	wire			[ADDR_LEN - 1:0]		xbar_addr_w_addr_o	;	// 写地址
 	wire		                		xbar_addr_w_valid_o	;	// 主设备给出的地址和相关控制信号有效
 	wire		                		xbar_addr_w_ready_i	; // 从设备已准备好接收地址和相关的控制信号
-	wire			[3:0]				xbar_addr_w_id_o	;
 	wire			[7:0]				xbar_addr_w_len_o	;
 	wire			[2:0]				xbar_addr_w_size_o	;
-	wire			[1:0]				xbar_addr_w_burst_o	;
 
 	// Write data
 	wire			[DATA_LEN - 1:0]		xbar_w_data_o	;	// 写出的数据
@@ -163,10 +119,8 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		                		xbar_w_ready_i	;	// 从设备已准备好接收数据选通信号
 	wire								xbar_w_last_o	;
 	// Backward
-	wire		[1:0]					xbar_bkwd_resp_i	;	// 写回复信号，写操作是否成功
 	wire		                		xbar_bkwd_valid_i	;	// 从设备给出的写回复信号是否有效
 	wire		                		xbar_bkwd_ready_o	;// 主设备已准备好接收写回复信号
-	wire		[3:0]					xbar_bkwd_id_i		;
 
 	// CLINT
 	wire	[ADDR_LEN - 1:0]		clint_addr_r_addr_o	;
@@ -199,44 +153,27 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	end
 `endif
 
-	// ysyx_23060025_cpu#(
-	// 	.DATA_LEN            ( 32 ),
-	// 	.ADDR_LEN 	         ( 32 )
-	// )ysyx_23060025_cpu(
-	// 	.clock               ( clock                 ),
-	// 	.reset               ( reset                 ),
-	// 	.inst_addr_r_addr_o	 ( inst_addr_r_addr_o  ),
-	// 	.inst_addr_r_valid_o ( inst_addr_r_valid_o ),
-	// 	.inst_r_valid_i      ( inst_r_valid_i      ),
-	// 	.inst_r_ready_o      ( inst_r_ready_o      ),
-
-	// 	.data_addr_r_addr_o  ( data_addr_r_addr_o  ),
-	// 	.data_addr_r_valid_o ( data_addr_r_valid_o ),
-	// 	.data_addr_r_size_o  ( data_addr_r_size_o  ),
-	// 	.data_addr_r_ready_i ( data_addr_r_ready_i ),
-	// 	.data_r_data_i       ( data_r_data_i       ),
-	// 	.data_r_resp_i       ( data_r_resp_i       ),
-	// 	.data_r_valid_i      ( data_r_valid_i      ),
-	// 	.data_r_ready_o      ( data_r_ready_o      ),
-	// 	.data_addr_w_addr_o  ( data_addr_w_addr_o  ),
-	// 	.data_addr_w_valid_o ( data_addr_w_valid_o ),
-	// 	.data_addr_w_ready_i ( data_addr_w_ready_i ),
-	// 	.data_addr_w_size_o  ( data_addr_w_size_o  ),
-	// 	.data_w_data_o       ( data_w_data_o       ),
-	// 	.data_w_strb_o       ( data_w_strb_o       ),
-	// 	.data_w_valid_o      ( data_w_valid_o      ),
-	// 	.data_w_ready_i      ( data_w_ready_i      ),
-	// 	.data_bkwd_resp_i    ( data_bkwd_resp_i    ),
-	// 	.data_bkwd_valid_i   ( data_bkwd_valid_i   ),
-	// 	.data_bkwd_ready_o   ( data_bkwd_ready_o   ),
-	// 	.inst_i              ( inst              )
-	// );
-
 	// outports wire
+	`ifdef DIFFTEST
 	wire                	diff_skip_flag;
-	wire                	inst_r_last_i;
-	wire [7:0]          	inst_addr_rlen_o;
-	wire [2:0]          	inst_addr_rsize_o;
+	`endif
+	
+
+	wire	[ADDR_LEN - 1:0]		inst_paddr_o	;
+	wire	                		inst_psel_o		;
+	wire	[7:0]  					inst_plen_o		;
+	wire	[2:0]  					inst_psize_o	;	
+	wire	                		inst_pvalid_o	;
+	wire	       					inst_plast_o	;
+
+	wire		[ADDR_LEN - 1:0]		data_paddr_o ;
+	wire		                		data_psel_o  ;
+	wire		                		data_pwrite_o;
+	wire		[2:0]                	data_psize_o ;
+	wire		[DATA_LEN - 1:0]		data_pwdata_o;
+	wire		[3:0]					data_pwstrb_o;
+	wire		[DATA_LEN - 1:0]		data_prdata_o;
+	wire		                		data_pvalid_o;
 
 	ysyx_23060025_cpu #(
 		.DATA_LEN 	( 32  ),
@@ -244,34 +181,23 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	ysyx_23060025_cpu(
 		.clock               	( clock                ),
 		.reset               	( reset                ),
-		.inst_addr_r_addr_o  	( inst_addr_r_addr_o   ),
-		.inst_addr_r_valid_o 	( inst_addr_r_valid_o  ),
-		.inst_r_last_i   	( inst_r_last_i    ),
-		.inst_addr_rlen_o    	( inst_addr_rlen_o     ),
-		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
-		.inst_r_valid_i      	( inst_r_valid_i       ),
+		.inst_paddr_o	 		( inst_paddr_o	  ),
+		.inst_psel_o		 	( inst_psel_o		 ),
+		.inst_plen_o			( inst_plen_o			),
+		.inst_psize_o	 		( inst_psize_o	  ),
+		.inst_pvalid_o	 		( inst_pvalid_o		),
+		.inst_plast_o	 		( inst_plast_o		)	,
 `ifdef DIFFTEST
 		.diff_skip_flag_i  	( diff_skip_flag   ),
 `endif
-		.data_addr_r_addr_o  	( data_addr_r_addr_o   ),
-		.data_addr_r_valid_o 	( data_addr_r_valid_o  ),
-		.data_addr_r_ready_i 	( data_addr_r_ready_i  ),
-		.data_addr_r_size_o  	( data_addr_r_size_o   ),
-		.data_r_data_i       	( data_r_data_i        ),
-		.data_r_resp_i       	( data_r_resp_i        ),
-		.data_r_valid_i      	( data_r_valid_i       ),
-		.data_r_ready_o      	( data_r_ready_o       ),
-		.data_addr_w_addr_o  	( data_addr_w_addr_o   ),
-		.data_addr_w_valid_o 	( data_addr_w_valid_o  ),
-		.data_addr_w_ready_i 	( data_addr_w_ready_i  ),
-		.data_addr_w_size_o  	( data_addr_w_size_o   ),
-		.data_w_data_o       	( data_w_data_o        ),
-		.data_w_strb_o       	( data_w_strb_o        ),
-		.data_w_valid_o      	( data_w_valid_o       ),
-		.data_w_ready_i      	( data_w_ready_i       ),
-		.data_bkwd_resp_i    	( data_bkwd_resp_i     ),
-		.data_bkwd_valid_i   	( data_bkwd_valid_i    ),
-		.data_bkwd_ready_o   	( data_bkwd_ready_o    ),
+		.data_paddr_o 		 	( data_paddr_o ),
+		.data_psel_o  		 	( data_psel_o  ),
+		.data_pwrite_o		 	( data_pwrite_o),
+		.data_psize_o 		 	( data_psize_o     ),
+		.data_pwdata_o		 	( data_pwdata_o),
+		.data_pwstrb_o		 	( data_pwstrb_o),
+		.data_prdata_o		 	( data_prdata_o),
+		.data_pvalid_o		 	( data_pvalid_o),
 		.inst_i              	( inst		           )
 	);
 
@@ -282,61 +208,44 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	)u_ysyx_23060025_AXI_CTL(
 		.reset               ( reset                ),
 		.clock               ( clock                 ),
-		.inst_addr_r_addr_i  ( inst_addr_r_addr_o  ),
-		.inst_addr_r_valid_i ( inst_addr_r_valid_o ),
-		.inst_r_last_i   	 ( inst_r_last_i    ),
-		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
-		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
+		.inst_paddr_i	 		( inst_paddr_o	  ),
+		.inst_psel_i		 	( inst_psel_o		 ),
+		.inst_plen_i			( inst_plen_o			),
+		.inst_psize_i	 		( inst_psize_o	  ),
+		.inst_pvalid_o	 		( inst_pvalid_o		),
+		.inst_plast_o	 		( inst_plast_o		)	,
+		.inst_prdata_o       ( inst       		   ),
 `ifdef DIFFTEST
 		.diff_skip_flag_o       ( diff_skip_flag       		   ),
 `endif
-		.inst_r_data_o       ( inst       		   ),
-		.inst_r_valid_o      ( inst_r_valid_i      ),
-		.data_addr_r_addr_i  ( data_addr_r_addr_o  ),
-		.data_addr_r_valid_i ( data_addr_r_valid_o ),
-		.data_addr_r_size_i  ( data_addr_r_size_o  ),
-		.data_addr_r_ready_o ( data_addr_r_ready_i ),
-		.data_r_data_o       ( data_r_data_i       ),
-		.data_r_resp_o       ( data_r_resp_i       ),
-		.data_r_valid_o      ( data_r_valid_i      ),
-		.data_r_ready_i      ( data_r_ready_o      ),
-		.data_addr_w_addr_i  ( data_addr_w_addr_o  ),
-		.data_addr_w_valid_i ( data_addr_w_valid_o ),
-		.data_addr_w_ready_o ( data_addr_w_ready_i ),
-		.data_addr_w_size_i  ( data_addr_w_size_o  ),
-		.data_w_data_i       ( data_w_data_o       ),
-		.data_w_strb_i       ( data_w_strb_o       ),
-		.data_w_valid_i      ( data_w_valid_o      ),
-		.data_w_ready_o      ( data_w_ready_i      ),
-		.data_bkwd_resp_o    ( data_bkwd_resp_i    ),
-		.data_bkwd_valid_o   ( data_bkwd_valid_i   ),
-		.data_bkwd_ready_i   ( data_bkwd_ready_o   ),
+		.data_paddr_i 		 	( data_paddr_o ),
+		.data_psel_i  		 	( data_psel_o  ),
+		.data_pwrite_i		 	( data_pwrite_o),
+		.data_psize_i 		 	( data_psize_o     ),
+		.data_pwdata_i		 	( data_pwdata_o),
+		.data_pwstrb_i		 	( data_pwstrb_o),
+		.data_prdata_o		 	( data_prdata_o),
+		.data_pvalid_o		 	( data_pvalid_o),
 		.axi_device		 	 ( axi_device 		   ),
 		// Read Addr 
 		.axi_addr_r_addr_o  ( xbar_addr_r_addr_o    ),
 		.axi_addr_r_valid_o ( xbar_addr_r_valid_o 	),
 		.axi_addr_r_ready_i ( xbar_addr_r_ready_i 	),
-		.axi_addr_r_id_o    ( xbar_addr_r_id_o     ),
 		.axi_addr_r_len_o   ( xbar_addr_r_len_o    ),
 		.axi_addr_r_size_o  ( xbar_addr_r_size_o   ),
-		.axi_addr_r_burst_o ( xbar_addr_r_burst_o  ),
 
 		// Read Data
 		.axi_r_data_i       ( xbar_r_data_i       ),
-		.axi_r_resp_i       ( xbar_r_resp_i      ),
 		.axi_r_valid_i      ( xbar_r_valid_i      ),
 		.axi_r_last_i       ( xbar_r_last_i        ),
-		.axi_r_id_i         ( xbar_r_id_i         ),
 		.axi_r_ready_o      ( xbar_r_ready_o      ),
 
 		// Adddr Write
 		.axi_addr_w_addr_o  ( xbar_addr_w_addr_o  ),
 		.axi_addr_w_valid_o ( xbar_addr_w_valid_o ),
 		.axi_addr_w_ready_i ( xbar_addr_w_ready_i ),
-		.axi_addr_w_id_o    ( xbar_addr_w_id_o     ),
 		.axi_addr_w_len_o   ( xbar_addr_w_len_o    ),
 		.axi_addr_w_size_o  ( xbar_addr_w_size_o   ),
-		.axi_addr_w_burst_o ( xbar_addr_w_burst_o  ),
 
 		// Write Data
 		.axi_w_data_o       ( xbar_w_data_o       ),
@@ -346,11 +255,13 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_w_last_o       ( xbar_w_last_o        ),
 
 		// Write backward
-		.axi_bkwd_resp_i    ( xbar_bkwd_resp_i    ),
 		.axi_bkwd_valid_i   ( xbar_bkwd_valid_i   ),
-		.axi_bkwd_ready_o   ( xbar_bkwd_ready_o   ),
-		.axi_bkwd_id_i      ( xbar_bkwd_id_i       )
-	);
+		.axi_bkwd_ready_o   ( xbar_bkwd_ready_o   )	);
+
+	assign io_master_arid = 0;
+	assign io_master_awid = 0;
+	assign io_master_awburst = `AXI_ADDR_BURST_INCR;
+	assign io_master_arburst = `AXI_ADDR_BURST_INCR;
 
 	ysyx_23060025_xbar#(
 		.ADDR_LEN               ( 32 ),
@@ -362,25 +273,19 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_ctl_addr_r_addr_i  ( xbar_addr_r_addr_o	),
 		.axi_ctl_addr_r_valid_i ( xbar_addr_r_valid_o ),
 		.axi_ctl_addr_r_ready_o ( xbar_addr_r_ready_i ),
-		.axi_ctl_addr_r_id_i    ( xbar_addr_r_id_o     ),
 		.axi_ctl_addr_r_len_i   ( xbar_addr_r_len_o    ),
 		.axi_ctl_addr_r_size_i  ( xbar_addr_r_size_o   ),
-		.axi_ctl_addr_r_burst_i ( xbar_addr_r_burst_o  ),
 		
 		.axi_ctl_r_data_o       ( xbar_r_data_i       ),
-		.axi_ctl_r_resp_o       ( xbar_r_resp_i       ),
 		.axi_ctl_r_valid_o      ( xbar_r_valid_i      ),
 		.axi_ctl_r_ready_i      ( xbar_r_ready_o      ),
 		.axi_ctl_r_last_o       ( xbar_r_last_i        ),
-		.axi_ctl_r_id_o         ( xbar_r_id_i         ),
 
 		.axi_ctl_addr_w_addr_i  ( xbar_addr_w_addr_o  ),
 		.axi_ctl_addr_w_valid_i ( xbar_addr_w_valid_o ),
 		.axi_ctl_addr_w_ready_o ( xbar_addr_w_ready_i ),
-		.axi_ctl_addr_w_id_i    ( xbar_addr_w_id_o     ),
 		.axi_ctl_addr_w_len_i   ( xbar_addr_w_len_o    ),
 		.axi_ctl_addr_w_size_i  ( xbar_addr_w_size_o   ),
-		.axi_ctl_addr_w_burst_i ( xbar_addr_w_burst_o  ),
 
 		.axi_ctl_w_data_i       ( xbar_w_data_o       ),
 		.axi_ctl_w_strb_i       ( xbar_w_strb_o       ),
@@ -388,36 +293,28 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_ctl_w_ready_o      ( xbar_w_ready_i      ),
 		.axi_ctl_w_last_i       ( xbar_w_last_o        ),
 
-		.axi_ctl_bkwd_resp_o    ( xbar_bkwd_resp_i    ),
 		.axi_ctl_bkwd_valid_o   ( xbar_bkwd_valid_i   ),
 		.axi_ctl_bkwd_ready_i   ( xbar_bkwd_ready_o   ),
-		.axi_ctl_bkwd_id_o      ( xbar_bkwd_id_i       ),
 
 		// Read Addr
 		.axi_addr_r_addr_o  ( io_master_araddr    ),
 		.axi_addr_r_valid_o ( io_master_arvalid 	),
 		.axi_addr_r_ready_i ( io_master_arready 	),
-		.axi_addr_r_id_o    ( io_master_arid     ),
 		.axi_addr_r_len_o   ( io_master_arlen    ),
 		.axi_addr_r_size_o  ( io_master_arsize   ),
-		.axi_addr_r_burst_o ( io_master_arburst  ),
 
 		// Read Data
 		.axi_r_data_i       ( io_master_rdata       ),
-		.axi_r_resp_i       ( io_master_rresp      ),
 		.axi_r_valid_i      ( io_master_rvalid      ),
 		.axi_r_last_i       ( io_master_rlast        ),
-		.axi_r_id_i         ( io_master_rid         ),
 		.axi_r_ready_o      ( io_master_rready      ),
 
 		// Adddr Write
 		.axi_addr_w_addr_o  ( io_master_awaddr  ),
 		.axi_addr_w_valid_o ( io_master_awvalid ),
 		.axi_addr_w_ready_i ( io_master_awready ),
-		.axi_addr_w_id_o    ( io_master_awid     ),
 		.axi_addr_w_len_o   ( io_master_awlen    ),
 		.axi_addr_w_size_o  ( io_master_awsize   ),
-		.axi_addr_w_burst_o ( io_master_awburst  ),
 
 		// Write Data
 		.axi_w_data_o       ( io_master_wdata       ),
@@ -427,16 +324,13 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_w_last_o       ( io_master_wlast        ),
 
 		// Write backward
-		.axi_bkwd_resp_i    ( io_master_bresp    ),
 		.axi_bkwd_valid_i   ( io_master_bvalid   ),
 		.axi_bkwd_ready_o   ( io_master_bready   ),
-		.axi_bkwd_id_i      ( io_master_bid       ),
 
 		.clint_addr_r_addr_i    ( clint_addr_r_addr_o    ),
 		.clint_addr_r_valid_i   ( clint_addr_r_valid_o   ),
 		.clint_addr_r_ready_o   ( clint_addr_r_ready_i   ),
 		.clint_r_data_o         ( clint_r_data_i         ),
-		.clint_r_resp_o         ( clint_r_resp_i         ),
 		.clint_r_valid_o        ( clint_r_valid_i        ),
 		.clint_r_last_o        ( clint_r_last_i        ),
 		.clint_r_ready_i        ( clint_r_ready_o        )

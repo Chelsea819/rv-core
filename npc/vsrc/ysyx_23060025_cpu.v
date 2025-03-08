@@ -5,52 +5,48 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 	// IFU-AXI
 	// Addr Read
-	output		[ADDR_LEN - 1:0]		inst_addr_r_addr_o,
-	output		                		inst_addr_r_valid_o,
-	output		[7:0]  					inst_addr_rlen_o	,
-	output		[2:0]  					inst_addr_rsize_o	,
-	// input		                		inst_addr_r_ready_i,
-
-	// Read data
-	// input		[DATA_LEN - 1:0]		inst_r_data_i	,
-	// input		[1:0]					inst_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
-	input		                		inst_r_valid_i	,
-	input		       					inst_r_last_i	,
-
-	// data AXI
-	 //Addr Read
-	output		[ADDR_LEN - 1:0]		data_addr_r_addr_o,
-	output		                		data_addr_r_valid_o,
-	input		                		data_addr_r_ready_i,
-	output		[2:0]                	data_addr_r_size_o,
-
-
+	output		[ADDR_LEN - 1:0]		inst_paddr_o	,
+	output		                		inst_psel_o		,
+	output		[7:0]  					inst_plen_o		,
+	output		[2:0]  					inst_psize_o	,	
+	input		                		inst_pvalid_o	,
+	input		       					inst_plast_o	,
 
 	// Read data
 `ifdef DIFFTEST
 	input								diff_skip_flag_i	,
 `endif
-	input		[DATA_LEN - 1:0]		data_r_data_i	,
-	input		[1:0]					data_r_resp_i	,	// 读操作是否成功，存储器处理读写事物时可能会发生错误
-	input		                		data_r_valid_i	,
-	output		                		data_r_ready_o	,
+	// data AXI
+	 //Addr Read
+	output		[ADDR_LEN - 1:0]		data_paddr_o ,
+	output		                		data_psel_o  ,
+	output		                		data_pwrite_o,
+	output		[2:0]                	data_psize_o ,
+	output		[DATA_LEN - 1:0]		data_pwdata_o,
+	output		[3:0]					data_pwstrb_o,
+	input		[DATA_LEN - 1:0]		data_prdata_o,
+	input		                		data_pvalid_o,
 
-	// Addr Write
-	output		[ADDR_LEN - 1:0]		data_addr_w_addr_o,	// 写地址
-	output		                		data_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
-	input		                		data_addr_w_ready_i, // 从设备已准备好接收地址和相关的控制信号
-	output		[2:0]                	data_addr_w_size_o,
+	// // data AXI
+	//  //Addr Read
+	// output		[ADDR_LEN - 1:0]		data_addr_r_addr_o,
+	// output		                		data_addr_r_valid_o,
+	// output		[2:0]                	data_addr_r_size_o,
+	// input		[DATA_LEN - 1:0]		data_r_data_i	,
+	// input		                		data_r_valid_i	,
+	// output		                		data_r_ready_o	,
 
-	// Write data
-	output		[DATA_LEN - 1:0]		data_w_data_o	,	// 写出的数据
-	output		[3:0]					data_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
-	output		                		data_w_valid_o	,	// 主设备给出的数据和字节选通信号有效
-	input		                		data_w_ready_i	,	// 从设备已准备好接收数据选通信号
+	// // Addr Write
+	// output		[ADDR_LEN - 1:0]		data_addr_w_addr_o,	// 写地址
+	// output		                		data_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
+	// output		[2:0]                	data_addr_w_size_o,
 
-	// Backward
-	input		[1:0]					data_bkwd_resp_i,	// 写回复信号，写操作是否成功
-	input		                		data_bkwd_valid_i,	// 从设备给出的写回复信号是否有效
-	output		                		data_bkwd_ready_o,	// 主设备已准备好接收写回复信号
+	// // Write data
+	// output		[DATA_LEN - 1:0]		data_w_data_o	,	// 写出的数据
+	// output		[3:0]					data_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
+
+	// // Backward
+	// input		                		data_bkwd_valid_i,	// 从设备给出的写回复信号是否有效
 
 	input	        [DATA_LEN - 1:0]    inst_i		
 	// output			[ADDR_LEN - 1:0]	pc			,
@@ -225,12 +221,12 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.in_fence_flag   	( icache_fencei_flag    ),
 
-		.out_paddr  	( inst_addr_r_addr_o   ),
-		.out_psel 	( inst_addr_r_valid_o  ),
-		.out_rlast  	( inst_r_last_i   ),
-		.out_arlen   	( inst_addr_rlen_o    ),
-		.out_arsize  	( inst_addr_rsize_o   ),
-		.out_rvalid  	( inst_r_valid_i   ),
+		.out_paddr  	( inst_paddr_o   ),
+		.out_psel 	( inst_psel_o  ),
+		.out_rlast  	( inst_plast_o   ),
+		.out_arlen   	( inst_plen_o    ),
+		.out_arsize  	( inst_psize_o   ),
+		.out_rvalid  	( inst_pvalid_o   ),
 		.out_rdata   	( inst_i    )
 	);
 	
@@ -373,25 +369,27 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_mcause_o	( lsu_csr_mcause_o  ),
 		// .memory_inst_o  ( lsu_memory_inst_o ),
 
-		.addr_r_addr_o     ( data_addr_r_addr_o     ),
-		.addr_r_valid_o    ( data_addr_r_valid_o    ),
-		.addr_r_ready_i    ( data_addr_r_ready_i    ),
-		.addr_r_size_o	   ( data_addr_r_size_o		),
-		.r_data_i          ( data_r_data_i          ),
-		.r_resp_i          ( data_r_resp_i          ),
-		.r_valid_i         ( data_r_valid_i         ),
-		.r_ready_o         ( data_r_ready_o         ),
-		.addr_w_addr_o     ( data_addr_w_addr_o     ),
-		.addr_w_valid_o    ( data_addr_w_valid_o    ),
-		.addr_w_ready_i    ( data_addr_w_ready_i    ),
-		.addr_w_size_o	   ( data_addr_w_size_o		),
-		.w_data_o          ( data_w_data_o          ),
-		.w_strb_o          ( data_w_strb_o          ),
-		.w_valid_o         ( data_w_valid_o         ),
-		.w_ready_i         ( data_w_ready_i         ),
-		.bkwd_resp_i       ( data_bkwd_resp_i       ),
-		.bkwd_valid_i      ( data_bkwd_valid_i      ),
-		.bkwd_ready_o      ( data_bkwd_ready_o      )
+		.out_paddr   ( data_paddr_o    ),
+		.out_psel    ( data_psel_o     ),
+		.out_pwrite  ( data_pwrite_o	),
+		.out_psize   ( data_psize_o    ),
+		.out_pwdata  ( data_pwdata_o   ),
+		.out_pwstrb  ( data_pwstrb_o   ),
+		.out_prdata  ( data_prdata_o   ),
+		.out_pvalid  ( data_pvalid_o   )
+
+		// .addr_r_addr_o     ( data_addr_r_addr_o     ),
+		// .addr_r_valid_o    ( data_addr_r_valid_o    ),
+		// .addr_r_size_o	   ( data_addr_r_size_o		),
+		// .r_data_i          ( data_r_data_i          ),
+		// .r_valid_i         ( data_r_valid_i         ),
+		// .r_ready_o         ( data_r_ready_o         ),
+		// .addr_w_addr_o     ( data_addr_w_addr_o     ),
+		// .addr_w_valid_o    ( data_addr_w_valid_o    ),
+		// .addr_w_size_o	   ( data_addr_w_size_o		),
+		// .w_data_o          ( data_w_data_o          ),
+		// .w_strb_o          ( data_w_strb_o          ),
+		// .bkwd_valid_i      ( data_bkwd_valid_i      )
 	);
 
 	
