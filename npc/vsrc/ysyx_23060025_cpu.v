@@ -8,7 +8,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	output		[ADDR_LEN - 1:0]		inst_addr_r_addr_o,
 	output		                		inst_addr_r_valid_o,
 	input		       					inst_addr_rready_i,
-	output		[1:0]  					inst_addr_rburst_i,
 
 	output		[7:0]  					inst_addr_rlen_o	,
 	output		[2:0]  					inst_addr_rsize_o	,
@@ -233,7 +232,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.out_arvalid 	( inst_addr_r_valid_o  ),
 		.out_rlast  	( inst_r_last_i   ),
 		.out_arready  	( inst_addr_rready_i   ),
-		.out_arburst  	( inst_addr_rburst_i   ),
 		.out_arlen   	( inst_addr_rlen_o    ),
 		.out_arsize  	( inst_addr_rsize_o   ),
 		.out_rvalid  	( inst_r_valid_i   ),
@@ -307,6 +305,11 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire lsu_valid_o;
 	wire lsu_ready_o;
 
+	`ifdef DEBUG
+	wire [31:0] ex_pc_o;
+	wire [31:0] lsu_pc_o;
+	`endif
+
 	ysyx_23060025_ex_stage ysyx_23060025_EXE(
 		.clock              	( clock     	),
 		.reset              	( reset     	),
@@ -318,6 +321,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.es_valid_o           		(         ),
 		.es_to_lsu_valid_o           	(    exu_valid_o         ),
 		.es_allowin_o           	(exu_ready_o             ),
+
+		`ifdef DEBUG
+		.pc_o (ex_pc_o),
+		`endif
 
 		// exu_wbu
 
@@ -341,6 +348,10 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	`ifdef DIFFTEST
 		.diff_skip_flag_i  ( diff_skip_flag_i           ),
 		.diff_skip_flag_o  ( lsu_diff_skip_flag_o           		),
+	`endif
+	`ifdef DEBUG
+		.pc_i (ex_pc_o),
+		.pc_o (lsu_pc_o),
 	`endif
 		.lsu_valid_o           	(  lsu_busy            ),
 

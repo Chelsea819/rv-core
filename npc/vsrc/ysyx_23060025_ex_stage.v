@@ -17,7 +17,9 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	// idu_exu
     input                                         ds_to_ex_valid_i           ,
     output                                        es_allowin_o               ,
-
+`ifdef DEBUG
+	output     [31:0]                                   pc_o               ,
+`endif 
 	output	reg							          es_valid_o	        ,
     // exu_lsu
     output                                        es_to_lsu_valid_o          ,
@@ -44,6 +46,9 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire        [DATA_LEN - 1:0]        csr_rdata_i		;
 	wire  	    [11:0]     				csr_waddr_i		;
 
+	`ifdef DEBUG
+		assign pc_o = pc_i;
+	`endif
 	reg [`DS_TO_ES_DATA_BUS -1:0]       ds_to_es_bus_reg;
 	always @(posedge clock) begin
 		if(reset) begin

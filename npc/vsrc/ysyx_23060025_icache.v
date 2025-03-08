@@ -23,11 +23,10 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input           	out_arready	,
 	output 	  	[7:0]  	out_arlen	,
 	output 	  	[2:0]   out_arsize	,
-	output 	  	[1:0]   out_arburst	,
 	input        		out_rvalid	,
 	input           	out_rlast	,
-	input   	[31:0] 	out_rdata	,
-	output 	         	out_rready	
+	output           	out_rready	,
+	input   	[31:0] 	out_rdata	
 );
 	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_ADDR_HAND_SHAK = 3'b010, STATE_LOAD = 3'b011, STATE_FENCE = 3'b111;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
@@ -166,7 +165,6 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	assign out_rready = state_load;
 	assign in_pready = r_last_valid | (state_check & check_hit);
 	assign in_prdata = prdata;
-	assign out_arburst = `AXI_ADDR_BURST_INCR;
 	assign out_araddr = load_raddr;
 
 endmodule

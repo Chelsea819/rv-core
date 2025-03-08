@@ -18,7 +18,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	//Addr Read
 	input		[ADDR_LEN - 1:0]		inst_addr_r_addr_i,
 	input		                		inst_addr_r_valid_i,
-	input		[1:0]            		inst_addr_r_burst_i,
 	output		                		inst_addr_r_ready_o,
 	input		[7:0]  					inst_addr_rlen_o	,
 	input		[2:0]  					inst_addr_rsize_o	,
@@ -231,17 +230,17 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			= state_busy_inst ? axi_addr_r_ready_i : 0;
 
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
-	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_burst_o, axi_addr_r_len_o, 
+	assign {axi_addr_r_valid_o, axi_addr_r_id_o, axi_addr_r_size_o, axi_addr_r_len_o, 
 			axi_addr_w_valid_o, axi_addr_w_id_o, axi_addr_w_size_o, 
 			axi_w_valid_o} 
-			= state_busy_data ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, `AXI_ADDR_BURST_FIXED, 8'b0, 
+			= state_busy_data ? { data_addr_r_valid_i, `AXI_R_ID_LSU, data_addr_r_size_i, 8'b0, 
 													data_addr_w_valid_i, `AXI_W_ID_LSU, data_addr_w_size_i, 
 													data_w_valid_i} : 
-				state_busy_inst ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_r_burst_i,inst_addr_rlen_o, 
+				state_busy_inst ? {inst_addr_r_valid_i, `AXI_R_ID_IF, inst_addr_rsize_o, inst_addr_rlen_o, 
 													1'b0, 4'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;
-	
+	assign axi_addr_r_burst_o = `AXI_ADDR_BURST_INCR;
 	always @(*) begin
 		axi_addr_r_addr_o	= 0;
 		axi_addr_w_addr_o	= 0;

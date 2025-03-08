@@ -65,6 +65,7 @@ size_t inst_type_buff_wptr = 0;
 #define TYPE_STATE_TRANS    5
 #define TYPE_FENCEI         6
 #define TYPE_COUNT          7
+#define TYPE_UNREADY        8
 
 uint64_t data_relation_inst = 0;
 uint64_t data_relation_delay = 0;
@@ -146,7 +147,12 @@ extern "C" void lsu_delay_counter_update(){
 
 
 extern "C" void idu_p_counter_update(char opcode, char func3){
-  if(!bootloader_ok) return;
+  if(!bootloader_ok) {
+    type_flag[inst_type_buff_wptr] = TYPE_UNREADY;
+    inst_type_buff_wptr = (inst_type_buff_wptr + 1) % INST_TYPE_BUFFER;
+    return;
+  }
+  // printf("opcode = 0x%08x\n", opcode);
   switch (opcode) {
     // 计算
     case TYPE_I_BASE_OPCODE:
@@ -218,7 +224,7 @@ extern "C" void pc_node_cancel(){
 
 void pc_get(){
   if(pc_read[read_index].pc == 0x30000000 - 4){
-    read_index = (read_index + 1) % PC_FIFO_LEN;
+      read_index = (read_index + 1) % PC_FIFO_LEN;
   }
   // printf("dnpc: 0x%08x pc: 0x%08x\n",pc_read[read_index].dnpc, pc_read[read_index].pc);
   cpu.pc = pc_read[read_index].dnpc;
@@ -551,7 +557,11 @@ void per_inst_cycle(){
   // printf("finshed!\n");
   inst_finish = 0;
 
-  if(!bootloader_ok) return;
+  if(type_flag[inst_type_buff_rptr] == TYPE_UNREADY || ~bootloader_ok){ 
+    inst_type_buff_rptr = (inst_type_buff_rptr + 1) % INST_TYPE_BUFFER;
+    return;
+  
+  }
   size_t i = 0;
   size_t idx = type_flag[inst_type_buff_rptr];
   if(idx == 0) {dut->final();

@@ -95,7 +95,6 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	[ADDR_LEN - 1:0]			inst_addr_r_addr_o;
 	wire	                			inst_addr_r_valid_o;
 	wire	                			inst_addr_r_ready_i;
-	wire		[1:0]					inst_addr_r_burst_o;
 
 	// Read data
 	// wire		[DATA_LEN - 1:0]		inst_r_data_i	;
@@ -252,7 +251,6 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_r_valid_o 	( inst_addr_r_valid_o  ),
 		.inst_r_last_i   	( inst_r_last_i    ),
 		.inst_addr_rready_i   	( inst_addr_r_ready_i    ),
-		.inst_addr_rburst_i   	( inst_addr_r_burst_o    ),
 		.inst_addr_rlen_o    	( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   	( inst_addr_rsize_o    ),
 		.inst_r_valid_i      	( inst_r_valid_i       ),
@@ -292,7 +290,6 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.inst_addr_r_addr_i  ( inst_addr_r_addr_o  ),
 		.inst_addr_r_valid_i ( inst_addr_r_valid_o ),
 		.inst_addr_r_ready_o ( inst_addr_r_ready_i ),
-		.inst_addr_r_burst_i ( inst_addr_r_burst_o ),		
 		.inst_r_last_i   	 ( inst_r_last_i    ),
 		.inst_addr_rlen_o    ( inst_addr_rlen_o     ),
 		.inst_addr_rsize_o   ( inst_addr_rsize_o    ),
