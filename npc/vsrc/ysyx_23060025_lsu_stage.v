@@ -55,29 +55,6 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	output		[3:0]					out_pwstrb	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	input		[DATA_LEN - 1:0]		out_prdata	,
 	input		                		out_pvalid	
-
-    // AXI
-    //Addr Read
-	// otput		[ADDR_LEN - 1:0]		addr_r_addr_o,
-	// output		                		addr_r_valid_o,
-	// output		[2:0]                	addr_r_size_o,
-
-	// // Read data
-	// input		[DATA_LEN - 1:0]		r_data_i	,
-	// input		                		r_valid_i	,
-	// output		                		r_ready_o	,
-
-	// // Addr Write
-	// output		[ADDR_LEN - 1:0]		addr_w_addr_o,	// 写地址
-	// output		                		addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
-	// output		[2:0]                	addr_w_size_o,	// 主设备给出的地址和相关控制信号有效
-
-	// // Write data
-	// output		[DATA_LEN - 1:0]		w_data_o	,	// 写出的数据
-	// output		[3:0]					w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
-
-	// // Backward
-	// input		                		bkwd_valid_i	// 从设备给出的写回复信号是否有效u
     
 );	
     wire [31:0] mem_rdata;
@@ -152,12 +129,6 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 				csr_mcause_o ,
 				ebreak_flag_i } = es_to_ms_bus_reg;
 
-	// wire state_addr_pass = (con_state == LSU_WAIT_ADDR_PASS);
-	// wire state_data_load = (con_state == STATE_DATA_LOAD);
-	// reg							        	con_state	;
-	// reg							        	next_state	;
-    // parameter 	 LSU_WAIT_ADDR_PASS = 1'b0, STATE_DATA_LOAD = 1'b1;
-
 	assign lsu_allowin_o    = !lsu_valid_o || lsu_ready_go_o && wbu_allowin_i;
     assign lsu_ready_go_o   = ~(mem_to_reg | mem_wen_i) || out_pvalid;
     assign lsu_to_wbu_valid_o = lsu_valid_o && lsu_ready_go_o;
@@ -174,119 +145,11 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
     end
 
-
 	wire [31:0] r_data = out_prdata;
-
-
-// delay test
-`ifdef DELAY_TEST
-	// random delay
-	`ifdef RAN_DELAY
-		reg				[3:0]		        	RANDOM_DELAY;
-        reg				[3:0]		        	RANDOM_W_DATA_DELAY;
-        wire			[3:0]		        	delay_num;
-        wire			[3:0]		        	delay_num_w_data;
-
-        ysyx_23060025_LFSR u_LFSR(
-            .clock          ( clock          ),
-            .rstn         ( rstn         ),
-            .initial_var  ( 4'b1  		 ),
-            .result       ( delay_num    )
-        );
-        ysyx_23060025_LFSR u_LFSR_w_data(
-            .clock          ( clock          ),
-            .rstn         ( rstn         ),
-            .initial_var  ( 4'b1  		 ),
-            .result       ( delay_num_w_data    )
-        );
-		
-		always @(posedge clock ) begin
-            if (~rstn) 
-                RANDOM_DELAY <= 4'b1;
-            else if((con_state == STATE_WAIT_EXE_VALID && next_state == LSU_WAIT_ADDR_PASS) || (con_state == LSU_WAIT_ADDR_PASS && next_state == LSU_WAIT_ADDR_PASS))
-                RANDOM_DELAY <= delay_num;
-        end
-
-        always @(posedge clock ) begin
-            if (~rstn) 
-                RANDOM_W_DATA_DELAY <= 0;
-            else if((con_state == STATE_WAIT_EXE_VALID && next_state == LSU_WAIT_ADDR_PASS))
-                RANDOM_W_DATA_DELAY <= delay_num_w_data;
-        end
-	// fixed var delay
-	`elsif VAR_DELAY
-		// 当 RAN_DELAY 未定义，但 VAR_DELAY 被定义时，编译这段代码
-        wire				[3:0]		        	RANDOM_DELAY;
-        wire				[3:0]		        	RANDOM_W_DATA_DELAY;
-		assign RANDOM_DELAY = `VAR_DELAY;
-		assign RANDOM_W_DATA_DELAY = `VAR_W_DELAY;
-
-	`endif
-
-	reg			[3:0]		addr_r_valid_delay;
-	reg			[3:0]		addr_w_valid_delay;
-	reg			[3:0]		w_data_valid_delay;
-	reg			[3:0]		r_ready_delay;
-	reg			[3:0]		bkwd_ready_delay;
-
-    assign addr_r_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_to_reg & rstn & (addr_r_valid_delay == RANDOM_DELAY); // addr valid and load inst
-    assign r_ready_o = (con_state == LSU_WAIT_ADDR_PASS) & (r_ready_delay == RANDOM_DELAY);
-    assign addr_w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (addr_w_valid_delay == RANDOM_DELAY);  // addr valid and store inst
-    assign w_valid_o = (con_state == LSU_WAIT_ADDR_PASS) & mem_wen_i & rstn & (w_data_valid_delay == RANDOM_W_DATA_DELAY);
-    assign bkwd_ready_o = (con_state == LSU_WAIT_ADDR_PASS) & rstn & (bkwd_ready_delay == RANDOM_DELAY);
-
-	// r addr delay
-	always @(posedge clock ) begin
-        if (next_state == LSU_WAIT_ADDR_PASS && (addr_r_valid_delay != RANDOM_DELAY || addr_r_valid_delay == 0))
-			addr_r_valid_delay <= addr_r_valid_delay + 1;
-		else if(next_state == LSU_WAIT_ADDR_PASS && addr_r_valid_delay == RANDOM_DELAY)
-			addr_r_valid_delay <= addr_r_valid_delay;
-		else 
-			addr_r_valid_delay <= 4'b0;
-	end
-	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_ADDR_PASS && (addr_w_valid_delay != RANDOM_DELAY || addr_w_valid_delay == 0))
-			addr_w_valid_delay <= addr_w_valid_delay + 1;
-        else if(next_state == LSU_WAIT_ADDR_PASS && addr_w_valid_delay == RANDOM_DELAY)
-			addr_w_valid_delay <= addr_w_valid_delay;
-		else  
-			addr_w_valid_delay <= 4'b0;
-	end
-	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_ADDR_PASS && (w_data_valid_delay != RANDOM_W_DATA_DELAY || w_data_valid_delay == 0))
-			w_data_valid_delay <= w_data_valid_delay + 1;
-        else if(next_state == LSU_WAIT_ADDR_PASS && w_data_valid_delay == RANDOM_W_DATA_DELAY)
-			w_data_valid_delay <= w_data_valid_delay;
-		else  
-			w_data_valid_delay <= 4'b0;
-	end
-
-	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_ADDR_PASS && (r_ready_delay != RANDOM_DELAY || r_ready_delay == 0)) 
-			r_ready_delay <= r_ready_delay + 1;
-		else if(next_state == LSU_WAIT_ADDR_PASS && r_ready_delay == RANDOM_DELAY)
-			r_ready_delay <= r_ready_delay;
-		else  
-			r_ready_delay <= 4'b0;
-	end
-	always @(posedge clock ) begin
-		if (next_state == LSU_WAIT_ADDR_PASS && (bkwd_ready_delay != RANDOM_DELAY || bkwd_ready_delay == 0)) 
-			bkwd_ready_delay <= bkwd_ready_delay + 1;
-		else if(next_state == LSU_WAIT_ADDR_PASS && bkwd_ready_delay == RANDOM_DELAY)
-			bkwd_ready_delay <= bkwd_ready_delay;
-		else 
-			bkwd_ready_delay <= 4'b0;
-	end
-// no delay
-`else
-    // assign addr_r_valid_o =  mem_to_reg & lsu_valid_o; // addr valid and load inst
-    // assign r_ready_o =  lsu_valid_o;
-    // assign addr_w_valid_o = mem_wen_i & lsu_valid_o;  // addr valid and store inst
 
 	assign out_psel = (mem_to_reg | mem_wen_i) & lsu_valid_o;
 	assign out_pwrite = mem_wen_i & lsu_valid_o;
 
-`endif
 
     // 写寄存器的信息
     wire		[DATA_LEN - 1:0]		    wdata       ;
@@ -338,9 +201,9 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 
 	wire n_aligned_store = ~aligned_store;
-	wire aligned = (alu_result_i[1:0] == 2'b00) | n_aligned_store;
+	// wire aligned = (alu_result_i[1:0] == 2'b00) | n_aligned_store;
 
-	assign {out_pwstrb, out_pwdata} = aligned ? {w_strb, w_data} :
+	assign {out_pwstrb, out_pwdata} = alu_result_i[1:0] == 2'b00 || n_aligned_store ? {w_strb, w_data} :
 					alu_result_i[1:0] == 2'b01 ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
 					alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
 					alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
