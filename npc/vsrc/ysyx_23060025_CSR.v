@@ -92,7 +92,6 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	);
 
 	wire [31:0] mvendorid_r = 32'h79737978;
-	
 	wire [31:0] marchid_r = 32'd23060025;
 
 

@@ -28,8 +28,7 @@ static inline int check_reg_idx(int idx) {
   return idx;
 }
 
-#define R(idx) (dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_RegisterFile__DOT__rf[check_reg_idx(idx)])
-
+#define R(idx) ((idx) == 0 ? 0 : (dut->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__ysyx_23060025_cpu__DOT__ysyx_23060025_RegisterFile__DOT__rf[check_reg_idx((idx)-1)]))
 // #define gpr(idx) (cpu.gpr[check_reg_idx(idx)])
 
 

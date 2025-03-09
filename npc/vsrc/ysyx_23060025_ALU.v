@@ -26,19 +26,25 @@ module ysyx_23060025_ALU #(parameter DATA_LEN = 32)(
 	// end
 
 	wire signed [31:0] src1_signed = $signed(src1);
-	wire signed [31:0] src2_signed = $signed(src2);
 
-	wire [31:0] add_res 		= src1 + src2				;
-	wire [31:0] sub_res 		= src1 - src2				;
 	wire [31:0] xor_res 		= src1 ^ src2				;
 	wire [31:0] or_res 			= src1 | src2				;
 	wire [31:0] and_res 		= src1 & src2				;
 	wire [31:0] right_logic_res = src1 >> src2[4:0]			;
-	wire [31:0] right_arithme 	= $signed(src1) >>> src2[4:0];
+	wire [31:0] right_arithme 	= src1_signed >>> src2[4:0];
 	wire [31:0] left_logic 		= src1 << src2[4:0]			;
-	wire [31:0] less_signed 	= {31'b0, (src1_signed < src2_signed)}			;
-	wire [31:0] less_unsigned 	= {31'b0, (src1 < src2)}			;
 	
+	wire adder_addsub = alu_op_sel_add | alu_op_sel_sub; 
+	wire [31:0] adder_in1 = src1;
+	wire [31:0] adder_in2 = adder_cin ? (~src2) : src2;
+	wire adder_cin = alu_op_sel_sub | alu_op_sel_less_signed;
+
+	wire [31:0] adder_res = adder_in1 + adder_in2 + {31'b0, adder_cin};	
+	wire overflow = (src1[31] ^ src2[31]) & (src1[31] ^ adder_res[31]); 
+
+	// It is Less-Than if the adder result is negative
+	wire cmp_res_lt  = adder_res[31] ^ overflow;
+	wire cmp_res_ltu = src1 < src2;
 
 	/* 比较两数大小，查看a-b相关标志位
 	有符号整数：当OF = SF时，a > b; OF != SF时，a >= b
@@ -50,15 +56,14 @@ module ysyx_23060025_ALU #(parameter DATA_LEN = 32)(
 	Sub = 0 表示加法运算，此时CF = Cout
 	 */
 
-	assign result = {32{alu_op_sel_add}} 			& add_res 		
-					| {32{alu_op_sel_sub}} 			& sub_res 		
+	assign result = {32{adder_addsub}} 			& adder_res 		
 					| {32{alu_op_sel_xor}} 			& xor_res 		
 					| {32{alu_op_sel_or}} 			& or_res 			
 					| {32{alu_op_sel_and}} 			& and_res 		
 					| {32{alu_op_sel_right_logic}} 	& right_logic_res 
 					| {32{alu_op_sel_right_arithe}} & right_arithme 	
-					| {32{alu_op_sel_less_unsigned}}& less_unsigned 		
-					| {32{alu_op_sel_less_signed}} 	& less_signed 	
+					| {32{alu_op_sel_less_unsigned}}& {31'b0, (cmp_res_ltu)} 		
+					| {32{alu_op_sel_less_signed}} 	& {31'b0, (cmp_res_lt)}	
 					| {32{alu_op_sel_left_logic}} 	& left_logic ;	
 	
 
