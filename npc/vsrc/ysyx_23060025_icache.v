@@ -5,6 +5,7 @@
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
 `include "ysyx_23060025_define.v"
+`define  PC_NO_2 1
  /* verilator lint_off WIDTHEXPAND */
 module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 2, CACHE_LINE_OFF_ADDR_W = 3)(
 	input         		clock,
@@ -39,23 +40,33 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire state_check = (con_state == STATE_CHECK);
 	wire state_load = (con_state == STATE_LOAD);
 	// wire state_fence = (con_state == STATE_FENCE);
-
+`ifdef PC_NO_2
+	wire [29:0]  raddr     = in_paddr[31:2];
+`else
 	wire [31:0]  raddr     = in_paddr;
-
+`endif 
 
 	reg	[1:0] con_state;
 	reg	[1:0] next_state;
 
 	reg	[CACHE_LINE_W-1:0]	cache_reg	[CACHE_LINE_NUM-1:0];
 	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
-
+`ifdef PC_NO_2
+	wire [TAG_W-1:0]					addr_tag	= raddr[ADDR_WIDTH-1-2:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-2];
+	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= raddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1-2:CACHE_LINE_OFF_ADDR_W-2];
+	wire [CACHE_LINE_OFF_ADDR_W-1-2:0]	addr_off	= raddr[CACHE_LINE_OFF_ADDR_W-1-2:0];
+`else
 	wire [TAG_W-1:0]					addr_tag	= raddr[ADDR_WIDTH-1:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W];
 	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= raddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1:CACHE_LINE_OFF_ADDR_W];
 	wire [CACHE_LINE_OFF_ADDR_W-1:0]	addr_off	= raddr[CACHE_LINE_OFF_ADDR_W-1:0];
+`endif 
 
 	wire check_hit 					= (addr_tag == cache_tag[addr_index][TAG_W-1:0] && cache_tag[addr_index][TAG_W+CACHE_VALID_W-1] == 1);
-
+`ifdef PC_NO_2
+	wire [CACHE_LINE_W-1:0] cache_line_data	= cache_reg[addr_index] >> ({addr_off, 2'b0, 3'b0});
+`else
 	wire [CACHE_LINE_W-1:0] cache_line_data	= cache_reg[addr_index] >> ({addr_off, 3'b0});
+`endif 
 	wire [DATA_WIDTH-1:0] 	prdata			= cache_line_data[DATA_WIDTH-1:0];
 
 	wire [ADDR_WIDTH-1:0] 	load_raddr = {addr_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};

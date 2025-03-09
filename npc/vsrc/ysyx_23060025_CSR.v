@@ -7,7 +7,6 @@
 `include "ysyx_23060025_define.v"
 module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	input								clock		,
-	input								reset		,
 	input	    [11:0]					csr_raddr,	// 要读的csr
 	input	    [11:0]					csr_waddr,	// 要读的csr
 	input		[DATA_WIDTH - 1:0]		wdata	,	// 要写入csr的数据	

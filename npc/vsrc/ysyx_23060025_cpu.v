@@ -104,12 +104,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire			[11:0]				lsu_csr_waddr_o		;
 	wire			[31:0]				lsu_csr_mcause_o		;
 	wire			[2:0]				lsu_csr_type_o		;
-	// wire								lsu_memory_inst_o	;
 
-	
-	// assign pc = ifu_pc_o;
-	// assign finish = if_last_finish_i;
-	
 	// always @(*) begin
 	// 	$display("pc: [%h] inst: [%b] invalid: [%h] reset: [%b] clock[%b]",pc, ifu_inst_o, invalid, reset, clock);
 	// end
@@ -431,7 +426,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.DATA_WIDTH    ( 32 )
 	)ysyx_23060025_CSR(
 		.clock           ( clock           ),
-		.reset           ( reset           ),
 		.csr_raddr      ( csr_raddr_i      ),
 		.csr_waddr      ( wb_csr_waddr_o      ),
 		.wdata         ( csr_wdata_i         ),
