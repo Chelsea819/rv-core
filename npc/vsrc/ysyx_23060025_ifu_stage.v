@@ -274,19 +274,19 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// 2. 指令相关的存储
 	reg inst_buff_enable;
-	reg  [31:0] inst_rd_buff;
-	wire [31:0]  fs_inst     = inst_buff_enable ? inst_rd_buff : out_prdata;
+	// reg  [31:0] inst_rd_buff;
+	wire [31:0]  fs_inst     = out_prdata;
 
 
-	//inst read buffer  use for stall situation
+	// inst read buffer  use for stall situation
 	always @(posedge clock) begin
 		// fs_ready_go && ds_allowin -> inst往下一级传递，无需buffer
-		if (reset || inst_buff_enable && ds_allowin_i) begin	
+		if (reset || ~next_state_fs) begin	
 			inst_buff_enable  <= 1'b0;
 		end
 		// 下一级还没准备好接受数据，需要先存到buffer中
-		else if (out_pready && !ds_allowin_i) begin
-			inst_rd_buff <= out_prdata;
+		else if (out_pready) begin
+			// inst_rd_buff <= out_prdata;
 			inst_buff_enable  <= 1'b1;
 		end
 	end
