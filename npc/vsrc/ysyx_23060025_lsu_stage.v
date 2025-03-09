@@ -211,13 +211,20 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 	// wire n_aligned_store = ~aligned_store;
 
-	assign {out_pwstrb, out_pwdata} = alu_result_i[1:0] == 2'b00 ? {w_strb, w_data} :
-					alu_result_i[1:0] == 2'b01 ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
-					alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
-					alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
+	// assign {out_pwstrb, out_pwdata} = alu_result_i[1:0] == 2'b00 ? {w_strb, w_data} :
+	// 				alu_result_i[1:0] == 2'b01 ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
+	// 				alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
+	// 				alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
 	
 	assign wdata_o = wdata;
 
+	wire agu_i_size_b = (store_type_i == `STORE_SB_8);
+	wire agu_i_size_hw = (store_type_i == `STORE_SH_16);
+
+	assign out_pwdata = agu_i_size_b ? {4{w_data[ 7:0]}} :
+						agu_i_size_hw ? {2{w_data[15:0]}} : w_data[31:0];
+	assign out_pwstrb = agu_i_size_b ? (4'b0001 << alu_result_i[1:0]) :
+						agu_i_size_hw ? (4'b0011 << {alu_result_i[1],1'b0}) : 4'b1111;
 
 
 	// wire addr_sram = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H);
@@ -241,10 +248,12 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		0x80000013 addr_unaligned[1:0] == 2'b11---- 【00_01_02_03】--[03_00_00_00]
 	*/
 
-	assign mem_rdata_unaligned = (alu_result_i[1:0] == 2'b00) ? {r_data} :
-								alu_result_i[1:0] == 2'b01 ? {8'b0, {r_data[31:8]}} :
-								alu_result_i[1:0] == 2'b10 ? {16'b0, {r_data[31:16]}} :
-								alu_result_i[1:0] == 2'b11 ? {{24'b0, r_data[31:24]}} : 0;
+	// assign mem_rdata_unaligned = (alu_result_i[1:0] == 2'b00) ? {r_data} :
+	// 							alu_result_i[1:0] == 2'b01 ? {8'b0, {r_data[31:8]}} :
+	// 							alu_result_i[1:0] == 2'b10 ? {16'b0, {r_data[31:16]}} :
+	// 							alu_result_i[1:0] == 2'b11 ? {{24'b0, r_data[31:24]}} : 0;
+
+	assign mem_rdata_unaligned = r_data >> {alu_result_i[1:0], 3'b0};
 
 								
     assign mem_rdata = (load_type_i == `LOAD_LB_8)  ? {{24{mem_rdata_unaligned[7]}}, mem_rdata_unaligned[7:0]} : 
