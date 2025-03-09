@@ -19,7 +19,6 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	output reg   [31:0]                   pc_o               ,
 `endif
     
-    
     input  [`ES_TO_MS_DATA_BUS-1:0] 	es_to_ms_bus,
 
 	//to ds forward path 
@@ -60,7 +59,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     wire [31:0] mem_rdata;
 	wire								lsu_ready_go_o	        ;
 	wire	 [DATA_LEN - 1:0]    		mem_rdata_unaligned	;
-	wire 		 				 		aligned_store	;
+	// wire 		 				 		aligned_store	;
     wire		[DATA_LEN - 1:0]		alu_result_i ;
     wire		                		mem_wen_i	 ;
 	wire		[DATA_LEN - 1:0]		mem_wdata_i	 ;
@@ -70,7 +69,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     wire                                ebreak_flag_i;
     // reg  [7:0]  mem_rmask;
     wire        					mem_to_reg;
-	wire	[3:0]					w_strb	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
+	// wire	[3:0]					w_strb	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	wire	[DATA_LEN - 1:0]		w_data	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 
 	`ifdef DEBUG
@@ -157,10 +156,10 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 	assign out_paddr = alu_result_i;
 
-	assign w_strb = (store_type_i == `STORE_SB_8)? `AXI_W_STRB_8 :
-                    (store_type_i == `STORE_SH_16) ? `AXI_W_STRB_16 :
-                    (store_type_i == `STORE_SW_32) ? `AXI_W_STRB_32 : 
-                    0;
+	// assign w_strb = (store_type_i == `STORE_SB_8)? `AXI_W_STRB_8 :
+    //                 (store_type_i == `STORE_SH_16) ? `AXI_W_STRB_16 :
+    //                 (store_type_i == `STORE_SW_32) ? `AXI_W_STRB_32 : 
+    //                 0;
 	assign w_data = mem_wdata_i;
 
 	assign out_psize = mem_to_reg ? addr_r_size : addr_w_size;
