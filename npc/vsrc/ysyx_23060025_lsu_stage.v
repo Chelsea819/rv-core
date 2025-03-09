@@ -182,6 +182,15 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// import "DPI-C" function void dtrace_func(int addr);
     // always @(*)
 	// 	dtrace_func(addr_w_addr_o);
+	// always @(posedge clock) begin
+	// 	if (lsu_to_wbu_valid_o & wbu_allowin_i) begin
+	// 		if(alu_result_i[1:0] != 2'b00 & (mem_to_reg)) begin
+	// 			$display("Unaligned read request!----[%x]", alu_result_i);
+	// 		end else if(alu_result_i[1:0] != 2'b00 & (mem_wen_i)) begin
+	// 			$display("Unaligned write request!----[%x]", alu_result_i);
+	// 		end
+	// 	end
+	// end
 `ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void lsu_p_counter_update();
 	always @(posedge clock) begin
@@ -200,9 +209,9 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 `endif
 
 
-	wire n_aligned_store = ~aligned_store;
+	// wire n_aligned_store = ~aligned_store;
 
-	assign {out_pwstrb, out_pwdata} = alu_result_i[1:0] == 2'b00 || n_aligned_store ? {w_strb, w_data} :
+	assign {out_pwstrb, out_pwdata} = alu_result_i[1:0] == 2'b00 ? {w_strb, w_data} :
 					alu_result_i[1:0] == 2'b01 ? {{w_strb[2:0], 1'b0}, {w_data[23:0], 8'b0}} :
 					alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
 					alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
@@ -211,17 +220,16 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 
 
-	wire addr_sram = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H);
-	wire addr_flash = (alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H);
-	wire addr_sdram = (alu_result_i >= `DEVICE_SDRAM_ADDR_L && alu_result_i <= `DEVICE_SDRAM_ADDR_H);
-	wire addr_psram = (alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
-	wire addr_uart = (alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H);
+	// wire addr_sram = (alu_result_i >= `DEVICE_SRAM_ADDR_L && alu_result_i <= `DEVICE_SRAM_ADDR_H);
+	// wire addr_flash = (alu_result_i >= `DEVICE_FLASH_ADDR_L && alu_result_i <= `DEVICE_FLASH_ADDR_H);
+	// wire addr_sdram = (alu_result_i >= `DEVICE_SDRAM_ADDR_L && alu_result_i <= `DEVICE_SDRAM_ADDR_H);
+	// wire addr_psram = (alu_result_i >= `DEVICE_PSRAM_ADDR_L && alu_result_i <= `DEVICE_PSRAM_ADDR_H);
+	// wire addr_uart = (alu_result_i >= `DEVICE_UART16550_ADDR_L && alu_result_i <= `DEVICE_UART16550_ADDR_H);
 
-	assign aligned_store = addr_sram | addr_flash | addr_sdram | addr_psram | addr_uart;
+	// assign aligned_store = addr_sram | addr_flash | addr_sdram | addr_psram | addr_uart;
 
     assign  mem_to_reg = |load_type_i;
 
-    // assign mem_ren_o = mem_to_reg;
     
     // load
 	/*
@@ -233,7 +241,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		0x80000013 addr_unaligned[1:0] == 2'b11---- 【00_01_02_03】--[03_00_00_00]
 	*/
 
-	assign mem_rdata_unaligned = (alu_result_i[1:0] == 2'b00 || n_aligned_store) ? {r_data} :
+	assign mem_rdata_unaligned = (alu_result_i[1:0] == 2'b00) ? {r_data} :
 								alu_result_i[1:0] == 2'b01 ? {8'b0, {r_data[31:8]}} :
 								alu_result_i[1:0] == 2'b10 ? {16'b0, {r_data[31:16]}} :
 								alu_result_i[1:0] == 2'b11 ? {{24'b0, r_data[31:24]}} : 0;
