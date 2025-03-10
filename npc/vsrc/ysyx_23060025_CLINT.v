@@ -44,10 +44,10 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 
 	always @(posedge clock ) begin
-		if(rstn)
-			mtime <= mtime + 64'b1;
-		else
+		if(!rstn)
 			mtime <= 0;
+		else
+			mtime <= mtime + 64'b1;
 	end
 
 	assign r_valid_o = (con_state == WAIT_DATA_GET);
@@ -83,7 +83,7 @@ module ysyx_23060025_CLINT #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	end
 
 	always @(posedge clock) begin
-		if(~rstn) begin
+		if(!rstn) begin
 			r_data_o <= 0;
 		end else if(con_state == WAIT_ADDR && next_state == WAIT_DATA_GET) begin
 			r_data_o <= r_data;
