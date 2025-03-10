@@ -58,7 +58,27 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 		end
 	end
 
-	assign { reg1_i		  ,     
+	
+ `ifdef PC_NO_2
+        //ifdef
+		assign pc_i[1:0] = 0;
+        assign { reg1_i		  ,     
+			reg2_i			,
+			pc_i[31:2]			,
+			alu_control		,
+			alu_sel			,
+			imm_i			,
+			csr_flag_i		,
+			csr_rdata_i		,
+			csr_waddr_i		,
+			wd_i			,
+			wreg_i			,
+			store_type_i	,
+			load_type_i 	,
+			ebreak_flag_i 	} = ds_to_es_bus_reg;
+    `else
+    //else
+        assign { reg1_i		  ,     
 			reg2_i			,
 			pc_i			,
 			alu_control		,
@@ -72,7 +92,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 			store_type_i	,
 			load_type_i 	,
 			ebreak_flag_i 	} = ds_to_es_bus_reg;
-	
+    `endif	
 	assign es_to_ms_bus = {
 					wd_i, 
 					wreg_i,

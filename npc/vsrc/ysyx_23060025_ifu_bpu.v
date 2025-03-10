@@ -18,8 +18,23 @@ module ysyx_23060025_ifu_bpu #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 );
 	wire  		[DATA_WIDTH - 1:0]			bpu_inst_i ;
-	wire  		[DATA_WIDTH - 1:0]			bpu_pc_i   ;
+	
+	
+	
+`ifdef PC_NO_2
+	//ifdef
+	wire  		[ADDR_WIDTH - 1 - 2:0]			bpu_pc_i ;
 	assign {bpu_inst_i, bpu_pc_i} = if_to_bqu_bus;
+	wire [31-2:0] bpu_op2 = bpu_token ? imm[31:2] : 30'b1;
+	assign bpu_pc_predict_o[31:2] = bpu_pc_i + bpu_op2;
+	assign bpu_pc_predict_o[1:0] = 0;
+`else
+//else
+	wire  		[ADDR_WIDTH - 1:0]			bpu_pc_i ;
+	assign {bpu_inst_i, bpu_pc_i} = if_to_bqu_bus;
+	wire [31:0] bpu_op2 = bpu_token ? imm : 32'd4;
+	assign bpu_pc_predict_o = bpu_pc_i + bpu_op2;
+`endif
 
 `ifdef N_YOSYS_STA_CHECK
 	`ifdef PERFORMANCE_COUNTER
@@ -68,8 +83,7 @@ module ysyx_23060025_ifu_bpu #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	
 	// 如果是jal指令或者是分支跳转 向后跳转(imm negetive)的指令，则跳转
 	wire bpu_token = opcode_J_jal | bpu_branch_jmp;
-	wire [31:0] bpu_op2 = bpu_token ? imm : 32'd4;
-	assign bpu_pc_predict_o = bpu_pc_i + bpu_op2;
+	
 
 	/* bpu_valid: when J-> must jmp
 					when B -> predict

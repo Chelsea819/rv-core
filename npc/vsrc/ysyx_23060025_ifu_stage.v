@@ -37,14 +37,22 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input 									bpu_valid_i,
 
 	// from ifu to cache
-	output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
+	`ifdef PC_NO_2
+		output	reg	 [ADDR_WIDTH - 1-2:0]			out_paddr,
+	`else
+		output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
+	`endif
 	output			                		out_psel,
 	input		                			out_pready	,	// icache read data ready
 	input		[31:0]	                	out_prdata	// icache read data
 );
 
 `ifdef N_YOSYS_STA_CHECK
-
+	`ifdef PC_NO_2
+		wire [31:0] pc = {fs_pc, 2'b0};
+	`else
+		wire [31:0] pc = fs_pc;
+	`endif
 	import "DPI-C" function void pc_node_init(int pc, int dnpc);
 	import "DPI-C" function void pc_node_cancel();
 	always @(posedge clock) begin
@@ -53,15 +61,15 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		// 1. pre ifu flush --(ok)--> ifu -> ok
 		// 2. pre -> ifu flush(cancel and init) ----> pre ifu --(ok)--> ifu -> ok
 		else if(next_state_fs && ~con_state_fs && ~con_fs_flush_sim) begin
-			pc_node_init(fs_pc, nextpc);
+			pc_node_init(pc, nextpc);
 		end  else if(ebreak_flag_i) begin
-			pc_node_init(fs_pc, nextpc);
+			pc_node_init(pc, nextpc);
 		end
 		if(reset)begin
 		end
 		else if(~con_fs_flush_reg & con_fs_flush_sim) begin
 			pc_node_cancel();
-			pc_node_init(fs_pc, idu_flush_pc_i);
+			pc_node_init(pc, idu_flush_pc_i);
 		end	
 	end
 	reg con_fs_flush_sim;
@@ -98,7 +106,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	import "DPI-C" function void inst_invalid_get(byte invalid, int pc);
 		always @(posedge clock) begin
 			if(out_pready)
-				inst_invalid_get({7'b0, inst_invalid}, fs_pc);
+				inst_invalid_get({7'b0, inst_invalid}, pc);
 		end
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
@@ -174,13 +182,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	
 	assign out_psel = ~con_state_fs && next_state_fs;	// 选中icache
 
-	always @(posedge clock) begin
-		if(reset) begin
-			out_paddr <= 0;
-		end else if(~con_state_fs && next_state_fs) begin
-			out_paddr <= nextpc;
-		end
-	end
+	
 
 	// id得到结果 or id not busy
 	wire to_fs_valid = bpu_valid_i | idu_valid_i | ds_allowin_i;
@@ -202,10 +204,49 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 			flush_reg <= idu_flush;
 		end
 	end
+	assign if_to_id_bqu_bus_o = {fs_inst, fs_pc};
 
 	// IFU stage
 	// 1. 握手相关的信号
-	reg [31:0] fs_pc;
+	`ifdef PC_NO_2
+		//ifdef
+		reg [31-2:0] fs_pc;
+		always @(posedge clock) begin
+			if (reset) begin
+				fs_pc        <= `PC_RESET_VAL_SUB_4_NO_2;  //trick: to make nextpc be 0x1c000000 during reset 
+			end
+			else if (~con_state_fs && to_fs_valid) begin
+				fs_pc        <= nextpc[31:2];
+			end
+		end
+		always @(posedge clock) begin
+			if(reset) begin
+				out_paddr <= 0;
+			end else if(~con_state_fs && next_state_fs) begin
+				out_paddr <= nextpc[31:2];
+			end
+		end
+	`else
+	//else
+		reg [31:0] fs_pc;
+		always @(posedge clock) begin
+			if (reset) begin
+				fs_pc        <= `PC_RESET_VAL_SUB_4;  //trickd: to make nextpc be 0x1c000000 during reset 
+			end
+			else if (~con_state_fs && to_fs_valid) begin
+				fs_pc        <= nextpc;
+			end
+			
+		end
+		always @(posedge clock) begin
+			if(reset) begin
+				out_paddr <= 0;
+			end else if(~con_state_fs && next_state_fs) begin
+				out_paddr <= nextpc;
+			end
+		end		
+	`endif
+	
 	
 	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
 	reg pre_flush;
@@ -263,14 +304,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	 */ 
 	assign fs_to_ds_valid_o =  fs_ready_go && (~(~flush_state_is_busy & flush_next_is_busy) & ~(flush_state_is_busy & flush_next_is_busy));
 
-	always @(posedge clock) begin
-		if (reset) begin
-			fs_pc        <= `PC_RESET_VAL_SUB_4;  //trick: to make nextpc be 0x1c000000 during reset 
-		end
-		else if (~con_state_fs && to_fs_valid) begin
-			fs_pc        <= nextpc;
-		end
-	end
+	
 
 	// 2. 指令相关的存储
 	reg inst_buff_enable;
@@ -291,8 +325,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 	end
 
-	// 给下一级使用的寄存器：inst/pc
-	assign if_to_id_bqu_bus_o = {fs_inst, fs_pc};
+	
 
 
 endmodule

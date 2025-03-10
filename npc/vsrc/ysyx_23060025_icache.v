@@ -5,13 +5,12 @@
 	> Created Time: 2023年08月04日 星期五 18时19分21秒
  ************************************************************************/
 `include "ysyx_23060025_define.v"
-`define  PC_NO_2 1
  /* verilator lint_off WIDTHEXPAND */
 module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 2, CACHE_LINE_OFF_ADDR_W = 3)(
 	input         		clock,
 	input         		reset,
 	// IFU
-	input  [31:0] 		in_paddr,	// IFU fetch inst addr
+	input  [29:0] 		in_paddr,	// IFU fetch inst addr
 	input         		in_psel,	// IFU sel icache
 	output 	        	in_pready,	// icache read data ready
 	output 	 [31:0] 	in_prdata,	// icache read data
@@ -41,9 +40,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire state_load = (con_state == STATE_LOAD);
 	// wire state_fence = (con_state == STATE_FENCE);
 `ifdef PC_NO_2
-	wire [29:0]  raddr     = in_paddr[31:2];
+	wire [29:0]  raddr     = in_paddr;
 `else
-	wire [31:0]  raddr     = in_paddr;
+	wire [31:0]  raddr     = {in_paddr, 2'b0};
 `endif 
 
 	reg	[1:0] con_state;

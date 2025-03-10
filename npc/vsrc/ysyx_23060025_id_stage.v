@@ -50,7 +50,7 @@ module ysyx_23060025_id_stage(
     wire  [31:0]   inst_i ;
     wire  [3:0]                         aluop_o                   ;
     wire  [3:0]                         alusel_o                  ;
-    wire  [31:0]                        pc_o                      ;
+    
     wire  [31:0]                        reg1_o                    ;
     wire  [31:0]                        reg2_o                    ;
     wire  [31:0]                        imm_o                     ;
@@ -87,7 +87,15 @@ module ysyx_23060025_id_stage(
         end
     end
 
-    assign {inst_i, pc_i} = fs_to_ds_forward_bus_reg;
+    `ifdef PC_NO_2
+        //ifdef
+        assign {inst_i, pc_i} = {fs_to_ds_forward_bus_reg, 2'b0};
+    `else
+    //else
+        assign {inst_i, pc_i} = fs_to_ds_forward_bus_reg;
+    `endif
+
+    
     wire     reg1_ren  ;
     wire     reg2_ren  ;
     // 1. opcode match
@@ -126,30 +134,30 @@ module ysyx_23060025_id_stage(
     wire   [6:0]   func7 = inst_i[31:25];
     wire func7_0000000 = (func7 == 7'b0000000);
     wire func7_0100000 = (func7 == 7'b0100000);
-    wire func7_0000001 = (func7 == 7'b0000001);
-    wire func7_0000101 = (func7 == 7'b0000101);
-    wire func7_0001001 = (func7 == 7'b0001001);
-    wire func7_0001101 = (func7 == 7'b0001101);
-    wire func7_0010101 = (func7 == 7'b0010101);
-    wire func7_0100001 = (func7 == 7'b0100001);
-    wire func7_0010001 = (func7 == 7'b0010001);
-    wire func7_0101101 = (func7 == 7'b0101101);
-    wire func7_1111111 = (func7 == 7'b1111111);
-    wire func7_0000100 = (func7 == 7'b0000100); 
-    wire func7_0001000 = (func7 == 7'b0001000); 
-    wire func7_0001100 = (func7 == 7'b0001100); 
-    wire func7_0101100 = (func7 == 7'b0101100); 
-    wire func7_0010000 = (func7 == 7'b0010000); 
-    wire func7_0010100 = (func7 == 7'b0010100); 
-    wire func7_1100000 = (func7 == 7'b1100000); 
-    wire func7_1110000 = (func7 == 7'b1110000); 
-    wire func7_1010000 = (func7 == 7'b1010000); 
-    wire func7_1101000 = (func7 == 7'b1101000); 
-    wire func7_1111000 = (func7 == 7'b1111000); 
-    wire func7_1010001 = (func7 == 7'b1010001);  
-    wire func7_1110001 = (func7 == 7'b1110001);  
-    wire func7_1100001 = (func7 == 7'b1100001);  
-    wire func7_1101001 = (func7 == 7'b1101001);
+    // wire func7_0000001 = (func7 == 7'b0000001);
+    // wire func7_0000101 = (func7 == 7'b0000101);
+    // wire func7_0001001 = (func7 == 7'b0001001);
+    // wire func7_0001101 = (func7 == 7'b0001101);
+    // wire func7_0010101 = (func7 == 7'b0010101);
+    // wire func7_0100001 = (func7 == 7'b0100001);
+    // wire func7_0010001 = (func7 == 7'b0010001);
+    // wire func7_0101101 = (func7 == 7'b0101101);
+    // wire func7_1111111 = (func7 == 7'b1111111);
+    // wire func7_0000100 = (func7 == 7'b0000100); 
+    // wire func7_0001000 = (func7 == 7'b0001000); 
+    // wire func7_0001100 = (func7 == 7'b0001100); 
+    // wire func7_0101100 = (func7 == 7'b0101100); 
+    // wire func7_0010000 = (func7 == 7'b0010000); 
+    // wire func7_0010100 = (func7 == 7'b0010100); 
+    // wire func7_1100000 = (func7 == 7'b1100000); 
+    // wire func7_1110000 = (func7 == 7'b1110000); 
+    // wire func7_1010000 = (func7 == 7'b1010000); 
+    // wire func7_1101000 = (func7 == 7'b1101000); 
+    // wire func7_1111000 = (func7 == 7'b1111000); 
+    // wire func7_1010001 = (func7 == 7'b1010001);  
+    // wire func7_1110001 = (func7 == 7'b1110001);  
+    // wire func7_1100001 = (func7 == 7'b1100001);  
+    // wire func7_1101001 = (func7 == 7'b1101001);
 
     //  1.2 opcode match
     /*
@@ -391,14 +399,31 @@ module ysyx_23060025_id_stage(
                         | {2{aluop2_sel_reg2}} & `ALU_SEL2_REG2
                         | {2{aluop2_sel_imm}} & `ALU_SEL2_IMM
                         | {2{aluop2_sel_4}} & `ALU_SEL2_4;
+`ifdef PC_NO_2
+    wire [31-2:0] trans_src1 = rv32_jalr ? reg1_o[31:2] : pc_i[31:2];
+    wire [31-2:0] trans_src2 = opcode_B_branch & ~branch_flag ? 30'b1 : imm_o[31:2];
 
+    wire [31-2:0] trans_target_o = trans_src1 + trans_src2;
+    assign jmp_target_o = {trans_target_o, 2'b0};
+    assign ds_to_ex_flush_pc_o = {trans_target_o, 2'b0};
+    // output 
+    wire  [31-2:0]                        pc_o                      ;
+    assign pc_o = pc_i[31:2];
+`else 
     wire [31:0] trans_src1 = rv32_jalr ? reg1_o : pc_i;
     wire [31:0] trans_src2 = opcode_B_branch & ~branch_flag ? 32'd4 : imm_o;
 
     wire [31:0] trans_target_o = trans_src1 + trans_src2;
+    assign jmp_target_o = trans_target_o;
+    assign ds_to_ex_flush_pc_o = trans_target_o;
+    // output 
+    wire  [31:0]                        pc_o                      ;
+    assign pc_o = pc_i;
+`endif
+    
 
     assign jmp_flag_o = rv32_jal | rv32_jalr;
-    assign jmp_target_o = trans_target_o;
+    
 
     assign csr_flag = {3{rv32_ecall}} & `CSR_ECALL
                         | {3{rv32_mret}} & `CSR_MRET
@@ -489,8 +514,7 @@ module ysyx_23060025_id_stage(
                                         ((reg2_addr_o == ws_forward_reg) && ws_forward_enable && reg2_ren) ? {1'b0, ws_forward_data} :
                                                                                                                 {1'b0, reg2_data_i};
 
-    // output 
-    assign pc_o = pc_i;
+    
     
     assign csr_waddr_o = (rv32_ecall ? `CSR_MEPC_ADDR : csr_addr);
     assign csr_raddr_o = (rv32_ecall ? `CSR_MTVEC_ADDR : rv32_mret ? `CSR_MEPC_ADDR : csr_addr);
@@ -519,7 +543,7 @@ wire branch_flag = rv32_beq ? reg1_o == reg2_o :
 // guess wrong
 assign ds_to_ex_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
 
-assign ds_to_ex_flush_pc_o = trans_target_o;
+
 
 `ifdef N_YOSYS_STA_CHECK
     `ifdef PERFORMANCE_COUNTER

@@ -2,10 +2,12 @@
 `include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
-`define N_YOSYS_STA_CHECK 1'b1
-`define DIFFTEST 1'b1
-`define DEBUG 1'b1
-`define PERFORMANCE_COUNTER 1'b1
+// `define N_YOSYS_STA_CHECK 1'b1
+// `define DIFFTEST 1'b1
+// `define DEBUG 1'b1
+// `define PERFORMANCE_COUNTER 1'b1
+
+`define  PC_NO_2 1'b1
 
 // `define BYPASS_TRACE 1'b1
 
@@ -13,8 +15,17 @@
 `define MS_TO_WS_BUS 118
 `define WS_TO_DS_FORWARD_BUS 85
 `define ES_TO_DS_FORWARD_BUS 87
-`define FS_TO_DS_DATA_BUS 32+32
-`define DS_TO_ES_DATA_BUS 195
+
+`ifdef PC_NO_2
+    `define FS_TO_DS_DATA_BUS 32+32-2
+    `define DS_TO_ES_DATA_BUS 195-2
+`else
+    `define FS_TO_DS_DATA_BUS 32+32
+    `define DS_TO_ES_DATA_BUS 195
+`endif
+
+
+
 `define ES_TO_MS_DATA_BUS 156
 
 `define TYPE_R_OPCODE     7'b0110011
