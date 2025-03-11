@@ -55,6 +55,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	`endif
 	import "DPI-C" function void pc_node_init(int pc, int dnpc);
 	import "DPI-C" function void pc_node_cancel();
+	import "DPI-C" function void cache_hit_cancel_statistic();
 	always @(posedge clock) begin
 		if(reset)begin
 		end
@@ -69,6 +70,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 		else if(~con_fs_flush_reg & con_fs_flush_sim) begin
 			pc_node_cancel();
+			cache_hit_cancel_statistic();
 			pc_node_init(pc, idu_flush_pc_i);
 		end	
 	end

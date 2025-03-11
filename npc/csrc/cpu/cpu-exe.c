@@ -556,11 +556,10 @@ void per_inst_cycle(){
   }while(inst_finish == 0);
   // printf("finshed!\n");
   inst_finish = 0;
-
-  if(type_flag[inst_type_buff_rptr] == TYPE_UNREADY || ~bootloader_ok){ 
+  
+  if(type_flag[inst_type_buff_rptr] == TYPE_UNREADY || bootloader_ok == false){ 
     inst_type_buff_rptr = (inst_type_buff_rptr + 1) % INST_TYPE_BUFFER;
     return;
-  
   }
   size_t i = 0;
   size_t idx = type_flag[inst_type_buff_rptr];
@@ -796,6 +795,11 @@ static void execute(uint64_t n) {
       cache_hit ++;
   }
 
+  void cache_hit_cancel_statistic(){
+    if(!bootloader_ok) return;
+      cache_hit --;
+  }
+
 
 // uint64_t ifu_p_counter = 0;
 // uint64_t lsu_p_counter = 0;
@@ -853,7 +857,7 @@ static void statistic()
     // access_time--cache接收访存请求到得出命中结果所需的时间
     // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;
-    float hit_percent = (float)cache_hit/ifu_p_counter;
+    float hit_percent = (float)cache_hit/g_nr_guest_inst;
     float access_time = (float)access_cycle / ifu_p_counter;
     float miss_penalty = (float)penalty_cycle / (ifu_p_counter - cache_hit);
     printf("Average Memory Access Time: %f cycle ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);

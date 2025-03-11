@@ -2,10 +2,12 @@
 `include "ysyx_23060025_define_pc_rst.v"
 
 // if need yosys-sta check, delete dpi-c function
+`ifdef VERILATOR
 `define N_YOSYS_STA_CHECK 1'b1
 `define DIFFTEST 1'b1
 `define DEBUG 1'b1
 `define PERFORMANCE_COUNTER 1'b1
+`endif
 
 `define  PC_NO_2 1'b1
 
