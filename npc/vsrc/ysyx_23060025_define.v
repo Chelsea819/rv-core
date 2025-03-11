@@ -9,7 +9,7 @@
 `define PERFORMANCE_COUNTER 1'b1
 `endif
 
-`define  PC_NO_2 1'b1
+// `define  PC_NO_2 1'b1
 
 // `define BYPASS_TRACE 1'b1
 
