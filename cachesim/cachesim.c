@@ -242,6 +242,9 @@ void lru_arithem_update(Cache_way* cache_way, uint32_t way_addr, uint32_t way_nu
   
 }
 
+
+
+// 使用lru replace算法的支持 
 void cache_tag_lru_arithem_init(Cache * cache){
   for(int i = 0; i < cache->config->cache_set; i ++){
     for(int j = 0; j < cache->config->cache_way; j ++) {

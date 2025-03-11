@@ -24,7 +24,7 @@ $(BINARY): $(CSRC)
 # @echo + LD $@
 # @ld -o $@ $(OBJS) 
 
-LOG ?= $(NEMU_HOME)/../cachesim/nemu-log-train.txt
+LOG ?= $(NEMU_HOME)/../cachesim/nemu-log.txt
 
 mainargs ?= -b
 
