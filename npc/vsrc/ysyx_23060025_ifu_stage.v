@@ -43,12 +43,19 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input		[31:0]	                	out_prdata	// icache read data
 );
 
+	// valid idu_flush
+	wire idu_flush = idu_flush_i & idu_valid_i;
+
 `ifdef N_YOSYS_STA_CHECK
-	`ifdef PC_NO_2
-		wire [31:0] pc = {fs_pc, 2'b0};
-	`else
-		wire [31:0] pc = fs_pc;
-	`endif
+	reg [31:0] history_pc;
+	always @(posedge clock) begin
+		if(reset) begin
+			history_pc <= 0;
+		end else if(fs_to_ds_valid_o & ds_allowin_i) begin
+			history_pc <= fs_pc;
+		end
+	end
+
 	import "DPI-C" function void pc_node_init(int pc, int dnpc);
 	import "DPI-C" function void pc_node_cancel();
 	import "DPI-C" function void cache_hit_cancel_statistic();
@@ -57,17 +64,20 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 		// 1. pre ifu flush --(ok)--> ifu -> ok
 		// 2. pre -> ifu flush(cancel and init) ----> pre ifu --(ok)--> ifu -> ok
-		else if(to_fs_valid & fs_allowin) begin
-			pc_node_init(pc, nextpc);
+		else if(to_fs_valid & fs_allowin & idu_flush & ~jmp_in_ifu) begin
+			pc_node_cancel();
+			pc_node_init(history_pc, nextpc);
+		end  else if(to_fs_valid & fs_allowin) begin
+			pc_node_init(fs_pc, nextpc);
 		end  else if(ebreak_flag_i) begin
-			pc_node_init(pc, nextpc);
+			pc_node_init(fs_pc, nextpc);
 		end
 		// if(reset)begin
 		// end
 		// else if(~con_fs_flush_reg & con_fs_flush_sim) begin
 		// 	pc_node_cancel();
 		// 	cache_hit_cancel_statistic();
-		// 	pc_node_init(pc, idu_flush_pc_i);
+		// 	pc_node_init(fs_pc, idu_flush_pc_i);
 		// end	
 	end
 	// reg con_fs_flush_sim;
@@ -100,7 +110,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	import "DPI-C" function void inst_invalid_get(byte invalid, int pc);
 		always @(posedge clock) begin
 			if(out_pready)
-				inst_invalid_get({7'b0, inst_invalid}, pc);
+				inst_invalid_get({7'b0, inst_invalid}, fs_pc);
 		end
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
@@ -149,18 +159,30 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// 2. 向icache发出取指请求
 	// PRE_IFU -> IFU 握手信号
 	// id得到结果 or id not busy
-	assign out_psel = to_fs_valid;
-	wire pfs_ready_go = bpu_valid_i;
+	assign out_psel = to_fs_valid & fs_allowin;
+	wire pfs_ready_go = bpu_valid_i || (jmp_flag_i & idu_valid_i) || idu_flush;
 	wire to_fs_valid = pfs_ready_go & ~reset;
 
-	// wire idu_flush = idu_flush_i & idu_valid_i;
+	reg jmp_in_ifu;
+	always @(posedge clock) begin
+		if(reset) begin
+			jmp_in_ifu <= 0;
+		// enter ifu, finish solving
+		end else if(~jmp_in_ifu & to_fs_valid & fs_allowin & idu_valid_i) begin
+			jmp_in_ifu <= jmp_flag_i | idu_flush;
+		end else if(jmp_in_ifu & fs_to_ds_valid_o & ds_allowin_i) begin
+			jmp_in_ifu <= 0;
+		end
+	end
+
+	
 	// idu_flush-》 pre刚好碰到valid flush
 	// flush_state_is_busy -》 ifu->pre ifu->ifu
 	// preifu阶段的nextpc值
 	wire [31:0] nextpc = 
-						//  idu_flush | flush_state_is_busy ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
+						 idu_flush & ~jmp_in_ifu  ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
 						 csr_jmp_i 	 ? csr_pc_i : 
-						 jmp_flag_i  ? jmp_target_i : 
+						 jmp_flag_i & ~jmp_in_ifu ? jmp_target_i : 
 						bpu_pc_predict_i;
 
 	// 防止id valid拉低，对flush信号进行暂时存储
@@ -233,9 +255,9 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		if flush_state_is_busy & ~flush_next_is_busy, 1
 	 */ 
 	// assign fs_to_ds_valid_o =  fs_valid && fs_ready_go && (~(~flush_state_is_busy & flush_next_is_busy) & ~(flush_state_is_busy & flush_next_is_busy));
-	assign fs_to_ds_valid_o =  fs_valid && fs_ready_go;
+	assign fs_to_ds_valid_o =  fs_valid && ~(idu_flush & ~jmp_in_ifu) && fs_ready_go;
 	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
-	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || ~fs_valid;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || ~fs_valid || (idu_flush & ~jmp_in_ifu);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
 	reg fs_valid;
 	always @(posedge clock) begin
     if (reset) begin
@@ -270,11 +292,11 @@ end
 	// inst read buffer  use for stall situation
 	always @(posedge clock) begin
 		// fs_ready_go && ds_allowin_i -> inst往下一级传递，无需buffer
-		if (reset || (fs_ready_go && ds_allowin_i) ) begin	
+		if (reset || (fs_ready_go && ds_allowin_i) || (idu_flush & ~jmp_in_ifu)) begin	
 			inst_buff_enable  <= 1'b0;
 		end
 		// 下一级还没准备好接受数据，需要先存到buffer中
-		else if (out_pready) begin
+		else if (out_pready & ~(idu_flush & ~jmp_in_ifu)) begin
 			inst_rd_buff <= out_prdata;
 			inst_buff_enable  <= 1'b1;
 		end
