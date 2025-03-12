@@ -411,7 +411,7 @@ module ysyx_23060025_id_stage(
     assign pc_o = pc_i;
     
 
-    assign jmp_flag_o = rv32_jal | rv32_jalr;
+    assign jmp_flag_o = rv32_jalr;
     
 
     assign csr_flag = {3{rv32_ecall}} & `CSR_ECALL
