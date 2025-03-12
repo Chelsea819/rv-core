@@ -132,7 +132,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire dest_zero            = (wreg_i == 5'b0); 
 	wire forward_enable       = wd_i & ~dest_zero & es_valid_o;
 	wire csr_forward_enable       = es_csr_wen & es_valid_o;
-	wire dep_need_stall       = 1;
+	wire dep_need_stall       = |load_type_i;
 	assign es_to_ds_forward_bus = {dep_need_stall ,  //38:38
                                forward_enable ,  //37:37
                                wreg_i        ,  //36:32

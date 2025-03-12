@@ -105,7 +105,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	wire dest_zero            = (wreg_o == 5'b0);
 	wire forward_enable       = wd_o & ~dest_zero & lsu_valid_o;
 	wire csr_forward_enable       = lsu_csr_wen & lsu_valid_o;
-	wire dep_need_stall       = 1;
+	wire dep_need_stall       = |load_type_i;
 	assign ms_to_ds_forward_bus = {dep_need_stall,  //38:38
 								forward_enable,  //37:37
 								wreg_o       ,  //36:32

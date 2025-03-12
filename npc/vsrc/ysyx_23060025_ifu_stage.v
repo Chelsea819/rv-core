@@ -37,11 +37,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input 									bpu_valid_i,
 
 	// from ifu to cache
-	`ifdef PC_NO_2
-		output	reg	 [ADDR_WIDTH - 1-2:0]			out_paddr,
-	`else
-		output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
-	`endif
+	output	reg	 [ADDR_WIDTH - 1:0]			out_paddr,
 	output			                		out_psel,
 	input		                			out_pready	,	// icache read data ready
 	input		[31:0]	                	out_prdata	// icache read data
@@ -61,33 +57,29 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 		end
 		// 1. pre ifu flush --(ok)--> ifu -> ok
 		// 2. pre -> ifu flush(cancel and init) ----> pre ifu --(ok)--> ifu -> ok
-		else if(next_state_fs && ~con_state_fs && ~con_fs_flush_sim) begin
+		else if(to_fs_valid & fs_allowin) begin
 			pc_node_init(pc, nextpc);
 		end  else if(ebreak_flag_i) begin
 			pc_node_init(pc, nextpc);
 		end
-		if(reset)begin
-		end
-		else if(~con_fs_flush_reg & con_fs_flush_sim) begin
-			pc_node_cancel();
-			cache_hit_cancel_statistic();
-			pc_node_init(pc, idu_flush_pc_i);
-		end	
+		// if(reset)begin
+		// end
+		// else if(~con_fs_flush_reg & con_fs_flush_sim) begin
+		// 	pc_node_cancel();
+		// 	cache_hit_cancel_statistic();
+		// 	pc_node_init(pc, idu_flush_pc_i);
+		// end	
 	end
-	reg con_fs_flush_sim;
-	always @(posedge clock) begin
-		if(reset) begin
-			con_fs_flush_sim <= 0;
-		end else if(con_state_fs & idu_flush & ~flush_reg) begin
-			con_fs_flush_sim <= 1;
-		end else if(~con_state_fs & next_state_fs) begin
-			con_fs_flush_sim <= 0;
-		end
-	end
-	// 检测到ebreak
-    // import "DPI-C" function void ifebreak_func(int inst);
-    // always @(*)
-    //     ifebreak_func(out_prdata);
+	// reg con_fs_flush_sim;
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		con_fs_flush_sim <= 0;
+	// 	end else if(con_state_fs & idu_flush & ~flush_reg) begin
+	// 		con_fs_flush_sim <= 1;
+	// 	end else if(to_fs_valid && fs_allowin) begin
+	// 		con_fs_flush_sim <= 0;
+	// 	end
+	// end
 
 	wire	inst_invalid = ~((out_prdata[6:0] == `TYPE_U_LUI_OPCODE) | // lui
 					(out_prdata[6:0] == `TYPE_U_AUIPC_OPCODE) | //U-auipc 
@@ -113,216 +105,177 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	`ifdef PERFORMANCE_COUNTER
 	import "DPI-C" function void ifu_p_counter_update();
 	import "DPI-C" function void pre_ifu_counter_update();
-	reg con_fs_flush_reg;
-	always @(posedge clock) begin
-		if(reset) begin
-			con_fs_flush_reg <= 0;
-		end else begin
-			con_fs_flush_reg <= con_fs_flush_sim;
-		end
-	
-	end
+	// reg con_fs_flush_reg;
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		con_fs_flush_reg <= 0;
+	// 	end else begin
+	// 		con_fs_flush_reg <= con_fs_flush_sim;
+	// 	end
+	// end
 	
 	always @(posedge clock) begin
 		if(reset) begin
 			
-		end else if (next_state_fs && ~con_state_fs) begin
+		end else if (to_fs_valid & fs_allowin) begin
 			ifu_p_counter_update();
 		end
 	end
 	import "DPI-C" function void bqu_wrong_counter_update();
-	always @(posedge clock) begin
-		if(reset) begin
+	// always @(posedge clock) begin
+	// 	if(reset) begin
 			
-		end else if (pre_flush && ~next_state_fs) begin
-			bqu_wrong_counter_update();
-		end else if (con_state_fs && ~next_state_fs && ~fs_to_ds_valid_o) begin
-			bqu_wrong_counter_update();
-		end
-	end
-	always @(posedge clock) begin
-		if(reset) begin
+	// 	end else if (pre_flush && ~next_state_fs) begin
+	// 		bqu_wrong_counter_update();
+	// 	end else if (con_state_fs && ~next_state_fs && ~fs_to_ds_valid_o) begin
+	// 		bqu_wrong_counter_update();
+	// 	end
+	// end
+	// always @(posedge clock) begin
+	// 	if(reset) begin
 			
-		end else if (~ebreak_flag_i && ~next_state_fs) begin
-			pre_ifu_counter_update();
-		end
-	end
+	// 	end else if (~ebreak_flag_i && ~next_state_fs) begin
+	// 		pre_ifu_counter_update();
+	// 	end
+	// end
 	`endif
 `endif
-
-	// pre IFU stage
-	reg con_state_fs;	// 0-pre, 1-ifu
-	reg next_state_fs;
-	always @(posedge clock) begin
-		if(reset) begin
-			con_state_fs <= 1'b0;
-		end else begin
-			con_state_fs <= next_state_fs;
-		end
-	end
-	/* con_state_fs -> fs_allowin -> 1 -> preIFU
-									-> 0 -> fs
-		con_state_pre_ifu -> to_fs_valid & flush & ～flush_reg(意味着 没被处理过得flush信号) -> fs
-							-> to_fs_valid & ~ebreak_flag_i -> fs	
-	*/
-	localparam STATE_PRE_IFU = 0, STATE_IFU = 1;
-	always @(*) begin
-		next_state_fs = con_state_fs;
-		case (con_state_fs)
-			STATE_IFU: begin
-				if(fs_allowin) begin
-					next_state_fs = STATE_PRE_IFU;
-				end
-			end
-			STATE_PRE_IFU: begin
-				if(to_fs_valid & (~ebreak_flag_i | idu_flush_i & ~flush_reg)) begin
-					next_state_fs = STATE_IFU;
-				end
-			end
-		endcase
-	end
-	
-	assign out_psel = ~con_state_fs && next_state_fs;	// 选中icache
-
-	
-
+	/******************************************************************************
+	* **************************************************************
+	* ************************** Pre_IFU **************************
+	* **************************************************************
+	******************************************************************************/
+	// 1. BPU生成预测的pc
+	// 2. 向icache发出取指请求
+	// PRE_IFU -> IFU 握手信号
 	// id得到结果 or id not busy
-	wire to_fs_valid = bpu_valid_i | idu_valid_i | ds_allowin_i;
+	assign out_psel = to_fs_valid;
+	wire pfs_ready_go = bpu_valid_i;
+	wire to_fs_valid = pfs_ready_go & ~reset;
 
-	wire idu_flush = idu_flush_i & idu_valid_i;
+	// wire idu_flush = idu_flush_i & idu_valid_i;
 	// idu_flush-》 pre刚好碰到valid flush
 	// flush_state_is_busy -》 ifu->pre ifu->ifu
-	wire [31:0] nextpc = idu_flush | flush_state_is_busy ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
+	// preifu阶段的nextpc值
+	wire [31:0] nextpc = 
+						//  idu_flush | flush_state_is_busy ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
 						 csr_jmp_i 	 ? csr_pc_i : 
 						 jmp_flag_i  ? jmp_target_i : 
 						bpu_pc_predict_i;
 
 	// 防止id valid拉低，对flush信号进行暂时存储
-	reg flush_reg;
-	always @(posedge clock) begin
-		if(reset) begin
-			flush_reg <= 0;
-		end else if(~con_state_fs && to_fs_valid) begin
-			flush_reg <= idu_flush;
-		end
-	end
-	assign if_to_id_bqu_bus_o = {fs_inst, fs_pc};
+	// reg flush_reg;
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		flush_reg <= 0;
+	// 	end else if(~con_state_fs && to_fs_valid) begin
+	// 		flush_reg <= idu_flush;
+	// 	end
+	// end
+		
+	// reg pre_flush;
+	// reg flush_state_is_busy;
+	// reg flush_next_is_busy;
 
-	// IFU stage
-	// 1. 握手相关的信号
-	`ifdef PC_NO_2
-		//ifdef
-		reg [31-2:0] fs_pc;
-		always @(posedge clock) begin
-			if (reset) begin
-				fs_pc        <= `PC_RESET_VAL_SUB_4_NO_2;  //trick: to make nextpc be 0x1c000000 during reset 
-			end
-			else if (~con_state_fs && to_fs_valid) begin
-				fs_pc        <= nextpc[31:2];
-			end
-		end
-		always @(posedge clock) begin
-			if(reset) begin
-				out_paddr <= 0;
-			end else if(~con_state_fs && next_state_fs) begin
-				out_paddr <= nextpc[31:2];
-			end
-		end
-	`else
-	//else
-		reg [31:0] fs_pc;
-		always @(posedge clock) begin
-			if (reset) begin
-				fs_pc        <= `PC_RESET_VAL_SUB_4;  //trickd: to make nextpc be 0x1c000000 during reset 
-			end
-			else if (~con_state_fs && to_fs_valid) begin
-				fs_pc        <= nextpc;
-			end
-			
-		end
-		always @(posedge clock) begin
-			if(reset) begin
-				out_paddr <= 0;
-			end else if(~con_state_fs && next_state_fs) begin
-				out_paddr <= nextpc;
-			end
-		end		
-	`endif
-	
-	
-	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
-	reg pre_flush;
-	reg flush_state_is_busy;
-	reg flush_next_is_busy;
-
-	localparam flush_state_idle = 0, flush_state_busy = 1;
-	always @(posedge clock) begin
-		if(reset) begin
-			flush_state_is_busy <= flush_state_idle;
-		end else begin
-			flush_state_is_busy <= flush_next_is_busy;
-		end
-	end
+	// localparam flush_state_idle = 0, flush_state_busy = 1;
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		flush_state_is_busy <= flush_state_idle;
+	// 	end else begin
+	// 		flush_state_is_busy <= flush_next_is_busy;
+	// 	end
+	// end
 
 	// preifu flush
-	always @(posedge clock) begin
-		if(reset) begin
-			pre_flush <= 0;
-		end else if(~con_state_fs & idu_flush) begin
-			pre_flush <= 1;
-		end else if(~next_state_fs) begin
-			pre_flush <= 0;
-		end	
-	end
+	// always @(posedge clock) begin
+	// 	if(reset) begin
+	// 		pre_flush <= 0;
+	// 	end else if(~con_state_fs & idu_flush) begin
+	// 		pre_flush <= 1;
+	// 	end else if(~next_state_fs) begin
+	// 		pre_flush <= 0;
+	// 	end	
+	// end
+
+	/******************************************************************************
+	* **************************************************************
+	* ************************** IFU **************************
+	* **************************************************************
+	******************************************************************************/
 	// ifu flush
-	reg ifu_flush_counter;
-	always @(posedge clock) begin
-		if(reset | flush_state_is_busy && ~flush_next_is_busy) begin
-			ifu_flush_counter <= 0;
-		end else if((flush_state_is_busy | flush_next_is_busy) && ~next_state_fs) begin
-			ifu_flush_counter <= 1;
-		end
-	end
-	always @(*) begin
-		flush_next_is_busy = flush_state_is_busy;
-		case (flush_state_is_busy)
-			flush_state_idle: begin
-				if(con_state_fs & idu_flush & ~pre_flush) begin
-					flush_next_is_busy = flush_state_busy;
-				end
-			end
-			flush_state_busy: begin
-				if(con_state_fs & ~next_state_fs & ifu_flush_counter) begin
-					flush_next_is_busy = flush_state_idle;
-				end
-			end
-		endcase
-	end
-	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || (flush_state_is_busy & out_pready);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	// reg ifu_flush_counter;
+	// always @(posedge clock) begin
+	// 	if(reset | flush_state_is_busy && ~flush_next_is_busy) begin
+	// 		ifu_flush_counter <= 0;
+	// 	end else if((flush_state_is_busy | flush_next_is_busy) && ~next_state_fs) begin
+	// 		ifu_flush_counter <= 1;
+	// 	end
+	// end
+	// always @(*) begin
+	// 	flush_next_is_busy = flush_state_is_busy;
+	// 	case (flush_state_is_busy)
+	// 		flush_state_idle: begin
+	// 			if(con_state_fs & idu_flush & ~pre_flush) begin
+	// 				flush_next_is_busy = flush_state_busy;
+	// 			end
+	// 		end
+	// 		flush_state_busy: begin
+	// 			if(con_state_fs & ~next_state_fs & ifu_flush_counter) begin
+	// 				flush_next_is_busy = flush_state_idle;
+	// 			end
+	// 		end
+	// 	endcase
+	// end
+
 	// fs_to_ds_valid_o
 	/* if flush_state_is_busy valid, 0
 		if ~flush_state_is_busy & flush_next_is_busy valid, 0
 		if flush_state_is_busy & ~flush_next_is_busy, 1
 	 */ 
-	assign fs_to_ds_valid_o =  fs_ready_go && (~(~flush_state_is_busy & flush_next_is_busy) & ~(flush_state_is_busy & flush_next_is_busy));
+	// assign fs_to_ds_valid_o =  fs_valid && fs_ready_go && (~(~flush_state_is_busy & flush_next_is_busy) & ~(flush_state_is_busy & flush_next_is_busy));
+	assign fs_to_ds_valid_o =  fs_valid && fs_ready_go;
+	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
+	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || ~fs_valid;	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
+	reg fs_valid;
+	always @(posedge clock) begin
+    if (reset) begin
+        fs_valid <= 1'b0;
+    end
+    else if (fs_allowin) begin
+        fs_valid <= to_fs_valid;
+    end
+end
+	assign if_to_id_bqu_bus_o = {fs_inst, fs_pc};
 
-	
+	// IFU stage
+	// 1. 握手相关的信号
+	reg [31:0] fs_pc;
+	always @(posedge clock) begin
+		if (reset) begin
+			fs_pc        <= `PC_RESET_VAL_SUB_4;  //trickd: to make nextpc be 0x1c000000 during reset 
+		end
+		else if (fs_allowin && to_fs_valid) begin
+			fs_pc        <= nextpc;
+		end
+		
+	end
+	assign out_paddr = fs_pc;
 
 	// 2. 指令相关的存储
 	reg inst_buff_enable;
-	// reg  [31:0] inst_rd_buff;
-	wire [31:0]  fs_inst     = out_prdata;
+	reg  [31:0] inst_rd_buff;
+	wire [31:0]  fs_inst     = inst_buff_enable ? inst_rd_buff : out_prdata;
 
 
 	// inst read buffer  use for stall situation
 	always @(posedge clock) begin
-		// fs_ready_go && ds_allowin -> inst往下一级传递，无需buffer
-		if (reset || ~next_state_fs) begin	
+		// fs_ready_go && ds_allowin_i -> inst往下一级传递，无需buffer
+		if (reset || (fs_ready_go && ds_allowin_i) ) begin	
 			inst_buff_enable  <= 1'b0;
 		end
 		// 下一级还没准备好接受数据，需要先存到buffer中
 		else if (out_pready) begin
-			// inst_rd_buff <= out_prdata;
+			inst_rd_buff <= out_prdata;
 			inst_buff_enable  <= 1'b1;
 		end
 	end

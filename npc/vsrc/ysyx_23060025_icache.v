@@ -129,7 +129,9 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				end
 			end
 			STATE_CHECK: begin
-				if(check_hit) begin
+				if(check_hit & in_psel) begin
+					next_state = STATE_CHECK;
+				end else if(check_hit) begin
 					next_state = STATE_IDLE;
 				end else begin
 					next_state = STATE_LOAD;

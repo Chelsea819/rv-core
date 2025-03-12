@@ -399,17 +399,7 @@ module ysyx_23060025_id_stage(
                         | {2{aluop2_sel_reg2}} & `ALU_SEL2_REG2
                         | {2{aluop2_sel_imm}} & `ALU_SEL2_IMM
                         | {2{aluop2_sel_4}} & `ALU_SEL2_4;
-`ifdef PC_NO_2
-    wire [31-2:0] trans_src1 = rv32_jalr ? reg1_o[31:2] : pc_i[31:2];
-    wire [31-2:0] trans_src2 = opcode_B_branch & ~branch_flag ? 30'b1 : imm_o[31:2];
 
-    wire [31-2:0] trans_target_o = trans_src1 + trans_src2;
-    assign jmp_target_o = {trans_target_o, 2'b0};
-    assign ds_to_ex_flush_pc_o = {trans_target_o, 2'b0};
-    // output 
-    wire  [31-2:0]                        pc_o                      ;
-    assign pc_o = pc_i[31:2];
-`else 
     wire [31:0] trans_src1 = rv32_jalr ? reg1_o : pc_i;
     wire [31:0] trans_src2 = opcode_B_branch & ~branch_flag ? 32'd4 : imm_o;
 
@@ -419,7 +409,6 @@ module ysyx_23060025_id_stage(
     // output 
     wire  [31:0]                        pc_o                      ;
     assign pc_o = pc_i;
-`endif
     
 
     assign jmp_flag_o = rv32_jal | rv32_jalr;
