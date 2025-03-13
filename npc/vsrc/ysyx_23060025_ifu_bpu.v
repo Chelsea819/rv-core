@@ -19,22 +19,11 @@ module ysyx_23060025_ifu_bpu #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 );
 	wire  		[DATA_WIDTH - 1:0]			bpu_inst_i ;
 	
-	
-	
-`ifdef PC_NO_2
-	//ifdef
-	wire  		[ADDR_WIDTH - 1 - 2:0]			bpu_pc_i ;
-	assign {bpu_inst_i, bpu_pc_i} = if_to_bqu_bus;
-	wire [31-2:0] bpu_op2 = bpu_token ? imm[31:2] : 30'b1;
-	assign bpu_pc_predict_o[31:2] = bpu_pc_i + bpu_op2;
-	assign bpu_pc_predict_o[1:0] = 0;
-`else
-//else
+
 	wire  		[ADDR_WIDTH - 1:0]			bpu_pc_i ;
 	assign {bpu_inst_i, bpu_pc_i} = if_to_bqu_bus;
 	wire [31:0] bpu_op2 = bpu_token ? imm : 32'd4;
 	assign bpu_pc_predict_o = bpu_pc_i + bpu_op2;
-`endif
 
 `ifdef N_YOSYS_STA_CHECK
 	`ifdef PERFORMANCE_COUNTER

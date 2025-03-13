@@ -9,7 +9,6 @@
 `define PERFORMANCE_COUNTER 1'b1
 `endif
 
-// `define  PC_NO_2 1'b1
 
 // `define BYPASS_TRACE 1'b1
 
@@ -18,13 +17,9 @@
 `define WS_TO_DS_FORWARD_BUS 85
 `define ES_TO_DS_FORWARD_BUS 87
 
-`ifdef PC_NO_2
-    `define FS_TO_DS_DATA_BUS 32+32-2
-    `define DS_TO_ES_DATA_BUS 195-2
-`else
-    `define FS_TO_DS_DATA_BUS 32+32
-    `define DS_TO_ES_DATA_BUS 195
-`endif
+
+`define FS_TO_DS_DATA_BUS 32+32
+`define DS_TO_ES_DATA_BUS 195
 
 
 

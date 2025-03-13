@@ -839,7 +839,6 @@ static void statistic()
     printf("IPC                        = %f inst/cycle  \n", (float)g_nr_guest_inst / clk_cycle); 
     printf("CPI                        = %f cycle/inst  \n", (float)clk_cycle / g_nr_guest_inst); 
 
-    printf("pre_ifu_delay              = %lu\tcycle --[%f\t cycle/inst]\n", pre_ifu_delay, (float)pre_ifu_delay/g_nr_guest_inst); 
     printf("bpu_right_precent          = %f%%\n", (float)(idu_branch_p_counter - bqu_wrong_counter)/idu_branch_p_counter*100); 
     printf("ifu_p_counter              = %lu\tinst\n", ifu_p_counter); 
     printf("lsu_p_counter              = %lu\tinst\n", lsu_p_counter); 
@@ -857,7 +856,7 @@ static void statistic()
     // access_time--cache接收访存请求到得出命中结果所需的时间
     // miss_penalty--为cache缺失时的代价, 此处即访问DRAM的时间
     uint64_t cycle_per_sec = clk_cycle * 1000000 / g_timer;
-    float hit_percent = (float)cache_hit/g_nr_guest_inst;
+    float hit_percent = (float)cache_hit/ifu_p_counter;
     float access_time = (float)access_cycle / ifu_p_counter;
     float miss_penalty = (float)penalty_cycle / (ifu_p_counter - cache_hit);
     printf("Average Memory Access Time: %f cycle ---[hit_percent: %f%%]\n", (access_time + (1 - hit_percent) * miss_penalty), hit_percent*100);

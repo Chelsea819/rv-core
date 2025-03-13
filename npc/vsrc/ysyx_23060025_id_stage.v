@@ -87,13 +87,7 @@ module ysyx_23060025_id_stage(
         end
     end
 
-    `ifdef PC_NO_2
-        //ifdef
-        assign {inst_i, pc_i} = {fs_to_ds_forward_bus_reg, 2'b0};
-    `else
-    //else
-        assign {inst_i, pc_i} = fs_to_ds_forward_bus_reg;
-    `endif
+    assign {inst_i, pc_i} = fs_to_ds_forward_bus_reg;
 
     
     wire     reg1_ren  ;

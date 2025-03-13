@@ -150,13 +150,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 	// outports wire
 	wire [DATA_LEN-1:0] 	icache_r_data;
-	`ifdef PC_NO_2
-		//ifdef
-		wire [ADDR_LEN-1-2:0] 	icache_addr_r_addr;
-	`else
-	//else
-		wire [ADDR_LEN-1:0] 	icache_addr_r_addr;
-	`endif
+
+	wire [ADDR_LEN-1:0] 	icache_addr_r_addr;
 	
 	wire                  	icache_addr_r_sel;
 	wire                  	icache_r_ready;
