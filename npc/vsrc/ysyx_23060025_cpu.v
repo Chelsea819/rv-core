@@ -260,7 +260,12 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.es_to_ds_forward_bus           	( es_to_ds_forward_bus             ),
 		.ms_to_ds_forward_bus           	(ms_to_ds_forward_bus              ),	
-		.ws_to_ds_forward_bus           	({reg_wen_i & |reg_waddr_i, reg_waddr_i, reg_wdata_i,wb_csr_waddr_o,csr_wdata_i, csr_type_i}),	
+		.ws_to_ds_forward_bus           	({reg_wen_i & |reg_waddr_i, 
+													reg_waddr_i, 
+													reg_wdata_i,
+													wb_csr_waddr_o,
+													csr_wdata_i, 
+													csr_type_i}),	
 		// ifu_idu
 		.fs_to_ds_valid_i           	( ifu_valid_o             ),
 		.ds_allowin_o           	(idu_ready_o              ),
@@ -280,8 +285,8 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reg2_addr_o					(reg_raddr2_i),
 		.jmp_flag_o						(if_jmp_flag_i),
 		.jmp_target_o					(if_jmp_target_i),
-		.ds_to_ex_bpu_flush_o			(if_flush_i),
-		.ds_to_ex_flush_pc_o			(if_flush_pc_i),
+		.ds_to_fs_bpu_flush_o			(if_flush_i),
+		.ds_to_fs_flush_pc_o			(if_flush_pc_i),
 		
 		.csr_raddr_o						(csr_raddr_i)
 	);

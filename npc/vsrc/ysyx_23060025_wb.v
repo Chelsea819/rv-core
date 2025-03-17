@@ -2,8 +2,8 @@
 `define MS_TO_WS_BUS_WD 493
 module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input								reset,
-    input		                		wd_i		,
     input		                		clock		    ,
+    input		                		wd_i		,
     input		[4:0]		            wreg_i		,
     input       [DATA_LEN - 1:0]        csr_wdata_i	,
     input       [2:0]		            csr_type_i	,

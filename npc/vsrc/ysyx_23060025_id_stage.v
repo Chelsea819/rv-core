@@ -13,8 +13,8 @@ module ysyx_23060025_id_stage(
 	output	reg							          ds_valid_o	        ,
 	output									      ds_allowin_o	        ,
 	output									      ds_to_ex_valid_o	        ,
-    output                                        ds_to_ex_bpu_flush_o,
-    output           [31:0]                       ds_to_ex_flush_pc_o,
+    output                                        ds_to_fs_bpu_flush_o,
+    output           [31:0]                       ds_to_fs_flush_pc_o,
 
     //from es forward path
     input  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus,
@@ -399,7 +399,7 @@ module ysyx_23060025_id_stage(
 
     wire [31:0] trans_target_o = trans_src1 + trans_src2;
     assign jmp_target_o = trans_target_o;
-    assign ds_to_ex_flush_pc_o = trans_target_o;
+    assign ds_to_fs_flush_pc_o = trans_target_o;
     // output 
     wire  [31:0]                        pc_o                      ;
     assign pc_o = pc_i;
@@ -524,7 +524,7 @@ wire branch_flag = rv32_beq ? reg1_o == reg2_o :
                     rv32_bltu   ? reg1_o < reg2_o :       
                     rv32_bgeu   ? reg1_o >= reg2_o : 0;
 // guess wrong
-assign ds_to_ex_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
+assign ds_to_fs_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
 
 
 

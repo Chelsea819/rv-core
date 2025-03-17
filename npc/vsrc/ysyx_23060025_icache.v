@@ -171,19 +171,19 @@ module ysyx_23060025_icache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		end
 	end
 
-	reg psel;
-	always @(posedge clock) begin
-		if(reset | next_state == STATE_IDLE) begin
-			psel <= 0;
-		end else if(next_state == STATE_LOAD) begin
-			psel <= 1;
-		end
-	end
+	// reg psel;
+	// always @(posedge clock) begin
+	// 	if(reset | next_state == STATE_IDLE) begin
+	// 		psel <= 0;
+	// 	end else if(next_state == STATE_LOAD) begin
+	// 		psel <= 1;
+	// 	end
+	// end
 
 
 	assign out_arsize = load_rsize;
 	assign out_arlen = load_rlen;
-	assign out_psel = psel;
+	assign out_psel = (con_state == STATE_LOAD);
 	assign out_paddr = load_raddr;
 
 	assign in_pready = r_last_valid | (state_check & check_hit);

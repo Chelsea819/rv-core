@@ -30,8 +30,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		                		data_psel_i  ,
 	input		                		data_pwrite_i,
 	input		[2:0]                	data_psize_i ,
-	input		[DATA_LEN - 1:0]		data_pwdata_i,
+	input		[32-1:0]				data_pwdata_i,
 	input		[3:0]					data_pwstrb_i,
+	// input		[2:0]					data_pwtype_i,
 	output		[DATA_LEN - 1:0]		data_prdata_o,
 	output		                		data_pvalid_o,
 

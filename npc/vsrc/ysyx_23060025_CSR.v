@@ -11,10 +11,7 @@ module ysyx_23060025_CSR #(parameter DATA_WIDTH = 32)(
 	input	    [11:0]					csr_waddr,	// 要读的csr
 	input		[DATA_WIDTH - 1:0]		wdata	,	// 要写入csr的数据	
 	input		[2:0]					csr_type_i,
-	// input		[DATA_WIDTH - 1:0]		csr_mepc_i	,
 	input		[DATA_WIDTH - 1:0]		csr_mcause_i	,
-	// output		[DATA_WIDTH - 1:0]		csr_mtvec_pc_o	,
-	// output		[DATA_WIDTH - 1:0]		csr_mepc_pc_o	,
 	output		[DATA_WIDTH - 1:0]		r_data	
 );
 	wire csr_wen = ^csr_type_i || csr_ecall;
