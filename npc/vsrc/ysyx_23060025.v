@@ -166,14 +166,20 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	                		inst_pvalid_o	;
 	wire	       					inst_plast_o	;
 
-	wire		[ADDR_LEN - 1:0]		data_paddr_o ;
-	wire		                		data_psel_o  ;
-	wire		                		data_pwrite_o;
-	wire		[2:0]                	data_psize_o ;
-	wire		[DATA_LEN - 1:0]		data_pwdata_o;
-	wire		[3:0]					data_pwstrb_o;
-	wire		[DATA_LEN - 1:0]		data_prdata_o;
-	wire		                		data_pvalid_o;
+	wire		                		data_prsel_o  	;
+	wire		[ADDR_LEN - 1:0]		data_praddr_o 	;
+	wire		[2:0]                	data_psize_o 	;
+	wire		[7:0]                	data_prlen_o 	;
+	wire		                		data_prlast_o  	;
+	wire		[DATA_LEN - 1:0]		data_prdata_o	;
+	wire		                		data_pvalid_o	;
+
+	wire		                				data_pwsel_o  ;
+	wire		[ADDR_LEN - 1:0]				data_pwaddr_o ;
+	wire		[`MACRO_CACHE_LINE_W - 1:0]		data_pwdata_o ;
+	wire		[3:0]							data_pwstrb_o ;
+	wire		[2:0]                			data_pwtype_o ;
+	wire		                				data_pwrdy_o  ;
 
 	ysyx_23060025_cpu #(
 		.DATA_LEN 	( 32  ),
@@ -190,14 +196,21 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 `ifdef DIFFTEST
 		.diff_skip_flag_i  	( diff_skip_flag   ),
 `endif
-		.data_paddr_o 		 	( data_paddr_o ),
-		.data_psel_o  		 	( data_psel_o  ),
-		.data_pwrite_o		 	( data_pwrite_o),
-		.data_psize_o 		 	( data_psize_o     ),
-		.data_pwdata_o		 	( data_pwdata_o),
-		.data_pwstrb_o		 	( data_pwstrb_o),
+		.data_prsel_o 		 	( data_prsel_o ),
+		.data_praddr_o		 	( data_praddr_o),
+		.data_psize_o 		 	( data_psize_o ),
+		.data_prlen_o 		 	( data_prlen_o ),
+		.data_prlast_o		 	( data_prlast_o),
 		.data_prdata_o		 	( data_prdata_o),
 		.data_pvalid_o		 	( data_pvalid_o),
+		
+		.data_pwsel_o 		 	( data_pwsel_o     ),
+		.data_pwaddr_o		 	( data_pwaddr_o),
+		.data_pwdata_o		 	( data_pwdata_o),
+		.data_pwstrb_o		 	( data_pwstrb_o),
+		.data_pwtype_o		 	( data_pwtype_o),
+		.data_pwrdy_o 		 	( data_pwrdy_o ),
+
 		.inst_i              	( inst		           )
 	);
 
@@ -218,14 +231,21 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 `ifdef DIFFTEST
 		.diff_skip_flag_o       ( diff_skip_flag       		   ),
 `endif
-		.data_paddr_i 		 	( data_paddr_o ),
-		.data_psel_i  		 	( data_psel_o  ),
-		.data_pwrite_i		 	( data_pwrite_o),
-		.data_psize_i 		 	( data_psize_o     ),
+		.data_prsel_i 		 	( data_prsel_o ),
+		.data_praddr_i		 	( data_praddr_o),
+		.data_prsize_i		 	( data_psize_o ),
+		.data_prlen_i		 	( data_prlen_o     ),
+		.data_prlast_o		 	( data_prlast_o),
+		.data_prdata_o		 	( data_prdata_o    ),
+		.data_pvalid_o		 	( data_pvalid_o),
+		
+		.data_pwsel_i 		 	( data_pwsel_o ),
+		.data_pwaddr_i		 	( data_pwaddr_o),
 		.data_pwdata_i		 	( data_pwdata_o),
 		.data_pwstrb_i		 	( data_pwstrb_o),
-		.data_prdata_o		 	( data_prdata_o),
-		.data_pvalid_o		 	( data_pvalid_o),
+		.data_pwtype_i		 	( data_pwtype_o),
+		.data_pwrdy_i 		 	( data_pwrdy_o ),
+		
 		.axi_device		 	 ( axi_device 		   ),
 		// Read Addr 
 		.axi_addr_r_addr_o  ( xbar_addr_r_addr_o    ),

@@ -21,17 +21,17 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
 	output		[3:0]					axi_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	output		                		axi_w_valid_o	,	// 主设备给出的数据和字节选通信号有效
 	input		                		axi_w_ready_i	,	// 从设备已准备好接收数据选通信号
-	output		                		axi_w_last_o		// 该信号用于标识当前传输是否为突发传输中的最后一次传输
+	output		                		axi_w_last_o	,	// 该信号用于标识当前传输是否为突发传输中的最后一次传输
 	// Backward
-	// input		                		axi_bkwd_valid_i,	// 从设备给出的写回复信号是否有效
-	// output		                		axi_bkwd_ready_o	// 主设备已准备好接收写回复信号
+	input		                		axi_bkwd_valid_i,	// 从设备给出的写回复信号是否有效
+	output		                		axi_bkwd_ready_o	// 主设备已准备好接收写回复信号
 
 );
     parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W) * 8;
     parameter	PASS_LEN = (2 ** CACHE_LINE_OFF_ADDR_W) / 4 - 1;
 	parameter	PASS_TIMES = (2 ** CACHE_LINE_OFF_ADDR_W) / 4;
 
-    localparam [1:0] STATE_IDLE = 2'b0, STATE_WAIT_AXI_READY = 2'b01, STATE_WRITE = 2'b10;
+    localparam [1:0] STATE_IDLE = 2'b0, STATE_WAIT_AXI_READY = 2'b01, STATE_WRITE = 2'b10, STATE_BKWD = 2'b11;
 
     reg [1:0] con_state;
     reg [1:0] next_state;
@@ -80,6 +80,11 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
             end
             STATE_WRITE: begin
                 if(axi_w_last_o & axi_w_ready_i) begin
+                    next_state = STATE_BKWD;
+                end
+            end
+            STATE_BKWD: begin
+                if(axi_bkwd_valid_i) begin
                     next_state = STATE_IDLE;
                 end
             end
@@ -115,5 +120,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
                             pwstrb;
     assign axi_w_valid_o = (next_state == STATE_WRITE);
     assign axi_w_last_o  = counter == PASS_TIMES;
+
+    assign axi_bkwd_ready_o = (next_state == STATE_BKWD);
 
 endmodule

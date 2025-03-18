@@ -18,40 +18,23 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 `endif
 	// data AXI
 	 //Addr Read
-	output		[ADDR_LEN - 1:0]		data_paddr_o ,
-	output		                		data_psel_o  ,
-	output		                		data_pwrite_o,
+	output		                		data_prsel_o  ,
+	output		[ADDR_LEN - 1:0]		data_praddr_o ,
 	output		[2:0]                	data_psize_o ,
-	output		[DATA_LEN - 1:0]		data_pwdata_o,
-	output		[3:0]					data_pwstrb_o,
+	output		[7:0]                	data_prlen_o ,
+	input		                		data_prlast_o  ,
 	input		[DATA_LEN - 1:0]		data_prdata_o,
 	input		                		data_pvalid_o,
 
-	// // data AXI
-	//  //Addr Read
-	// output		[ADDR_LEN - 1:0]		data_addr_r_addr_o,
-	// output		                		data_addr_r_valid_o,
-	// output		[2:0]                	data_addr_r_size_o,
-	// input		[DATA_LEN - 1:0]		data_r_data_i	,
-	// input		                		data_r_valid_i	,
-	// output		                		data_r_ready_o	,
+	output		                				data_pwsel_o  ,
+	output		[ADDR_LEN - 1:0]				data_pwaddr_o ,
+	output		[`MACRO_CACHE_LINE_W - 1:0]		data_pwdata_o ,
+	output		[3:0]							data_pwstrb_o ,
+	output		[2:0]                			data_pwtype_o ,
+	input		                				data_pwrdy_o  ,
 
-	// // Addr Write
-	// output		[ADDR_LEN - 1:0]		data_addr_w_addr_o,	// 写地址
-	// output		                		data_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
-	// output		[2:0]                	data_addr_w_size_o,
-
-	// // Write data
-	// output		[DATA_LEN - 1:0]		data_w_data_o	,	// 写出的数据
-	// output		[3:0]					data_w_strb_o	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
-
-	// // Backward
-	// input		                		data_bkwd_valid_i,	// 从设备给出的写回复信号是否有效
 
 	input	        [DATA_LEN - 1:0]    inst_i		
-	// output			[ADDR_LEN - 1:0]	pc			,
-	// output								invalid		,
-	// output								finish
 );
 	// //registerFile
 	// wire								reg_re1_i		;
@@ -371,28 +354,56 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_mcause_o	( lsu_csr_mcause_o  ),
 		// .memory_inst_o  ( lsu_memory_inst_o ),
 
-		.out_paddr   ( data_paddr_o    ),
-		.out_psel    ( data_psel_o     ),
-		.out_pwrite  ( data_pwrite_o	),
-		.out_psize   ( data_psize_o    ),
-		.out_pwdata  ( data_pwdata_o   ),
-		.out_pwstrb  ( data_pwstrb_o   ),
-		.out_prdata  ( data_prdata_o   ),
-		.out_pvalid  ( data_pvalid_o   )
-
-		// .addr_r_addr_o     ( data_addr_r_addr_o     ),
-		// .addr_r_valid_o    ( data_addr_r_valid_o    ),
-		// .addr_r_size_o	   ( data_addr_r_size_o		),
-		// .r_data_i          ( data_r_data_i          ),
-		// .r_valid_i         ( data_r_valid_i         ),
-		// .r_ready_o         ( data_r_ready_o         ),
-		// .addr_w_addr_o     ( data_addr_w_addr_o     ),
-		// .addr_w_valid_o    ( data_addr_w_valid_o    ),
-		// .addr_w_size_o	   ( data_addr_w_size_o		),
-		// .w_data_o          ( data_w_data_o          ),
-		// .w_strb_o          ( data_w_strb_o          ),
-		// .bkwd_valid_i      ( data_bkwd_valid_i      )
+		.out_paddr   ( lsu_paddr_o    ),
+		.out_psel    ( lsu_psel_o     ),
+		.out_pwrite  ( lsu_pwrite_o		),
+		.out_psize   ( lsu_psize_o    ),
+		.out_pwdata  ( lsu_pwdata_o   ),
+		.out_pwstrb  ( lsu_pwstrb_o   ),
+		.out_prdata  ( lsu_prdata_o   ),
+		.out_pvalid  ( lsu_pvalid_o   )
 	);
+
+	wire	[ADDR_LEN - 1:0]		lsu_paddr_o ;
+	wire	                		lsu_psel_o  ;
+	wire	                		lsu_pwrite_o;
+	wire	[2:0]                	lsu_psize_o ;
+	wire	[DATA_LEN - 1:0]		lsu_pwdata_o;
+	wire	[3:0]					lsu_pwstrb_o;
+	wire	[DATA_LEN - 1:0]		lsu_prdata_o;
+	wire	                		lsu_pvalid_o;
+
+	ysyx_23060025_dcache 
+	u_ysyx_23060025_dcache(
+		.clock         	(clock          ),
+		.reset         	(reset          ),
+		.in_paddr      	(lsu_paddr_o       ),
+		.in_pwdata     	(lsu_pwdata_o      ),
+		.in_pwstrb     	(lsu_pwstrb_o      ),
+		.in_pwrite     	(lsu_pwrite_o      ),
+		.in_psel       	(lsu_psel_o        ),
+		.in_pready     	(lsu_pvalid_o      ),
+		.in_prdata     	(lsu_prdata_o      ),
+		.in_fence_flag 	(icache_fencei_flag  ),
+
+		.out_pwr_req   	(data_pwsel_o    ),
+		.out_pwaddr    	(data_pwaddr_o     ),
+		.out_pwdata    	(data_pwdata_o     ),
+		.out_pwstrb    	(data_pwstrb_o     ),
+		.out_pwtype    	(data_pwtype_o     ),
+		.out_pwrdy     	(data_pwrdy_o      ),
+
+		.out_praddr    	(data_praddr_o     ),
+		.out_prd_req   	(data_prsel_o    ),
+		.out_prsize    	(data_psize_o     ),
+		.out_prlen     	(data_prlen_o      ),
+		.out_prlast    	(data_prlast_o     ),
+		.out_prdata    	(data_prdata_o     ),
+		.out_pvalid    	(data_pvalid_o     )
+	);
+	
+
+
 
 	
 	wire wbu_ready_o;

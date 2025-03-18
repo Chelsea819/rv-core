@@ -13,6 +13,7 @@
 `define MACRO_CACHE_LINE_ADDR_W     2
 `define MACRO_CACHE_WAY_ADDR_W      1
 `define MACRO_CACHE_LINE_OFF_ADDR_W 4
+`define MACRO_CACHE_LINE_W          (2 ** `MACRO_CACHE_LINE_OFF_ADDR_W)*8
 
 
 // `define BYPASS_TRACE 1'b1

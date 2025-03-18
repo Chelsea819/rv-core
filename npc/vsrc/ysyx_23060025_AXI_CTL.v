@@ -15,7 +15,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output	reg							diff_skip_flag_o,
 `endif
 	// IFU--inst-AXI
-	//Addr Read
+	// Addr Read
 	input		[ADDR_LEN - 1:0]		inst_paddr_i,
 	input		                		inst_psel_i,
 	input		[7:0]  					inst_plen_i	,
@@ -26,20 +26,26 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		                		inst_pvalid_o	,
 	output		       					inst_plast_o	,
 
-	input		[ADDR_LEN - 1:0]		data_paddr_i ,
+	// lsu module
+	// read
+	input		[ADDR_LEN - 1:0]		data_praddr_i ,
 	input		                		data_prsel_i  ,
-	input		                		data_pwsel_i  ,
-	input		                		data_pwlast_i  ,
-	input		[2:0]                	data_psize_i ,
-	input		[32-1:0]				data_pwdata_i,
-	input		[3:0]					data_pwstrb_i,
-	// input		[2:0]					data_pwtype_i,
-	output		[DATA_LEN - 1:0]		data_prdata_o,
-	output		                		data_pvalid_o,
+	output		                		data_prlast_o  ,
+	output		[DATA_LEN - 1:0]		data_prdata_o ,
+	input		[2:0]                	data_prsize_i ,
+	input		[7:0]  					data_prlen_i	,
+	output		                		data_pvalid_o ,
+	// write
+	input		                				data_pwsel_i  ,
+	input		[ADDR_LEN - 1:0]				data_pwaddr_i ,
+	input		[`MACRO_CACHE_LINE_W-1:0]		data_pwdata_i ,
+	input		[3:0]							data_pwstrb_i ,
+	input		[2:0]							data_pwtype_i ,
+	output		                				data_pwrdy_i  ,
 
     // Xbar
 	output	reg 						axi_device,
-    //Addr Read
+    // Addr Read
 	output	reg	[ADDR_LEN - 1:0]		axi_addr_r_addr_o,
 	output		                		axi_addr_r_valid_o,
 	input		                		axi_addr_r_ready_i,
@@ -83,19 +89,14 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	end
 
 	assign sub_next_state = (con_state == STATE_IDLE) ? 0 :
-							(con_state == AXI_CTL_BUSY_DATA) ? axi_addr_r_ready_i & data_prsel_i | axi_w_ready_i & data_pwsel_i & data_pwlast_i | sub_state_is_data:
+							(con_state == AXI_CTL_BUSY_DATA) ? axi_addr_r_ready_i & data_prsel_i | sub_state_is_data:
 							(con_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i & inst_psel_i  | sub_state_is_data: 
 							0;
-
 
 	reg				[1:0]			        con_state	;
 	reg				[1:0]		        	next_state	;
 
 	
-	assign axi_addr_w_len_o = 0;
-	// assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
-	assign axi_w_last_o = `AXI_W_LAST_TRUE;
-
 `ifdef N_YOSYS_STA_CHECK
 	// 访问部分设备时。跳过ref的difftest检查
 	// 设备：UART
@@ -104,12 +105,12 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		if(reset) begin
 			diff_skip_flag_o <= 0;
 		end
-		else if (raddr_valid & ((data_paddr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L 
-			||(data_paddr_i >= `DEVICE_GPIO_ADDR_L && data_paddr_i <= `DEVICE_GPIO_ADDR_H)
-			||(data_paddr_i >= `DEVICE_CLINT_ADDR_L && data_paddr_i <= `DEVICE_CLINT_ADDR_H))) begin
+		else if (raddr_valid & ((data_praddr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L 
+			||(data_praddr_i >= `DEVICE_GPIO_ADDR_L && data_praddr_i <= `DEVICE_GPIO_ADDR_H)
+			||(data_praddr_i >= `DEVICE_CLINT_ADDR_L && data_praddr_i <= `DEVICE_CLINT_ADDR_H))) begin
 				diff_skip_flag_o <= 1;
-			end else if (waddr_valid & ((data_paddr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
-			(data_paddr_i >= `DEVICE_GPIO_ADDR_L && data_paddr_i <= `DEVICE_GPIO_ADDR_H))) begin
+			end else if (waddr_valid & ((data_praddr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+			(data_praddr_i >= `DEVICE_GPIO_ADDR_L && data_praddr_i <= `DEVICE_GPIO_ADDR_H))) begin
 				diff_skip_flag_o <= 1;
 			end else begin if(next_state == STATE_IDLE)
 				diff_skip_flag_o <= 0;
@@ -118,7 +119,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 `endif
 `endif
 
-	wire addr_clint = (data_paddr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L;
+	wire addr_clint = (data_praddr_i & 32'hffff_0000) == `DEVICE_CLINT_ADDR_L;
 
 	always @(posedge clock) begin
 		if (next_state == AXI_CTL_BUSY_DATA) begin
@@ -181,8 +182,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	// NEXT: AXI-CTL-IDLE
 	// finish data read or write
-	assign data_pvalid_o
-			= state_busy_data ? axi_r_valid_i | axi_bkwd_valid_i & data_pwsel_i : 0;
+	assign {data_pvalid_o, data_prlast_o}
+			= state_busy_data ? {axi_r_valid_i, axi_r_last_i} : 0;
 
 	// finish inst read
 	assign {inst_pvalid_o, inst_plast_o} 
@@ -191,27 +192,42 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// finish data read or write OR finish inst read
 
 	assign axi_r_ready_o = state_busy_data | state_busy_inst;
-	assign axi_bkwd_ready_o = state_busy_data & data_pwsel_i;
 	
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
-	assign {axi_addr_r_valid_o, axi_addr_r_size_o, axi_addr_r_len_o, 
-			axi_addr_w_valid_o, axi_addr_w_size_o, 
-			axi_w_valid_o} 
-			= state_busy_data ? { raddr_valid, data_psize_i, 8'b0, 
-													waddr_valid, data_psize_i, 
-													waddr_valid} : 
-				state_busy_inst ? {~sub_state_is_data & inst_psel_i, inst_psize_i, inst_plen_i, 
-													1'b0, `AXI_ADDR_SIZE_1, 
-													1'b0} : 
+	assign {axi_addr_r_valid_o, axi_addr_r_size_o, axi_addr_r_len_o} 
+			= state_busy_data ? { raddr_valid, data_prsize_i, data_prlen_i} : 
+				state_busy_inst ? {~sub_state_is_data & inst_psel_i, inst_psize_i, inst_plen_i} : 
 													0;
 	wire raddr_valid = ~sub_state_is_data & ~data_pwsel_i & data_prsel_i;
 	wire waddr_valid = ~sub_state_is_data & data_pwsel_i;
 
-	assign axi_addr_r_addr_o = state_busy_data ? data_paddr_i : inst_paddr_i;
-	assign axi_addr_w_addr_o = data_paddr_i;
-	assign axi_w_strb_o = data_pwstrb_i;
-	assign axi_w_data_o	 = data_pwdata_i;
+	assign axi_addr_r_addr_o = state_busy_data ? data_praddr_i : inst_paddr_i;
 	assign data_prdata_o = axi_r_data_i;
 	assign inst_prdata_o = axi_r_data_i;
+
+	// outports wire
+	ysyx_23060025_write_buffer 
+	u_ysyx_23060025_write_buffer(
+		.clock              	( clock               ),
+		.reset              	( reset               ),
+		.in_pwr_req         	( data_pwsel_i        ),
+		.in_pwaddr          	( data_pwaddr_i       ),
+		.in_pwdata          	( data_pwdata_i       ),
+		.in_pwstrb          	( data_pwstrb_i       ),
+		.in_pwtype          	( data_pwtype_i       ),
+		.in_pwrdy           	( data_pwrdy_i        ),
+		.axi_addr_w_addr_o  	( axi_addr_w_addr_o   ),
+		.axi_addr_w_valid_o 	( axi_addr_w_valid_o  ),
+		.axi_addr_w_ready_i 	( axi_addr_w_ready_i  ),
+		.axi_addr_w_len_o   	( axi_addr_w_len_o    ),
+		.axi_addr_w_size_o  	( axi_addr_w_size_o   ),
+		.axi_w_data_o       	( axi_w_data_o        ),
+		.axi_w_strb_o       	( axi_w_strb_o        ),
+		.axi_w_valid_o      	( axi_w_valid_o       ),
+		.axi_w_ready_i      	( axi_w_ready_i       ),
+		.axi_w_last_o       	( axi_w_last_o        ),
+		.axi_bkwd_valid_i   	( axi_bkwd_valid_i    ),
+		.axi_bkwd_ready_o   	( axi_bkwd_ready_o    )
+	);
 
 endmodule
