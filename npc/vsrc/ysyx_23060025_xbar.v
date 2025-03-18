@@ -98,28 +98,25 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign clint_addr_r_addr_i = axi_ctl_addr_r_addr_i;
 
 	assign {axi_ctl_addr_r_ready_o, 
-			axi_ctl_r_data_o, axi_ctl_r_valid_o, axi_ctl_r_last_o, 
-			axi_ctl_addr_w_ready_o, 
-			axi_ctl_w_ready_o, 
-			axi_ctl_bkwd_valid_o } = (axi_device == `AXI_XBAR_CLINT) ? {clint_addr_r_ready_o, 
-																							clint_r_data_o, clint_r_valid_o, clint_r_last_o, 
-																							1'b0, 
-																							1'b0,
-																							1'b0} :
+			axi_ctl_r_data_o, axi_ctl_r_valid_o, axi_ctl_r_last_o} = (axi_device == `AXI_XBAR_CLINT) ? {clint_addr_r_ready_o, 
+																							clint_r_data_o, clint_r_valid_o, clint_r_last_o} :
 																							{axi_addr_r_ready_i, 
-																							axi_r_data_i, axi_r_valid_i, axi_r_last_i, 
-																							axi_addr_w_ready_i, 
-																							axi_w_ready_i, 
-																							axi_bkwd_valid_i};
+																							axi_r_data_i, axi_r_valid_i, axi_r_last_i};
+	assign {axi_ctl_addr_w_ready_o, 
+			axi_ctl_w_ready_o, 
+			axi_ctl_bkwd_valid_o } = {axi_addr_w_ready_i, 
+										axi_w_ready_i, 
+										axi_bkwd_valid_i};
 
 	assign {axi_addr_r_valid_o,  
-			axi_r_ready_o, 
-			axi_addr_w_valid_o, 
-			axi_w_valid_o, axi_w_last_o, 
-			axi_bkwd_ready_o	} =(axi_device == `AXI_XBAR_CLINT) ? 0 : 
+			axi_r_ready_o} =(axi_device == `AXI_XBAR_CLINT) ? 0 : 
 									{axi_ctl_addr_r_valid_i, 
-									axi_ctl_r_ready_i, 
-									axi_ctl_addr_w_valid_i, 
+									axi_ctl_r_ready_i};
+
+
+	assign {axi_addr_w_valid_o, 
+			axi_w_valid_o, axi_w_last_o, 
+			axi_bkwd_ready_o	} = {axi_ctl_addr_w_valid_i, 
 									axi_ctl_w_valid_i, axi_ctl_w_last_i, 
 									axi_ctl_bkwd_ready_i};
 
