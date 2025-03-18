@@ -6,7 +6,8 @@
  ************************************************************************/
 `include "ysyx_23060025_define.v"
  /* verilator lint_off WIDTHEXPAND */
-module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = 2, CACHE_WAY_ADDR_W = 1, CACHE_LINE_OFF_ADDR_W = 4)(
+module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_LINE_ADDR_W = `MACRO_CACHE_LINE_ADDR_W, 
+									CACHE_WAY_ADDR_W = `MACRO_CACHE_WAY_ADDR_W, CACHE_LINE_OFF_ADDR_W = `MACRO_CACHE_LINE_OFF_ADDR_W)(
 	input         		clock,
 	input         		reset,
 	// IFU

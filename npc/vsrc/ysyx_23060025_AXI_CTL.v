@@ -27,8 +27,9 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		       					inst_plast_o	,
 
 	input		[ADDR_LEN - 1:0]		data_paddr_i ,
-	input		                		data_psel_i  ,
-	input		                		data_pwrite_i,
+	input		                		data_prsel_i  ,
+	input		                		data_pwsel_i  ,
+	input		                		data_pwlast_i  ,
 	input		[2:0]                	data_psize_i ,
 	input		[32-1:0]				data_pwdata_i,
 	input		[3:0]					data_pwstrb_i,
@@ -82,7 +83,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	end
 
 	assign sub_next_state = (con_state == STATE_IDLE) ? 0 :
-							(con_state == AXI_CTL_BUSY_DATA) ? axi_addr_r_ready_i & data_psel_i | axi_w_ready_i & axi_addr_w_ready_i & data_pwrite_i | sub_state_is_data:
+							(con_state == AXI_CTL_BUSY_DATA) ? axi_addr_r_ready_i & data_prsel_i | axi_w_ready_i & data_pwsel_i & data_pwlast_i | sub_state_is_data:
 							(con_state == AXI_CTL_BUSY_INST) ? axi_addr_r_ready_i & inst_psel_i  | sub_state_is_data: 
 							0;
 
@@ -90,8 +91,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	reg				[1:0]			        con_state	;
 	reg				[1:0]		        	next_state	;
 
-	// assign axi_addr_r_len_o = 0;
-	// assign axi_addr_r_burst_o = `AXI_ADDR_BURST_FIXED;
 	
 	assign axi_addr_w_len_o = 0;
 	// assign axi_addr_w_burst_o = `AXI_ADDR_BURST_FIXED;
@@ -145,7 +144,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	always @(*) begin
 		case(con_state) 
 			STATE_IDLE: begin
-				if(data_psel_i) begin 
+				if(data_prsel_i) begin 
 					next_state = AXI_CTL_BUSY_DATA;
 				end else if(inst_psel_i) begin
 					next_state = AXI_CTL_BUSY_INST;
@@ -171,9 +170,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 				end else begin 
 					next_state = AXI_CTL_BUSY_INST;
 				end
-				if(axi_addr_r_ready_i) begin
-					sub_next_state = 1;
-				end
 			end
 			default:
 				next_state = 2'b11;
@@ -186,7 +182,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// NEXT: AXI-CTL-IDLE
 	// finish data read or write
 	assign data_pvalid_o
-			= state_busy_data ? axi_r_valid_i | axi_bkwd_valid_i & data_pwrite_i : 0;
+			= state_busy_data ? axi_r_valid_i | axi_bkwd_valid_i & data_pwsel_i : 0;
 
 	// finish inst read
 	assign {inst_pvalid_o, inst_plast_o} 
@@ -195,7 +191,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	// finish data read or write OR finish inst read
 
 	assign axi_r_ready_o = state_busy_data | state_busy_inst;
-	assign axi_bkwd_ready_o = state_busy_data & data_pwrite_i;
+	assign axi_bkwd_ready_o = state_busy_data & data_pwsel_i;
 	
 	// NEXT: SRAM AXI_CTL_BUSY_DATA or AXI_CTL_BUSY_INST
 	assign {axi_addr_r_valid_o, axi_addr_r_size_o, axi_addr_r_len_o, 
@@ -208,8 +204,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 													1'b0, `AXI_ADDR_SIZE_1, 
 													1'b0} : 
 													0;
-	wire raddr_valid = ~sub_state_is_data & ~data_pwrite_i & data_psel_i;
-	wire waddr_valid = ~sub_state_is_data & data_pwrite_i;
+	wire raddr_valid = ~sub_state_is_data & ~data_pwsel_i & data_prsel_i;
+	wire waddr_valid = ~sub_state_is_data & data_pwsel_i;
 
 	assign axi_addr_r_addr_o = state_busy_data ? data_paddr_i : inst_paddr_i;
 	assign axi_addr_w_addr_o = data_paddr_i;

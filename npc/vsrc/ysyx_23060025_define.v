@@ -9,6 +9,11 @@
 `define PERFORMANCE_COUNTER 1'b1
 `endif
 
+// dcache
+`define MACRO_CACHE_LINE_ADDR_W     2
+`define MACRO_CACHE_WAY_ADDR_W      1
+`define MACRO_CACHE_LINE_OFF_ADDR_W 4
+
 
 // `define BYPASS_TRACE 1'b1
 
