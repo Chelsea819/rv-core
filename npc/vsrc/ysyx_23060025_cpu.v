@@ -356,6 +356,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 		.out_paddr   ( lsu_paddr_o    ),
 		.out_psel    ( lsu_psel_o     ),
+		.out_psize    (lsu_psize_o     ),
 		.out_pwrite  ( lsu_pwrite_o		),
 		.out_pwdata  ( lsu_pwdata_o   ),
 		.out_pwstrb  ( lsu_pwstrb_o   ),
@@ -368,6 +369,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	                		lsu_pwrite_o;
 	wire	[DATA_LEN - 1:0]		lsu_pwdata_o;
 	wire	[3:0]					lsu_pwstrb_o;
+	wire	[2:0]					lsu_psize_o;
 	wire	[DATA_LEN - 1:0]		lsu_prdata_o;
 	wire	                		lsu_pvalid_o;
 
@@ -380,6 +382,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.in_pwstrb     	(lsu_pwstrb_o      ),
 		.in_pwrite     	(lsu_pwrite_o      ),
 		.in_psel       	(lsu_psel_o        ),
+		.in_psize       (lsu_psize_o        ),
 		.in_pready     	(lsu_pvalid_o      ),
 		.in_prdata     	(lsu_prdata_o      ),
 		.in_fence_flag 	(icache_fencei_flag  ),

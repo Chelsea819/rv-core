@@ -314,11 +314,11 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	assign out_prsize = uncache_r ? in_psize : `AXI_ADDR_SIZE_4;
 	assign out_prlen  = uncache_r ? 0 : PASS_TIMES - 1;
-	assign out_prd_req = (next_state == STATE_LOAD);
+	assign out_prd_req = (con_state == STATE_LOAD);
 	assign out_praddr = uncache_r ? in_paddr : load_raddr;
 
 	wire [TAG_W-1:0] replace_tag = replace_way_addr ? cache_tag_way_1[addr_index][TAG_W-1:0] : cache_tag_way_0[addr_index][TAG_W-1:0];
-	assign out_pwr_req = con_state == STATE_REPLACE;
+	assign out_pwr_req = (con_state == STATE_REPLACE);
 	assign out_pwdata = uncache_w ? in_pwdata : 
 						replace_way_addr ? cache_reg_way_1[addr_index] : cache_reg_way_0[addr_index];
 	assign out_pwaddr = uncache_w ? in_paddr : {replace_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};

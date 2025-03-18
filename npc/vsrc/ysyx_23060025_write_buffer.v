@@ -105,7 +105,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
         end
     end
 
-    assign in_pwrdy = next_state == STATE_IDLE;
+    assign in_pwrdy = (next_state == STATE_IDLE);
     assign in_pwvalid = axi_bkwd_valid_i;
 
     assign axi_addr_w_addr_o  = pwaddr;
@@ -120,7 +120,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     assign axi_w_data_o  = wdata_off[31:0];
     assign axi_w_strb_o  = pwtype == 3'b100 ?  `AXI_W_STRB_32:
                             pwstrb;
-    assign axi_w_valid_o = (next_state == STATE_WRITE);
+    assign axi_w_valid_o = (con_state == STATE_WRITE);
     assign axi_w_last_o  = counter == PASS_TIMES;
 
     assign axi_bkwd_ready_o = 1;
