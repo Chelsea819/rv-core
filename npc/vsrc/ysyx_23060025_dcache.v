@@ -14,6 +14,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input  [31:0] 		in_paddr,	// IFU fetch inst addr
 	input  [31:0] 		in_pwdata,	// IFU fetch inst
 	input  [3:0] 		in_pwstrb,	// IFU fetch inst addr
+	input  [2:0] 		in_psize,	// IFU fetch inst addr
 	input         		in_pwrite,	// IFU sel icache
 	input         		in_psel,	// IFU sel icache
 	output 	        	in_pready,	// icache read data ready
@@ -49,8 +50,18 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	wire state_check = (con_state == STATE_CHECK);
 
+	// uncache condition
+	wire addr_uart 	= (in_paddr >= `DEVICE_UART16550_ADDR_L && in_paddr <= `DEVICE_UART16550_ADDR_H);
+	wire addr_spi 	= (in_paddr >= `DEVICE_SPI_ADDR_L && in_paddr <= `DEVICE_SPI_ADDR_H);
+	wire addr_gpio 	= (in_paddr >= `DEVICE_GPIO_ADDR_L && in_paddr <= `DEVICE_GPIO_ADDR_H);
+	wire addr_clint = (in_paddr >= `DEVICE_CLINT_ADDR_L && in_paddr <= `DEVICE_CLINT_ADDR_H);
+	wire uncache_sign = addr_uart | addr_spi | addr_gpio | addr_clint;
+	wire uncache_r = uncache_sign & ~in_pwrite;
+	wire uncache_w = uncache_sign & in_pwrite;
+
 	wire [31:0]  raddr     = in_paddr;
 
+	// random arithematic
 	reg random_data;
 	always @(posedge clock) begin
 		if(reset) begin
@@ -60,6 +71,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		end
 	end
 
+	// store the way_addr to be replaced
 	reg replace_way_addr;
 	always @(posedge clock) begin
 		if(next_state == STATE_MISS) begin
@@ -96,8 +108,6 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire [DATA_WIDTH-1:0] 	prdata			= cache_line_data[DATA_WIDTH-1:0];
 
 	wire [ADDR_WIDTH-1:0] 	load_raddr = {addr_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};
-	wire [2:0] 			  	load_rsize = `AXI_ADDR_SIZE_4;
-	wire [7:0] 				load_rlen  = PASS_TIMES - 1;
 
 	`ifdef N_YOSYS_STA_CHECK
 		// hit_percent: total_load, hit_load, miss_load
@@ -139,7 +149,9 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				end
 			end
 			STATE_CHECK: begin
-				if(check_hit) begin
+				if(uncache_sign) begin
+					next_state = STATE_MISS;
+				end else if(check_hit) begin
 					next_state = STATE_IDLE;
 				end else begin
 					next_state = STATE_MISS;
@@ -149,17 +161,27 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			// if need write back(dirty), turn to STATE_REPLACE
 			// if not need wirte back, turn to STATE_LOAD
 			STATE_MISS: begin
-				if(out_pwrdy & wr_back) begin
-					next_state = STATE_REPLACE;
-				end else if(out_pwrdy) begin
-					next_state = STATE_LOAD;
+				if(out_pwrdy) begin
+					if(uncache_r) begin
+						next_state = STATE_LOAD;
+					end else if(wr_back | uncache_w) begin
+						next_state = STATE_REPLACE;
+					end else begin
+						next_state = STATE_LOAD;
+					end
+					
 				end
 			end
 			// 发出读请求，并且将要写回的数据写回
 			STATE_REPLACE: begin
-				next_state = STATE_LOAD;
+				if(uncache_w) begin
+					next_state = STATE_IDLE;
+				end else begin
+					next_state = STATE_LOAD;
+				end
 			end
-			// 等待数据读取
+			// 等待数据读取, STATE LOAD -- STATE IDLE 变化时，
+			// 对cachereg进行更新，如果是uncache的情况，则不写入cachereg
 			STATE_LOAD: begin
 				// get data over
 				if(out_pvalid && out_prlast) begin
@@ -223,7 +245,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	
 	always @(posedge clock) begin
-		if(out_pvalid & out_prlast) begin
+		if(out_pvalid & out_prlast & ~uncache_r) begin
 			if(~replace_way_addr) begin
 				cache_reg_way_0[addr_index] <= cache_update_data;
 			end else begin
@@ -255,7 +277,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	integer j;
 	always @(posedge clock) begin
 		// valid--1
-		if(out_pvalid & out_prlast) begin
+		if(out_pvalid & out_prlast & ~uncache_r) begin
 			if(~replace_way_addr) begin
 				cache_tag_way_0[addr_index] <= {1'b0, 1'b1, addr_tag};
 			end else begin
@@ -278,28 +300,33 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	end
 
 	reg r_last_valid;
+	// for uncache 
+	reg [31:0] prdata_reg;
 	always @(posedge clock) begin
 		if(reset) begin
 			r_last_valid <= 0;
 		end else begin
 			r_last_valid <= out_pvalid & out_prlast;
+			// for uncache 
+			prdata_reg	 <= in_prdata;
 		end
 	end
 
-	assign out_prsize = load_rsize;
-	assign out_prlen = load_rlen;
+	assign out_prsize = uncache_r ? in_psize : `AXI_ADDR_SIZE_4;
+	assign out_prlen  = uncache_r ? 0 : PASS_TIMES - 1;
 	assign out_prd_req = (next_state == STATE_LOAD);
-	assign out_praddr = load_raddr;
+	assign out_praddr = uncache_r ? in_paddr : load_raddr;
 
 	wire [TAG_W-1:0] replace_tag = replace_way_addr ? cache_tag_way_1[addr_index][TAG_W-1:0] : cache_tag_way_0[addr_index][TAG_W-1:0];
 	assign out_pwr_req = con_state == STATE_REPLACE;
-	assign out_pwdata = replace_way_addr ? cache_reg_way_1[addr_index] : cache_reg_way_0[addr_index];
-	assign out_pwaddr = {replace_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};
-	assign out_pwstrb = 0;
-	assign out_pwtype = 3'b100;
+	assign out_pwdata = uncache_w ? in_pwdata : 
+						replace_way_addr ? cache_reg_way_1[addr_index] : cache_reg_way_0[addr_index];
+	assign out_pwaddr = uncache_w ? in_paddr : {replace_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};
+	assign out_pwstrb = uncache_w ? in_pwstrb : `AXI_W_STRB_32;
+	assign out_pwtype = uncache_w ? in_psize : 3'b100 ;
 
 	assign in_pready = r_last_valid | (state_check & check_hit);
-	assign in_prdata = prdata;
+	assign in_prdata = uncache_sign ? prdata_reg : prdata;
 	
 
 endmodule

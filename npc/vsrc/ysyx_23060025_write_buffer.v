@@ -8,6 +8,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
 	input		[3:0]					in_pwstrb	,	// 仅当不是写一个cacheline时 有效
 	input		[2:0]					in_pwtype	,	// 3'b000--byte, 3'b001--half word, 3'b010--word, 3'b100--cacheline
 	output								in_pwrdy    ,		// write_buffer empty
+	output								in_pwvalid    ,		// write_buffer empty
 
     // Addr Write
 	output		[DATA_WIDTH - 1:0]		axi_addr_w_addr_o   ,	// 写地址
@@ -105,6 +106,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     end
 
     assign in_pwrdy = next_state == STATE_IDLE;
+    assign in_pwvalid = axi_bkwd_valid_i;
 
     assign axi_addr_w_addr_o  = pwaddr;
     assign axi_addr_w_valid_o = (con_state == STATE_WAIT_AXI_READY);
@@ -121,6 +123,6 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     assign axi_w_valid_o = (next_state == STATE_WRITE);
     assign axi_w_last_o  = counter == PASS_TIMES;
 
-    assign axi_bkwd_ready_o = (next_state == STATE_BKWD);
+    assign axi_bkwd_ready_o = 1;
 
 endmodule

@@ -34,7 +34,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		[DATA_LEN - 1:0]		data_prdata_o ,
 	input		[2:0]                	data_prsize_i ,
 	input		[7:0]  					data_prlen_i	,
-	output		                		data_pvalid_o ,
+	output		                		data_prvalid_o ,
 	// write
 	input		                				data_pwsel_i  ,
 	input		[ADDR_LEN - 1:0]				data_pwaddr_i ,
@@ -42,6 +42,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		[3:0]							data_pwstrb_i ,
 	input		[2:0]							data_pwtype_i ,
 	output		                				data_pwrdy_i  ,
+	output		                				data_pwvalid_i  ,
 
     // Xbar
 	output	reg 						axi_device,
@@ -109,8 +110,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			||(data_praddr_i >= `DEVICE_GPIO_ADDR_L && data_praddr_i <= `DEVICE_GPIO_ADDR_H)
 			||(data_praddr_i >= `DEVICE_CLINT_ADDR_L && data_praddr_i <= `DEVICE_CLINT_ADDR_H))) begin
 				diff_skip_flag_o <= 1;
-			end else if (waddr_valid & ((data_praddr_i & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
-			(data_praddr_i >= `DEVICE_GPIO_ADDR_L && data_praddr_i <= `DEVICE_GPIO_ADDR_H))) begin
+			end else if (axi_addr_w_valid_o & axi_addr_w_ready_i & ((axi_addr_w_addr_o & 32'hffff_f000) == `DEVICE_UART16550_ADDR_L || 
+			(axi_addr_w_addr_o >= `DEVICE_GPIO_ADDR_L && axi_addr_w_addr_o <= `DEVICE_GPIO_ADDR_H))) begin
 				diff_skip_flag_o <= 1;
 			end else begin if(next_state == STATE_IDLE)
 				diff_skip_flag_o <= 0;
@@ -182,7 +183,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 
 	// NEXT: AXI-CTL-IDLE
 	// finish data read or write
-	assign {data_pvalid_o, data_prlast_o}
+	assign {data_prvalid_o, data_prlast_o}
 			= state_busy_data ? {axi_r_valid_i, axi_r_last_i} : 0;
 
 	// finish inst read
@@ -199,7 +200,6 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 				state_busy_inst ? {~sub_state_is_data & inst_psel_i, inst_psize_i, inst_plen_i} : 
 													0;
 	wire raddr_valid = ~sub_state_is_data & ~data_pwsel_i & data_prsel_i;
-	wire waddr_valid = ~sub_state_is_data & data_pwsel_i;
 
 	assign axi_addr_r_addr_o = state_busy_data ? data_praddr_i : inst_paddr_i;
 	assign data_prdata_o = axi_r_data_i;
@@ -216,6 +216,8 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		.in_pwstrb          	( data_pwstrb_i       ),
 		.in_pwtype          	( data_pwtype_i       ),
 		.in_pwrdy           	( data_pwrdy_i        ),
+		.in_pwvalid           	( data_pwvalid_i        ),
+		
 		.axi_addr_w_addr_o  	( axi_addr_w_addr_o   ),
 		.axi_addr_w_valid_o 	( axi_addr_w_valid_o  ),
 		.axi_addr_w_ready_i 	( axi_addr_w_ready_i  ),

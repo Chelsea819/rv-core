@@ -172,7 +172,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		[7:0]                	data_prlen_o 	;
 	wire		                		data_prlast_o  	;
 	wire		[DATA_LEN - 1:0]		data_prdata_o	;
-	wire		                		data_pvalid_o	;
+	wire		                		data_prvalid_o	;
 
 	wire		                				data_pwsel_o  ;
 	wire		[ADDR_LEN - 1:0]				data_pwaddr_o ;
@@ -180,6 +180,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		[3:0]							data_pwstrb_o ;
 	wire		[2:0]                			data_pwtype_o ;
 	wire		                				data_pwrdy_o  ;
+	wire		                				data_pwalid_o	;
 
 	ysyx_23060025_cpu #(
 		.DATA_LEN 	( 32  ),
@@ -202,7 +203,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.data_prlen_o 		 	( data_prlen_o ),
 		.data_prlast_o		 	( data_prlast_o),
 		.data_prdata_o		 	( data_prdata_o),
-		.data_pvalid_o		 	( data_pvalid_o),
+		.data_pvalid_o		 	( data_prvalid_o),
 		
 		.data_pwsel_o 		 	( data_pwsel_o     ),
 		.data_pwaddr_o		 	( data_pwaddr_o),
@@ -237,7 +238,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.data_prlen_i		 	( data_prlen_o     ),
 		.data_prlast_o		 	( data_prlast_o),
 		.data_prdata_o		 	( data_prdata_o    ),
-		.data_pvalid_o		 	( data_pvalid_o),
+		.data_prvalid_o		 	( data_prvalid_o),
 		
 		.data_pwsel_i 		 	( data_pwsel_o ),
 		.data_pwaddr_i		 	( data_pwaddr_o),
@@ -245,7 +246,8 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.data_pwstrb_i		 	( data_pwstrb_o),
 		.data_pwtype_i		 	( data_pwtype_o),
 		.data_pwrdy_i 		 	( data_pwrdy_o ),
-		
+		.data_pwvalid_i 		( data_pwalid_o ),
+
 		.axi_device		 	 ( axi_device 		   ),
 		// Read Addr 
 		.axi_addr_r_addr_o  ( xbar_addr_r_addr_o    ),

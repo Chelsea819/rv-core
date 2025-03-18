@@ -228,7 +228,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire 					if_flush_i      ;
 	wire 	[31:0]			if_flush_pc_i ;
 
-	 wire  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus;
+	wire  [`ES_TO_DS_FORWARD_BUS -1:0]             es_to_ds_forward_bus;
     wire  [`MS_TO_DS_FORWARD_BUS -1:0]             ms_to_ds_forward_bus;
 	ysyx_23060025_id_stage ysyx_23060025_decoder(
 		.clock              				( clock              ),
@@ -357,7 +357,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.out_paddr   ( lsu_paddr_o    ),
 		.out_psel    ( lsu_psel_o     ),
 		.out_pwrite  ( lsu_pwrite_o		),
-		.out_psize   ( lsu_psize_o    ),
 		.out_pwdata  ( lsu_pwdata_o   ),
 		.out_pwstrb  ( lsu_pwstrb_o   ),
 		.out_prdata  ( lsu_prdata_o   ),
@@ -367,7 +366,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	[ADDR_LEN - 1:0]		lsu_paddr_o ;
 	wire	                		lsu_psel_o  ;
 	wire	                		lsu_pwrite_o;
-	wire	[2:0]                	lsu_psize_o ;
 	wire	[DATA_LEN - 1:0]		lsu_pwdata_o;
 	wire	[3:0]					lsu_pwstrb_o;
 	wire	[DATA_LEN - 1:0]		lsu_prdata_o;
@@ -403,9 +401,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 	
 
-
-
-	
 	wire wbu_ready_o;
 	wire [11:0] wb_csr_waddr_o;
 		ysyx_23060025_wb#(
