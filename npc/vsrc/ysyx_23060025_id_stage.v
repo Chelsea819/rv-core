@@ -533,6 +533,7 @@ assign ds_to_fs_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
     import "DPI-C" function void idu_p_counter_update(byte opcode, byte func3);
 	always @(posedge clock) begin
 		if (ds_to_ex_valid_o && es_allowin_i) begin
+            // $display("pc:%x inst:%x", pc_o, inst_i);
 			idu_p_counter_update({1'b0, opcode}, {5'b0, func3});
 		end
 	end

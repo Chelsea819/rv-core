@@ -42,7 +42,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		[3:0]							data_pwstrb_i ,
 	input		[2:0]							data_pwtype_i ,
 	output		                				data_pwrdy_i  ,
-	output		                				data_pwvalid_i  ,
+	// output		                				data_pwvalid_i  ,
 
     // Xbar
 	output	reg 						axi_device,
@@ -156,10 +156,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 			end
 			AXI_CTL_BUSY_DATA: begin
 				// finish write
-				if (axi_bkwd_valid_i) begin
-					next_state = STATE_IDLE;			
-				// finish read
-				end else if (axi_r_valid_i & axi_r_last_i) begin 
+				if(axi_r_valid_i & axi_r_last_i) begin 
 					next_state = STATE_IDLE;
 				end else begin 
 					next_state = AXI_CTL_BUSY_DATA;
@@ -216,7 +213,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 		.in_pwstrb          	( data_pwstrb_i       ),
 		.in_pwtype          	( data_pwtype_i       ),
 		.in_pwrdy           	( data_pwrdy_i        ),
-		.in_pwvalid           	( data_pwvalid_i        ),
+		// .in_pwvalid           	( data_pwvalid_i        ),
 		
 		.axi_addr_w_addr_o  	( axi_addr_w_addr_o   ),
 		.axi_addr_w_valid_o 	( axi_addr_w_valid_o  ),

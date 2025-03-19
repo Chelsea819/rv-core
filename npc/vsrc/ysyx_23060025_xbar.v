@@ -97,14 +97,14 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign axi_w_strb_o = axi_ctl_w_strb_i;
 	assign clint_addr_r_addr_i = axi_ctl_addr_r_addr_i;
 
-	 always @(posedge clock) begin
-        if(axi_addr_w_valid_o && axi_addr_w_ready_i) begin
-            $display("[xbar]--axi_addr_w_addr_o: %x", axi_addr_w_addr_o);
-        end
-        if(axi_addr_r_valid_o && axi_addr_r_ready_i) begin
-            $display("[xbar]--axi_addr_r_addr_o: %x", axi_addr_r_addr_o);
-        end
-    end
+	//  always @(posedge clock) begin
+    //     if(axi_addr_w_valid_o && axi_addr_w_ready_i) begin
+    //         $display("[xbar]--axi_addr_w_addr_o: %x", axi_addr_w_addr_o);
+    //     end
+    //     if(axi_addr_r_valid_o && axi_addr_r_ready_i) begin
+    //         $display("[xbar]--axi_addr_r_addr_o: %x", axi_addr_r_addr_o);
+    //     end
+    // end
 
 	assign {axi_ctl_addr_r_ready_o, 
 			axi_ctl_r_data_o, axi_ctl_r_valid_o, axi_ctl_r_last_o} = (axi_device == `AXI_XBAR_CLINT) ? {clint_addr_r_ready_o, 

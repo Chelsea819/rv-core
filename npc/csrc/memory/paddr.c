@@ -101,6 +101,7 @@ void flash_read(int32_t addr, int32_t *data) {
   // printf("flash_read\n");
   if (likely(in_pmem(addr))) {
     *data = pmem_read(addr, 4);
+      Log("flash_read ---  [addr: 0x%08x rdata: 0x%08x pc: 0x%08x]", addr, *data, cpu.pc);
 #ifdef CONFIG_MTRACE
       Log("flash_read ---  [addr: 0x%08x rdata: 0x%08x pc: 0x%08x]", addr, *data, cpu.pc);
 #endif

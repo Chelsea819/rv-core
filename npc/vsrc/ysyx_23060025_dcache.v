@@ -240,8 +240,8 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire [CACHE_LINE_W-1:0] cache_dmask = ({{(CACHE_LINE_W-32){1'b0}}, {32{1'b1}}}) << {write_buffer_aoff, 5'b0};
 	// 生成写掩码：目标 32 位块全 0，其他位全 1
 	wire [CACHE_LINE_W-1:0] cache_wmask = ~cache_dmask;
-	wire [CACHE_LINE_W-1:0] cache_wdata_1 = cache_wmask & cache_reg_way_1[addr_index] | {PASS_TIMES{write_buffer_wdata}} & cache_dmask;
-	wire [CACHE_LINE_W-1:0] cache_wdata_0 = cache_wmask & cache_reg_way_0[addr_index] | {PASS_TIMES{write_buffer_wdata}} & cache_dmask;
+	wire [CACHE_LINE_W-1:0] cache_wdata_1 = cache_wmask & cache_reg_way_1[write_buffer_aindex] | {PASS_TIMES{write_buffer_wdata}} & cache_dmask;
+	wire [CACHE_LINE_W-1:0] cache_wdata_0 = cache_wmask & cache_reg_way_0[write_buffer_aindex] | {PASS_TIMES{write_buffer_wdata}} & cache_dmask;
 
 	
 	always @(posedge clock) begin
@@ -279,9 +279,9 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		// valid--1
 		if(out_pvalid & out_prlast & ~uncache_r) begin
 			if(~replace_way_addr) begin
-				cache_tag_way_0[addr_index] <= {1'b0, 1'b1, addr_tag};
+				cache_tag_way_0[addr_index] <= {in_pwrite, 1'b1, addr_tag};
 			end else begin
-				cache_tag_way_1[addr_index] <= {1'b0, 1'b1, addr_tag};
+				cache_tag_way_1[addr_index] <= {in_pwrite, 1'b1, addr_tag};
 			end
 			
 		end else if(next_state == STATE_FENCE) begin
@@ -325,7 +325,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	assign out_pwstrb = uncache_w ? in_pwstrb : `AXI_W_STRB_32;
 	assign out_pwtype = uncache_w ? in_psize : 3'b100 ;
 
-	assign in_pready = r_last_valid | (state_check & check_hit);
+	assign in_pready = r_last_valid | (state_check & check_hit) | uncache_w & (con_state == STATE_REPLACE);
 	assign in_prdata = uncache_sign ? prdata_reg : prdata;
 	
 

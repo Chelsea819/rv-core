@@ -8,7 +8,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
 	input		[3:0]					in_pwstrb	,	// 仅当不是写一个cacheline时 有效
 	input		[2:0]					in_pwtype	,	// 3'b000--byte, 3'b001--half word, 3'b010--word, 3'b100--cacheline
 	output								in_pwrdy    ,		// write_buffer empty
-	output								in_pwvalid    ,		// write_buffer empty
+	// output								in_pwvalid    ,		// write_buffer empty
 
     // Addr Write
 	output		[DATA_WIDTH - 1:0]		axi_addr_w_addr_o   ,	// 写地址
@@ -57,12 +57,12 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
             pwstrb	,
             pwtype	} = write_buff_reg;
 
-    always @(posedge clock) begin
-        if(reset) begin
-        end else if(con_state == STATE_IDLE && in_pwr_req) begin
-            $display("[write_buffer]--in_pwaddr: %x", in_pwaddr);
-        end
-    end
+    // always @(posedge clock) begin
+    //     if(reset) begin
+    //     end else if(con_state == STATE_IDLE && in_pwr_req) begin
+    //         $display("[write_buffer]--in_pwaddr: %x", in_pwaddr);
+    //     end
+    // end
 
     // state machine
     always @(posedge clock) begin
@@ -82,7 +82,9 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
                 end
             end
             STATE_WAIT_AXI_READY: begin
-                if(axi_addr_w_ready_i) begin
+                if(axi_addr_w_ready_i & axi_w_last_o & axi_w_ready_i) begin
+                    next_state = STATE_BKWD;
+                end else if(axi_addr_w_ready_i) begin
                     next_state = STATE_WRITE;
                 end
             end
@@ -105,7 +107,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     reg [2:0] counter;
     always @(posedge clock) begin
         // 每轮复位一次
-        if(next_state == STATE_WAIT_AXI_READY) begin
+        if(con_state == STATE_IDLE && next_state == STATE_WAIT_AXI_READY) begin
             counter <= 0;
         end else if(axi_w_valid_o & axi_w_ready_i) begin
             counter <= counter + 1;
@@ -113,7 +115,7 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     end
 
     assign in_pwrdy = (next_state == STATE_IDLE);
-    assign in_pwvalid = axi_bkwd_valid_i;
+    // assign in_pwvalid = axi_bkwd_valid_i;
 
     assign axi_addr_w_addr_o  = pwaddr;
     assign axi_addr_w_valid_o = (con_state == STATE_WAIT_AXI_READY);
@@ -127,8 +129,8 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
     assign axi_w_data_o  = wdata_off[31:0];
     assign axi_w_strb_o  = pwtype == 3'b100 ?  `AXI_W_STRB_32:
                             pwstrb;
-    assign axi_w_valid_o = (con_state == STATE_WRITE);
-    assign axi_w_last_o  = counter == PASS_TIMES;
+    assign axi_w_valid_o = (con_state == STATE_WRITE) | (con_state == STATE_WAIT_AXI_READY) | (counter != axi_addr_w_len_o[2:0] + 1);
+    assign axi_w_last_o  = (counter == axi_addr_w_len_o[2:0]);
 
     assign axi_bkwd_ready_o = 1;
 

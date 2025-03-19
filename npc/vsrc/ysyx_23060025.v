@@ -180,7 +180,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire		[3:0]							data_pwstrb_o ;
 	wire		[2:0]                			data_pwtype_o ;
 	wire		                				data_pwrdy_o  ;
-	wire		                				data_pwalid_o	;
+	// wire		                				data_pwalid_o	;
 
 	ysyx_23060025_cpu #(
 		.DATA_LEN 	( 32  ),
@@ -246,7 +246,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.data_pwstrb_i		 	( data_pwstrb_o),
 		.data_pwtype_i		 	( data_pwtype_o),
 		.data_pwrdy_i 		 	( data_pwrdy_o ),
-		.data_pwvalid_i 		( data_pwalid_o ),
+		// .data_pwvalid_i 		( data_pwalid_o ),
 
 		.axi_device		 	 ( axi_device 		   ),
 		// Read Addr 
