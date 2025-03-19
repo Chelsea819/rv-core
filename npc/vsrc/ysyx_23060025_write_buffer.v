@@ -57,6 +57,13 @@ module ysyx_23060025_write_buffer #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, 
             pwstrb	,
             pwtype	} = write_buff_reg;
 
+    always @(posedge clock) begin
+        if(reset) begin
+        end else if(con_state == STATE_IDLE && in_pwr_req) begin
+            $display("[write_buffer]--in_pwaddr: %x", in_pwaddr);
+        end
+    end
+
     // state machine
     always @(posedge clock) begin
         if(reset) begin

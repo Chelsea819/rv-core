@@ -61,7 +61,7 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	input		                		axi_r_last_i	,
 
 	// Addr Write
-	output			[ADDR_LEN - 1:0]		axi_addr_w_addr_o,	// 写地址
+	output			[ADDR_LEN - 1:0]	axi_addr_w_addr_o,	// 写地址
 	output		                		axi_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
 	input		                		axi_addr_w_ready_i, // 从设备已准备好接收地址和相关的控制信号
 	output		[7:0]                	axi_addr_w_len_o,	// 突发长度，这个字段标识每次突发传输的传输次数
@@ -96,6 +96,15 @@ module ysyx_23060025_xbar #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	assign axi_w_data_o = axi_ctl_w_data_i;
 	assign axi_w_strb_o = axi_ctl_w_strb_i;
 	assign clint_addr_r_addr_i = axi_ctl_addr_r_addr_i;
+
+	 always @(posedge clock) begin
+        if(axi_addr_w_valid_o && axi_addr_w_ready_i) begin
+            $display("[xbar]--axi_addr_w_addr_o: %x", axi_addr_w_addr_o);
+        end
+        if(axi_addr_r_valid_o && axi_addr_r_ready_i) begin
+            $display("[xbar]--axi_addr_r_addr_o: %x", axi_addr_r_addr_o);
+        end
+    end
 
 	assign {axi_ctl_addr_r_ready_o, 
 			axi_ctl_r_data_o, axi_ctl_r_valid_o, axi_ctl_r_last_o} = (axi_device == `AXI_XBAR_CLINT) ? {clint_addr_r_ready_o, 

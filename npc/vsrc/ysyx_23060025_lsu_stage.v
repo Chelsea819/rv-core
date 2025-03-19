@@ -146,7 +146,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 	wire [31:0] r_data = out_prdata;
 
-	assign out_psel = (mem_to_reg | mem_wen_i) & lsu_valid_o;
+	assign out_psel = (mem_to_reg | mem_wen_i) & lsu_valid_o & ~out_pvalid;
 	assign out_pwrite = mem_wen_i & lsu_valid_o;
 
 

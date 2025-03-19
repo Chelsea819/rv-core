@@ -101,7 +101,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire check_hit_1 					= (addr_tag == cache_tag_way_1[addr_index][TAG_W-1:0] && cache_tag_way_1[addr_index][TAG_W+CACHE_VALID_W-1] == 1);
 	wire check_hit = check_hit_0 | check_hit_1;
 	wire hit_write = check_hit & in_pwrite;
-	// wire hit_dirty = check_hit & (cache_tag_way_0[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1] | cache_tag_way_1[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1]);
+	// wire hit_dirty = check_hit_0 & cache_tag_way_0[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1] | cache_tag_way_1[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1] & check_hit_1;
 	wire wr_back   = replace_way_addr ? cache_tag_way_1[addr_index][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] : cache_tag_way_0[addr_index][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1];
 
 	wire [CACHE_LINE_W-1:0] cache_line_data	= check_hit_0 ? cache_reg_way_0[addr_index] >> ({addr_off, 3'b0}) : cache_reg_way_1[addr_index] >> ({addr_off, 3'b0});
@@ -109,24 +109,24 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 
 	wire [ADDR_WIDTH-1:0] 	load_raddr = {addr_tag, addr_index, {(ADDR_WIDTH-TAG_W-CACHE_LINE_ADDR_W){1'b0}}};
 
-	`ifdef N_YOSYS_STA_CHECK
-		// hit_percent: total_load, hit_load, miss_load
-		// access_time: 
-		import "DPI-C" function void cache_cycle_statistic(byte state);
-		always @(posedge clock) begin
-			if (next_state != STATE_IDLE) begin
-				cache_cycle_statistic({5'b0, next_state});
-			end
-		end
+	// `ifdef N_YOSYS_STA_CHECK
+	// 	// hit_percent: total_load, hit_load, miss_load
+	// 	// access_time: 
+	// 	import "DPI-C" function void cache_cycle_statistic(byte state);
+	// 	always @(posedge clock) begin
+	// 		if (next_state != STATE_IDLE) begin
+	// 			cache_cycle_statistic({5'b0, next_state});
+	// 		end
+	// 	end
 
-		import "DPI-C" function void cache_hit_statistic();
-		always @(posedge clock) begin
-			if (state_check && check_hit) begin
-				cache_hit_statistic();
-			end
-		end
+	// 	import "DPI-C" function void cache_hit_statistic();
+	// 	always @(posedge clock) begin
+	// 		if (state_check && check_hit) begin
+	// 			cache_hit_statistic();
+	// 		end
+	// 	end
 
-	`endif
+	// `endif
 
 	always @(posedge clock) begin
 		if (reset) begin
@@ -260,7 +260,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		end
 	end
 
-	wire [CACHE_LINE_W-1:0] cache_rdata = r_data[addr_index] >> 32 | {out_prdata, {(CACHE_LINE_W-32){1'b0}}};
+	wire [CACHE_LINE_W-1:0] cache_rdata = r_data >> 32 | {out_prdata, {(CACHE_LINE_W-32){1'b0}}};
 	// 实际要写入cache的值，如果lsu read-> 直接写入从存储器中读出的值即可
 	// 						lsu write-> 要写入的值覆盖存储器的值
 	wire [CACHE_LINE_W-1:0] cache_rdata_after_w = ~cache_rdata_dmask & cache_rdata | {PASS_TIMES{pwdata}} & cache_rdata_dmask;
@@ -292,9 +292,9 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		// hit_write
 		end else if(w_buffer_con_state == WRITE_STATE_WRITE) begin
 			if(write_buffer_away) begin
-				cache_tag_way_1[j][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
+				cache_tag_way_1[write_buffer_aindex][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
 			end else begin
-				cache_tag_way_0[j][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
+				cache_tag_way_0[write_buffer_aindex][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
 			end
 		end
 	end

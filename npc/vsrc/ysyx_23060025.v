@@ -92,8 +92,8 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 	// Xbar
     //Addr Read
-	wire									axi_device		;
-	wire			[ADDR_LEN - 1:0]		xbar_addr_r_addr_o	;
+	wire								axi_device		;
+	wire			[ADDR_LEN - 1:0]	xbar_addr_r_addr_o	;
 	wire		                		xbar_addr_r_valid_o	;
 	wire		                		xbar_addr_r_ready_i	;
 	wire			[7:0]				xbar_addr_r_len_o	;
@@ -106,15 +106,15 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire								xbar_r_last_i		;
 
 	// Addr Write
-	wire			[ADDR_LEN - 1:0]		xbar_addr_w_addr_o	;	// 写地址
+	wire			[ADDR_LEN - 1:0]	xbar_addr_w_addr_o	;	// 写地址
 	wire		                		xbar_addr_w_valid_o	;	// 主设备给出的地址和相关控制信号有效
 	wire		                		xbar_addr_w_ready_i	; // 从设备已准备好接收地址和相关的控制信号
 	wire			[7:0]				xbar_addr_w_len_o	;
 	wire			[2:0]				xbar_addr_w_size_o	;
 
 	// Write data
-	wire			[DATA_LEN - 1:0]		xbar_w_data_o	;	// 写出的数据
-	wire			[3:0]					xbar_w_strb_o	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
+	wire			[DATA_LEN - 1:0]	xbar_w_data_o	;	// 写出的数据
+	wire			[3:0]				xbar_w_strb_o	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	wire		                		xbar_w_valid_o	;	// 主设备给出的数据和字节选通信号有效
 	wire		                		xbar_w_ready_i	;	// 从设备已准备好接收数据选通信号
 	wire								xbar_w_last_o	;
@@ -281,7 +281,7 @@ module ysyx_23060025 #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.axi_bkwd_ready_o   ( xbar_bkwd_ready_o   )	);
 
 	assign io_master_arid = 0;
-	assign io_master_awid = 0;
+	assign io_master_awid = 1;
 	assign io_master_awburst = `AXI_ADDR_BURST_INCR;
 	assign io_master_arburst = `AXI_ADDR_BURST_INCR;
 

@@ -60,7 +60,7 @@ module ysyx_23060025_AXI_CTL #(parameter ADDR_LEN = 32, DATA_LEN = 32)(
 	output		                		axi_r_ready_o	,	// 最后一次读取到的数据
 
 	// Addr Write
-	output	reg	[ADDR_LEN - 1:0]		axi_addr_w_addr_o,	// 写地址
+	output		[ADDR_LEN - 1:0]		axi_addr_w_addr_o,	// 写地址
 	output		                		axi_addr_w_valid_o,	// 主设备给出的地址和相关控制信号有效
 	input		                		axi_addr_w_ready_i, // 从设备已准备好接收地址和相关的控制信号
 	output		[7:0]                	axi_addr_w_len_o,	// 突发长度，这个字段标识每次突发传输的传输次数
