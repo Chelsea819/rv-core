@@ -22,8 +22,10 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     input  [`ES_TO_MS_DATA_BUS-1:0] 	es_to_ms_bus,
 
 	//to ds forward path 
-    output [`MS_TO_DS_FORWARD_BUS-1:0] ms_to_ds_forward_bus,
-    output                             ms_to_ds_valid,
+    output [`MS_TO_DS_FORWARD_BUS-1:0] 	ms_to_ds_forward_bus,
+    output                             	ms_to_ds_valid,
+
+	output [`MS_TO_WS_BUS-1:0]    		ms_to_ws_bus,
 
 	
 	
@@ -37,17 +39,9 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     output                                        lsu_to_wbu_valid_o               ,
     input                                         wbu_allowin_i               ,
 
-	output                                        ebreak_flag_o               ,
 
     
-    output	   	                		wd_o		,
-    output	   	[4:0]		            wreg_o		,
-	output      [DATA_LEN - 1:0]		wdata_o,
-    output      [DATA_LEN - 1:0]        csr_wdata_o	,
-    output      [2:0]                   csr_type_o	,
-	output      [11:0]        			csr_waddr_o	,
-	output      [31:0]        			csr_mcause_o,
-	output		                		fencei_sign	,
+    
 
 	output		[ADDR_LEN - 1:0]		out_paddr	,
 	output		                		out_psel	,
@@ -71,6 +65,14 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     wire       [1:0]                    store_type_i	; 
     wire       [11:0]       			csr_waddr_i	 ;
     wire                                ebreak_flag_i;
+
+	wire	   	                		wd_i			;
+    wire	   	[4:0]		            wreg_i			;
+	wire      [DATA_LEN - 1:0]			reg_wdata_o			;
+    wire      [DATA_LEN - 1:0]        	csr_wdata_i		;
+    wire      [2:0]                   	csr_type_i		;
+	wire      [31:0]        			csr_mcause_i	;
+	wire		                		fencei_sign_i	;
     // reg  [7:0]  mem_rmask;
     wire        					mem_to_reg;
 	// wire	[3:0]					w_strb	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
@@ -95,45 +97,54 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 		end
 	end
 
-	assign ebreak_flag_o = ebreak_flag_i;
-	assign csr_waddr_o = csr_waddr_i;
 `ifdef DIFFTEST
 	assign diff_skip_flag_o = diff_skip_flag_i;
 `endif
 
-	wire lsu_csr_wen = csr_type_o == `CSR_CSRRW 
-						|| csr_type_o == `CSR_CSRRS
-						|| csr_type_o == `CSR_ECALL;
+	wire lsu_csr_wen = csr_type_i == `CSR_CSRRW 
+						|| csr_type_i == `CSR_CSRRS
+						|| csr_type_i == `CSR_ECALL;
 
 	assign ms_to_ds_valid = lsu_valid_o;
-	wire dest_zero            = (wreg_o == 5'b0);
-	wire forward_enable       = wd_o & ~dest_zero & lsu_valid_o;
+	wire dest_zero            = (wreg_i == 5'b0);
+	wire forward_enable       = wd_i & ~dest_zero & lsu_valid_o;
 	wire csr_forward_enable       = lsu_csr_wen & lsu_valid_o;
 	wire dep_need_stall       = |load_type_i;
 	assign ms_to_ds_forward_bus = {dep_need_stall,  //38:38
 								forward_enable,  //37:37
-								wreg_o       ,  //36:32
+								wreg_i       ,  //36:32
 								wdata  , //31:0
 								csr_forward_enable,
 								csr_waddr_i,
-								csr_wdata_o,
-								csr_type_o
+								csr_wdata_i,
+								csr_type_i
 								};
-	assign {	wd_o		 ,
-				wreg_o		 ,
+	assign {	wd_i		 ,
+				wreg_i		 ,
 				alu_result_i ,
 				mem_wen_i	 ,
 				mem_wdata_i	 ,
 				load_type_i  ,
 				store_type_i ,
-				csr_wdata_o	 ,
-				csr_type_o	 ,
+				csr_wdata_i	 ,
+				csr_type_i	 ,
 				csr_waddr_i	 ,
-				csr_mcause_o ,
+				csr_mcause_i ,
 				ebreak_flag_i ,
-				fencei_sign } = es_to_ms_bus_reg;
+				fencei_sign_i } = es_to_ms_bus_reg;
 
-	assign out_fencei = fencei_sign;
+	assign ms_to_ws_bus = {
+					wd_i			, 
+					wreg_i		 	,
+					reg_wdata_o		,
+					csr_wdata_i		,
+					csr_waddr_i		,
+					csr_type_i		,
+					csr_mcause_i	,
+					fencei_sign_i	,
+					ebreak_flag_i   };
+
+	assign out_fencei = fencei_sign_i;
 
 	assign lsu_allowin_o    = !lsu_valid_o || lsu_ready_go_o && wbu_allowin_i;
     assign lsu_ready_go_o   = ~(mem_to_reg | mem_wen_i) || out_pvalid;
@@ -222,7 +233,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// 				alu_result_i[1:0] == 2'b10 ? {{w_strb[1:0], 2'b0}, {w_data[15:0], 16'b0}} :
 	// 				alu_result_i[1:0] == 2'b11 ? {{w_strb[0], 3'b0}, {w_data[7:0], 24'b0}} : 0;
 	
-	assign wdata_o = wdata;
+	assign reg_wdata_o = wdata;
 
 	wire agu_i_size_b = (store_type_i == `STORE_SB_8);
 	wire agu_i_size_hw = (store_type_i == `STORE_SH_16);

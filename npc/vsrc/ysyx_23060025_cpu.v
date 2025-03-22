@@ -79,15 +79,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 
-	// wb Unit
-	wire								lsu_fencei_sign_o		;
-	wire								lsu_reg_wen_o		;
-	wire			[4:0]				lsu_wreg_o			;
-	wire			[DATA_LEN - 1:0]	lsu_reg_wdata_o		;
-	wire			[DATA_LEN - 1:0]	lsu_csr_wdata_o		;
-	wire			[11:0]				lsu_csr_waddr_o		;
-	wire			[31:0]				lsu_csr_mcause_o		;
-	wire			[2:0]				lsu_csr_type_o		;
+	wire 			[`MS_TO_WS_BUS-1:0]  ms_to_ws_bus;
 
 	// always @(*) begin
 	// 	$display("pc: [%h] inst: [%b] invalid: [%h] reset: [%b] clock[%b]",pc, ifu_inst_o, invalid, reset, clock);
@@ -319,51 +311,43 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.DATA_LEN          ( 32 ),
 		.ADDR_LEN          ( 32 )
 	)ysyx_23060025_LSU(
-		.rstn           ( ~reset           ),
-		.clock           ( clock           		),
+		.rstn           		( ~reset           ),
+		.clock           		( clock           		),
 
 	`ifdef DIFFTEST
-		.diff_skip_flag_i  ( diff_skip_flag_i           ),
-		.diff_skip_flag_o  ( lsu_diff_skip_flag_o           		),
+		.diff_skip_flag_i  		( diff_skip_flag_i           ),
+		.diff_skip_flag_o  		( lsu_diff_skip_flag_o           		),
 	`endif
 	`ifdef DEBUG
-		.pc_i (ex_pc_o),
-		.pc_o (lsu_pc_o),
+		.pc_i 					(ex_pc_o),
+		.pc_o 					(lsu_pc_o),
 	`endif
 		.lsu_valid_o           	(  lsu_busy            ),
 
-		.ms_to_ds_forward_bus    (   ms_to_ds_forward_bus           ),
-		.ms_to_ds_valid          (              ),
+		.ms_to_ds_forward_bus   (   ms_to_ds_forward_bus           ),
+		.ms_to_ds_valid         (              ),
 
 		// idu_exu
-		.ex_to_lsu_valid_i           (   exu_valid_o           ),
-		.es_to_ms_bus               (   es_to_ms_bus           ),
-		.lsu_allowin_o           	(    lsu_ready_o          ),
+		.ex_to_lsu_valid_i      (   exu_valid_o           ),
+		.es_to_ms_bus           (   es_to_ms_bus           ),
+		.lsu_allowin_o          (    lsu_ready_o          ),
 
 		// exu_wbu
 
-		.lsu_to_wbu_valid_o           	(     lsu_valid_o         ),
-		.wbu_allowin_i           	(    wbu_ready_o          ),
-		.ebreak_flag_o    ( lsu_ebreak_flag_o   	),
+		.lsu_to_wbu_valid_o     (     lsu_valid_o         ),
+		.wbu_allowin_i          (    wbu_ready_o          ),
 
-		.wd_o     		( lsu_reg_wen_o			),
-		.wreg_o   		( lsu_wreg_o			),
-		.wdata_o  		( lsu_reg_wdata_o		),
-		.csr_type_o		( lsu_csr_type_o		),
-		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
-		.csr_waddr_o	( lsu_csr_waddr_o  ),
-		.csr_mcause_o	( lsu_csr_mcause_o  ),
-		.fencei_sign    ( lsu_fencei_sign_o ),
+		.ms_to_ws_bus           (ms_to_ws_bus           ),
 
-		.out_fencei   ( lsu_fencei_o    ),
-		.out_paddr   ( lsu_paddr_o    ),
-		.out_psel    ( lsu_psel_o     ),
-		.out_psize    (lsu_psize_o     ),
-		.out_pwrite  ( lsu_pwrite_o		),
-		.out_pwdata  ( lsu_pwdata_o   ),
-		.out_pwstrb  ( lsu_pwstrb_o   ),
-		.out_prdata  ( lsu_prdata_o   ),
-		.out_pvalid  ( lsu_pvalid_o   )
+		.out_fencei   			( lsu_fencei_o    ),
+		.out_paddr   			( lsu_paddr_o    ),
+		.out_psel    			( lsu_psel_o     ),
+		.out_psize    			(lsu_psize_o     ),
+		.out_pwrite  			( lsu_pwrite_o		),
+		.out_pwdata  			( lsu_pwdata_o   ),
+		.out_pwstrb  			( lsu_pwstrb_o   ),
+		.out_prdata  			( lsu_prdata_o   ),
+		.out_pvalid  			( lsu_pvalid_o   )
 	);
 
 	wire	[ADDR_LEN - 1:0]		lsu_paddr_o ;
@@ -416,19 +400,11 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reset          ( reset          ),
 		.clock          ( clock          ),
 
-		.wd_i         	( lsu_reg_wen_o	   ),
-		.wreg_i       	( lsu_wreg_o		   ),
-		.reg_wdata_i  	( lsu_reg_wdata_o ),
-		.csr_wdata_i  	( lsu_csr_wdata_o ),
-		.csr_waddr_i  	( lsu_csr_waddr_o ),
-		.csr_type_i   	( lsu_csr_type_o	 ),
-		.csr_mcause_i   ( lsu_csr_mcause_o	 ),
-		.fencei_sign_i	( lsu_fencei_sign_o  ),
-		.ebreak_flag_i	( lsu_ebreak_flag_o  ),
 `ifdef DIFFTEST
 		.diff_skip_flag_i  	( lsu_diff_skip_flag_o           ),
 `endif
 		// lsu_wbu 
+		.ms_to_ws_bus         	( ms_to_ws_bus	   ),
 		.ms_to_ws_valid    	( lsu_valid_o	    ),
 		.ws_allowin_o    	( wbu_ready_o    ),
 
