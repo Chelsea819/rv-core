@@ -7,6 +7,10 @@ module ysyx_23060025_id_stage(
     input           [31:0]                        reg1_data_i               ,
     input           [31:0]                        reg2_data_i               ,
     input           [31:0]                        csr_rdata_i	            ,
+
+    // flush path
+	input                                         fencei_flush_sign_i           ,
+	input                                         fencei_flush_valid_i          ,
     
     // ifu_idu
     input                                         fs_to_ds_valid_i               ,
@@ -26,14 +30,6 @@ module ysyx_23060025_id_stage(
     // idu_exu
     input                                         es_allowin_i               ,
 
-    // data bypass
-	// from exeu
-    // TODO: add exu valid logic, when exu not least one cycle
-	// input		[31:0]			            exu_reg_wdata_i	,
-	// // from lsu
-	// input		[31:0]			            lsu_reg_wdata_i	,
-
-    // input                                         exu_ready                 ,
     output          [4:0]                         reg1_addr_o               ,
     output          [4:0]                         reg2_addr_o               ,
     
@@ -543,25 +539,26 @@ assign ds_to_fs_bpu_flush_o = opcode_B_branch & (branch_flag ^ rv32_b_imm[31]);
     `endif
 `endif
 
+    // 处理flush
+	// flush时，to_next_valid -> 0
+	// 		   es_valid -> 0, allowin -> 1
+	wire fencei_flush_sign = fencei_flush_sign_i & fencei_flush_valid_i;
+	wire flush_sign = fencei_flush_sign;
+
     assign ds_allowin_o    = !ds_valid_o || ds_ready_go_o && es_allowin_i;
     wire ds_ready_go_o   = ~rf1_forward_stall & ~rf2_forward_stall;
-    assign ds_to_ex_valid_o = ds_valid_o && ds_ready_go_o;
-    always @(posedge clock) begin   //bug1 no reset; branch no delay slot
-        if (reset) begin
+    assign ds_to_ex_valid_o = ds_valid_o && ds_ready_go_o && ~flush_sign;;
+    always @(posedge clock) begin   
+        if (reset || flush_sign) begin
             ds_valid_o <= 1'b0;
         end
         else begin 
-            if (ds_allowin_o) begin   //bug2 ??
+            if (ds_allowin_o) begin   
                 ds_valid_o <= fs_to_ds_valid_i;
             end
         end
-
-        // if (fs_to_ds_valid && ds_allowin) begin
-        //     fs_to_ds_bus_r <= fs_to_ds_bus;
-        // end
     end
 
-    // idu deal with bpu result 
 
 
 endmodule

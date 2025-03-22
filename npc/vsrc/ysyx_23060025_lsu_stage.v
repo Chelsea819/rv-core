@@ -14,34 +14,30 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	input								diff_skip_flag_i,
 	output								diff_skip_flag_o,
 `endif	
-`ifdef DEBUG
-	input     [31:0]                      pc_i               ,
-	output reg   [31:0]                   pc_o               ,
-`endif
     
     input  [`ES_TO_MS_DATA_BUS-1:0] 	es_to_ms_bus,
+
+	// flush path
+	input                               fencei_flush_sign_i           ,
+	input                               fencei_flush_valid_i          ,
 
 	//to ds forward path 
     output [`MS_TO_DS_FORWARD_BUS-1:0] 	ms_to_ds_forward_bus,
     output                             	ms_to_ds_valid,
 
-	output [`MS_TO_WS_BUS-1:0]    		ms_to_ws_bus,
+	output [`MS_TO_WS_DATA_BUS-1:0]    	ms_to_ws_bus,
 
 	
 	
-	output	reg							          lsu_valid_o	        ,
+	output	reg							lsu_valid_o	        ,
 
 	// exu_lsu
-    input                                         ex_to_lsu_valid_i               ,
-	output                                        lsu_allowin_o               ,
+    input                               ex_to_lsu_valid_i               ,
+	output                              lsu_allowin_o               ,
 
     // lsu_wbu
-    output                                        lsu_to_wbu_valid_o               ,
-    input                                         wbu_allowin_i               ,
-
-
-    
-    
+    output                              lsu_to_wbu_valid_o               ,
+    input                               wbu_allowin_i               ,
 
 	output		[ADDR_LEN - 1:0]		out_paddr	,
 	output		                		out_psel	,
@@ -66,6 +62,8 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     wire       [11:0]       			csr_waddr_i	 ;
     wire                                ebreak_flag_i;
 
+	wire       [31:0]                 	lsu_pc_i          ;
+
 	wire	   	                		wd_i			;
     wire	   	[4:0]		            wreg_i			;
 	wire      [DATA_LEN - 1:0]			reg_wdata_o			;
@@ -78,15 +76,6 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	// wire	[3:0]					w_strb	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	wire	[DATA_LEN - 1:0]		w_data	;	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 
-	`ifdef DEBUG
-		always @(posedge clock) begin
-			if(~rstn) begin
-				pc_o <= 0;
-			end else if(ex_to_lsu_valid_i & lsu_allowin_o) begin
-				pc_o <= pc_i;
-			end
-		end
-	`endif
 	
 	reg [`ES_TO_MS_DATA_BUS -1:0]       es_to_ms_bus_reg;
 	always @(posedge clock) begin
@@ -119,7 +108,8 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 								csr_wdata_i,
 								csr_type_i
 								};
-	assign {	wd_i		 ,
+	assign {	lsu_pc_i	 ,
+				wd_i		 ,
 				wreg_i		 ,
 				alu_result_i ,
 				mem_wen_i	 ,
@@ -134,6 +124,7 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 				fencei_sign_i } = es_to_ms_bus_reg;
 
 	assign ms_to_ws_bus = {
+					lsu_pc_i		,
 					wd_i			, 
 					wreg_i		 	,
 					reg_wdata_o		,
@@ -146,25 +137,33 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 
 	assign out_fencei = fencei_sign_i;
 
+	// 处理flush
+	// flush时，to_next_valid -> 0
+	// 		   es_valid -> 0, allowin -> 1
+	wire fencei_flush_sign = fencei_flush_sign_i & fencei_flush_valid_i;
+	wire flush_sign = fencei_flush_sign;
+
 	assign lsu_allowin_o    = !lsu_valid_o || lsu_ready_go_o && wbu_allowin_i;
     assign lsu_ready_go_o   = ~(mem_to_reg | mem_wen_i) || out_pvalid;
-    assign lsu_to_wbu_valid_o = lsu_valid_o && lsu_ready_go_o;
+    assign lsu_to_wbu_valid_o = lsu_valid_o && lsu_ready_go_o && ~flush_sign;
 
-    always @(posedge clock) begin   //bug1 no reset; branch no delay slot
-        if (~rstn) begin
+    always @(posedge clock) begin   
+        if (~rstn || flush_sign) begin
             lsu_valid_o <= 1'b0;
         end
         else begin 
-            if (lsu_allowin_o) begin   //bug2 ??
+            if (lsu_allowin_o) begin   
                 lsu_valid_o <= ex_to_lsu_valid_i;
             end
         end
-
     end
 
 	wire [31:0] r_data = out_prdata;
 
-	assign out_psel = (mem_to_reg | mem_wen_i) & lsu_valid_o & ~out_pvalid;
+	/* lsu的flush逻辑相较于id和ex的较为复杂一丢丢，涉及访问dcache， 
+		但是因为，新的指令执行的第一个周期就可以拿到flush信号，所以，可以立刻取消访问dcache
+	*/
+	assign out_psel = (mem_to_reg | mem_wen_i) & lsu_valid_o & ~out_pvalid & ~flush_sign;
 	assign out_pwrite = mem_wen_i & lsu_valid_o;
 
 

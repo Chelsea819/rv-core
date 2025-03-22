@@ -14,17 +14,18 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	input [`DS_TO_ES_DATA_BUS -1:0]              ds_to_es_bus,
 	output [`ES_TO_MS_DATA_BUS -1:0]             es_to_ms_bus,
 
+	// flush path
+	input                                         fencei_flush_sign_i           ,
+	input                                         fencei_flush_valid_i          ,
+
 	// idu_exu
     input                                         ds_to_ex_valid_i           ,
     output                                        es_allowin_o               ,
-`ifdef DEBUG
-	output     [31:0]                                   pc_o               ,
-`endif 
-	output	reg							          es_valid_o	        ,
+
+	output	reg							          es_valid_o	        	,
     // exu_lsu
     output                                        es_to_lsu_valid_o          ,
     input                                         lsu_allowin_i               
-    // input                                         isu_ready                 ,
     // output                                        es_allowin_o                 ,    	
 );
 	wire			[DATA_LEN - 1:0]		alu_result_o;
@@ -32,7 +33,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire es_ready_go_o;
 	wire		[DATA_LEN - 1:0]		reg1_i			;
 	wire		[DATA_LEN - 1:0]		reg2_i			;
-	wire		[DATA_LEN - 1:0]		pc_i			;
+	wire		[DATA_LEN - 1:0]		es_pc_i			;
 	wire 		[3:0]					alu_control		;
     wire 		[3:0]					alu_sel			; // choose source number
 	wire        [DATA_LEN - 1:0]        imm_i			;
@@ -47,9 +48,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire        [DATA_LEN - 1:0]        csr_rdata_i		;
 	wire  	    [11:0]     				csr_waddr_i		;
 
-	`ifdef DEBUG
-		assign pc_o = pc_i;
-	`endif
+
 	reg [`DS_TO_ES_DATA_BUS -1:0]       ds_to_es_bus_reg;
 	always @(posedge clock) begin
 		if(reset) begin
@@ -62,7 +61,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 
 	assign { reg1_i		  ,     
 		reg2_i			,
-		pc_i			,
+		es_pc_i			,
 		alu_control		,
 		alu_sel			,
 		imm_i			,
@@ -76,6 +75,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 		ebreak_flag_i 	,
 		fencei_flag_i	} = ds_to_es_bus_reg;
 	assign es_to_ms_bus = {
+					es_pc_i,
 					wd_i, 
 					wreg_i,
 					alu_result_o,
@@ -107,6 +107,12 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	`endif
 `endif
 
+	// 处理flush
+	// flush时，to_next_valid -> 0
+	// 		   es_valid -> 0, allowin -> 1
+	wire fencei_flush_sign = fencei_flush_sign_i & fencei_flush_valid_i;
+	wire flush_sign = fencei_flush_sign;
+
 	wire es_csr_wen = csr_flag_i == `CSR_CSRRW 
 						|| csr_flag_i == `CSR_CSRRS
 						|| csr_flag_i == `CSR_ECALL;
@@ -128,19 +134,16 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 
 	assign es_allowin_o    = !es_valid_o || es_ready_go_o && lsu_allowin_i;
     assign es_ready_go_o   = 1;
-    assign es_to_lsu_valid_o = es_valid_o && es_ready_go_o;
-    always @(posedge clock) begin   //bug1 no reset; branch no delay slot
-        if (reset) begin
+    assign es_to_lsu_valid_o = es_valid_o && es_ready_go_o && ~flush_sign;
+    always @(posedge clock) begin   
+        if (reset || flush_sign) begin
             es_valid_o <= 1'b0;
         end
         else begin 
-            if (es_allowin_o) begin   //bug2 ??
+            if (es_allowin_o) begin   
                 es_valid_o <= ds_to_ex_valid_i;
             end
         end
-        // if (fs_to_ds_valid && ds_allowin) begin
-        //     fs_to_ds_bus_r <= fs_to_ds_bus;
-        // end
     end
 
 	wire csr_cssrw = csr_flag_i == `CSR_CSRRW;
@@ -151,7 +154,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	
 	assign csr_wdata_o = {32{csr_cssrw}} & reg1_i 
 				| {32{csr_cssrs}} & csr_csrrs_res  
-				| {32{csr_ecall}} & pc_i;
+				| {32{csr_ecall}} & es_pc_i;
 
 	ysyx_23060025_ALU my_alu(
 		.src1						(src1),
@@ -181,7 +184,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 
 	assign src1 = {32{aluop1_sel_zero}} & 32'b0 
 				| {32{aluop1_sel_reg1}} & reg1_i 
-				| {32{aluop1_sel_pc}} & pc_i 
+				| {32{aluop1_sel_pc}} & es_pc_i 
 				| {32{aluop1_sel_csr}} & csr_rdata_i ;
 
 	assign src2 = {32{aluop2_sel_zero}} & 32'b0 

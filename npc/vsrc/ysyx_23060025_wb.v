@@ -4,19 +4,18 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input								reset,
     input		                		clock		    ,
 
-
-    //to fs fencei flush path 
-    output [`WS_TO_XX_FLUSH_BUS-1:0]    ws_to_xx_flush_bus,
-    output                              ws_to_xx_valid,
-
+    //to xx flush path 
+    output      [ADDR_LEN-1:0]          ws_flush_pc_o,
+    output                              ws_flush_sign_o,
+    output                              ws_flush_valid,
 
 `ifdef DIFFTEST
 	input								diff_skip_flag_i,
 `endif
     // lsu_wbu
-    input       [`MS_TO_WS_BUS-1:0]    	ms_to_ws_bus    ,
-    input                               ms_to_ws_valid  ,
-    output                              ws_allowin_o  ,
+    input       [`MS_TO_WS_DATA_BUS-1:0]    	ms_to_ws_bus    ,
+    input                                       ms_to_ws_valid  ,
+    output                                      ws_allowin_o  ,
 
     output	    	                	    wd_o		,
     output	   	    [4:0]		            wreg_o		,
@@ -27,6 +26,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 
     output	    	[DATA_LEN - 1:0]		reg_wdata_o
 );
+    wire		    [ADDR_LEN - 1:0]	    wb_pc		    ;
     wire		                		    wd_i		    ;
     wire            [2:0]		            csr_type_i	    ;
     wire                                    fencei_sign_i	;
@@ -44,7 +44,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
         end
     end
 
-    reg [`ES_TO_MS_DATA_BUS -1:0]       ms_to_ws_bus_reg;
+    reg [`MS_TO_WS_DATA_BUS -1:0]       ms_to_ws_bus_reg;
 	always @(posedge clock) begin
 		if(reset) begin
 			ms_to_ws_bus_reg <= 0;
@@ -53,7 +53,7 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
 		end
 	end
 
-    assign {
+    assign {wb_pc           ,
             wd_i			,
             wreg_o		 	,
             reg_wdata_o		,
@@ -64,11 +64,9 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
             fencei_sign_i	,
             ebreak_flag_i   } = ms_to_ws_bus_reg;
 
-    assign ws_to_xx_valid = ws_valid;
-    assign ws_to_xx_flush_bus = {
-                                fencei_sign_i, 
-                                fencei_flush_pc
-                                    };
+    assign ws_flush_valid = ws_valid;
+    assign ws_flush_sign_o = fencei_sign_i;
+    assign ws_flush_pc_o = wb_pc;
 
 
     assign wd_o = wd_i & ws_valid; 

@@ -79,7 +79,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 
-	wire 			[`MS_TO_WS_BUS-1:0]  ms_to_ws_bus;
+	wire 			[`MS_TO_WS_DATA_BUS-1:0]  ms_to_ws_bus;
 
 	// always @(*) begin
 	// 	$display("pc: [%h] inst: [%b] invalid: [%h] reset: [%b] clock[%b]",pc, ifu_inst_o, invalid, reset, clock);
@@ -239,7 +239,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.ws_to_ds_forward_bus           	({reg_wen_i & |reg_waddr_i, 
 													reg_waddr_i, 
 													reg_wdata_i,
-													wb_csr_waddr_o,
+													ws_csr_waddr_o,
 													csr_wdata_i, 
 													csr_type_i}),	
 		// ifu_idu
@@ -274,10 +274,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire lsu_valid_o;
 	wire lsu_ready_o;
 
-	`ifdef DEBUG
-	wire [31:0] ex_pc_o;
-	wire [31:0] lsu_pc_o;
-	`endif
 
 	ysyx_23060025_ex_stage ysyx_23060025_EXE(
 		.clock              	( clock     	),
@@ -290,11 +286,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.es_valid_o           		(         ),
 		.es_to_lsu_valid_o           	(    exu_valid_o         ),
 		.es_allowin_o           	(exu_ready_o             ),
-
-		`ifdef DEBUG
-		.pc_o (ex_pc_o),
-		`endif
-
 		// exu_wbu
 
 		.es_to_ds_forward_bus		(es_to_ds_forward_bus),
@@ -318,10 +309,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.diff_skip_flag_i  		( diff_skip_flag_i           ),
 		.diff_skip_flag_o  		( lsu_diff_skip_flag_o           		),
 	`endif
-	`ifdef DEBUG
-		.pc_i 					(ex_pc_o),
-		.pc_o 					(lsu_pc_o),
-	`endif
 		.lsu_valid_o           	(  lsu_busy            ),
 
 		.ms_to_ds_forward_bus   (   ms_to_ds_forward_bus           ),
@@ -335,7 +322,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		// exu_wbu
 
 		.lsu_to_wbu_valid_o     (     lsu_valid_o         ),
-		.wbu_allowin_i          (    wbu_ready_o          ),
+		.wbu_allowin_i          (    ws_ready_o          ),
 
 		.ms_to_ws_bus           (ms_to_ws_bus           ),
 
@@ -392,8 +379,11 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	);
 	
 
-	wire wbu_ready_o;
-	wire [11:0] wb_csr_waddr_o;
+	wire ws_ready_o;
+	wire [11:0] ws_csr_waddr_o;
+	wire [31:0] ws_flush_pc_o;
+	wire ws_flush_sign_o;
+	wire ws_flush_valid_o;
 		ysyx_23060025_wb#(
 		.DATA_LEN     ( 32 )
 	)ysyx_23060025_wb(
@@ -404,15 +394,19 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.diff_skip_flag_i  	( lsu_diff_skip_flag_o           ),
 `endif
 		// lsu_wbu 
-		.ms_to_ws_bus         	( ms_to_ws_bus	   ),
+		.ms_to_ws_bus       ( ms_to_ws_bus	   ),
 		.ms_to_ws_valid    	( lsu_valid_o	    ),
-		.ws_allowin_o    	( wbu_ready_o    ),
+		.ws_allowin_o    	( ws_ready_o    ),
+
+		.ws_flush_pc_o    	( ws_flush_pc_o	    ),
+		.ws_flush_sign_o    ( ws_flush_sign_o    ),
+		.ws_flush_valid    	( ws_flush_valid_o    ),
 
 		.wd_o     	  	( reg_wen_i   ),
 		.wreg_o   	  	( reg_waddr_i ),
-		.wdata_o  	  	( reg_wdata_i ),
+		.reg_wdata_o  	( reg_wdata_i ),
 		.csr_type_o   	( csr_type_i  ),
-		.csr_waddr_o  	( wb_csr_waddr_o ),
+		.csr_waddr_o  	( ws_csr_waddr_o ),
 		.csr_mcause_o   ( csr_mcause_i	 ),
 		.csr_wdata_o  	( csr_wdata_i  )
 	);
@@ -423,7 +417,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	)ysyx_23060025_CSR(
 		.clock           ( clock           ),
 		.csr_raddr      ( csr_raddr_i      ),
-		.csr_waddr      ( wb_csr_waddr_o      ),
+		.csr_waddr      ( ws_csr_waddr_o      ),
 		.wdata         ( csr_wdata_i         ),
 		.csr_type_i    ( csr_type_i    ),
 		// .csr_mepc_i    ( csr_mepc_i    ),  

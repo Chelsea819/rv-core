@@ -12,6 +12,11 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	input									reset				,
     // hand signal
 
+	// flush path
+	input                                   fencei_flush_sign_i           ,
+	input                                   fencei_flush_valid_i          ,	// hint: 由wb模块的逻辑易知valid仅维持一周期
+	input		[ADDR_WIDTH - 1:0]			fencei_flush_pc_i  			  ,
+
 	// ifu and idu interface
 	input									idu_valid_i	        ,
 	input									ds_allowin_i	    ,
@@ -45,6 +50,13 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 
 	// valid idu_flush
 	wire idu_flush = idu_flush_i & idu_valid_i;
+
+	// 处理flush
+	// flush时，to_next_valid -> 0
+	// 		   xx_valid -> 0, allowin -> 1
+	wire fencei_flush_sign = fencei_flush_sign_i & fencei_flush_valid_i;
+
+	wire flush_sign = fencei_flush_sign | idu_flush;
 
 `ifdef N_YOSYS_STA_CHECK
 	reg [31:0] history_pc;
@@ -126,7 +138,7 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// PRE_IFU -> IFU 握手信号
 	// id得到结果 or id not busy
 	assign out_psel = to_fs_valid & fs_allowin;
-	wire pfs_ready_go = bpu_valid_i || (jmp_flag_i & idu_valid_i) || idu_flush;
+	wire pfs_ready_go = bpu_valid_i || (jmp_flag_i & idu_valid_i) || flush_sign;
 	wire to_fs_valid = pfs_ready_go & ~reset;
 
 	// 来自idu的flush or jmp信号是否已经处理完毕，避免重复处理（主要是nextpc的逻辑）
@@ -146,9 +158,9 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	// idu_flush-》 pre刚好碰到valid flush
 	// flush_state_is_busy -》 ifu->pre ifu->ifu
 	// preifu阶段的nextpc值
-	wire [31:0] nextpc = 
+	wire [31:0] nextpc = fencei_flush_sign	  	  ? fencei_flush_pc_i :
 						 idu_flush & ~idu_solved  ? idu_flush_pc_i : // 一个周期出结果 idu_flush_i & valid
-						 csr_jmp_i & ~idu_solved	 ? csr_pc_i : 
+						 csr_jmp_i & ~idu_solved	? csr_pc_i : 
 						 jmp_flag_i & ~idu_solved ? jmp_target_i : 
 						bpu_pc_predict_i;
 
@@ -157,12 +169,12 @@ module ysyx_23060025_ifu_stage #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32)(
 	* ************************** IFU **************************
 	* **************************************************************
 	******************************************************************************/
-	assign fs_to_ds_valid_o =  fs_valid && ~(idu_flush & ~idu_solved) && fs_ready_go;
+	assign fs_to_ds_valid_o =  fs_valid && ~(idu_flush & ~idu_solved) && fs_ready_go && ~fencei_flush_sign;
 	wire fs_ready_go    = out_pready || inst_buff_enable;			// 当前指令准备好传递，inst第一个有效周期开始拉高
 	wire fs_allowin     = (fs_ready_go && ds_allowin_i) || ~fs_valid || (idu_flush & ~idu_solved);	// 当前无指令执行或者当前指令处理完毕 下一周期就会传递
 	reg fs_valid;
 	always @(posedge clock) begin
-    if (reset) begin
+    if (reset || fencei_flush_sign) begin
         fs_valid <= 1'b0;
     end
     else if (fs_allowin) begin

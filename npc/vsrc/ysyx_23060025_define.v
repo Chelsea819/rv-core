@@ -5,7 +5,6 @@
 `ifdef VERILATOR
 `define N_YOSYS_STA_CHECK 1'b1
 `define DIFFTEST 1'b1
-`define DEBUG 1'b1
 `define PERFORMANCE_COUNTER 1'b1
 `endif
 
@@ -19,17 +18,18 @@
 // `define BYPASS_TRACE 1'b1
 
 `define MS_TO_DS_FORWARD_BUS 87
-`define MS_TO_WS_BUS 119
+
 `define WS_TO_DS_FORWARD_BUS 85
 `define ES_TO_DS_FORWARD_BUS 87
 
 
 `define FS_TO_DS_DATA_BUS 32+32
 `define DS_TO_ES_DATA_BUS 195+1
+`define MS_TO_WS_DATA_BUS 119+32
 
-`define WS_TO_XX_FLUSH_BUS 87
+`define WS_TO_XX_FLUSH_BUS 33
 
-`define ES_TO_MS_DATA_BUS 156+1
+`define ES_TO_MS_DATA_BUS 156+1+32
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000
