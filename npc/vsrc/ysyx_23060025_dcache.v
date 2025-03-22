@@ -20,7 +20,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	output 	        	in_pready,	// icache read data ready
 	output 	 [31:0] 	in_prdata,	// icache read data
 
-	input         		in_fence_flag,	// fence.i update
+	input         		in_fencei,			// fence.i update
 
 	// icache access DRAM
 	// dcache to write_buffer
@@ -40,7 +40,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	input   	[31:0] 					out_prdata	,
 	input        						out_pvalid	
 );
-	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_MISS = 3'b101, STATE_REPLACE = 3'b010, STATE_LOAD = 3'b011, STATE_FENCE = 3'b100;
+	localparam	[2:0]	STATE_IDLE = 3'b000, STATE_CHECK = 3'b001, STATE_MISS = 3'b101, STATE_REPLACE = 3'b010, STATE_LOAD = 3'b011, STATE_FENCE = 3'b100, STATE_GET_DIRTY = 3'b110;
 	localparam			WRITE_STATE_IDLE = 1'b0, WRITE_STATE_WRITE = 1'b1;
 	parameter	CACHE_LINE_W = (2 ** CACHE_LINE_OFF_ADDR_W)*8;
 	parameter	CACHE_LINE_NUM = 2 ** CACHE_LINE_ADDR_W;
@@ -88,8 +88,11 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	reg	[CACHE_LINE_W-1:0]	cache_reg_way_0	[CACHE_LINE_NUM-1:0];
 	reg	[CACHE_LINE_W-1:0]	cache_reg_way_1	[CACHE_LINE_NUM-1:0];
 
-	reg	[TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1:0]			cache_tag_way_0	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
-	reg	[TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1:0]			cache_tag_way_1	[CACHE_LINE_NUM+CACHE_VALID_W-1:0];
+	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag_way_0	[CACHE_LINE_NUM-1:0];
+	reg	[TAG_W+CACHE_VALID_W-1:0]			cache_tag_way_1	[CACHE_LINE_NUM-1:0];
+
+	reg		cache_tag_dirty_way_0	[CACHE_LINE_NUM-1:0];
+	reg		cache_tag_dirty_way_1	[CACHE_LINE_NUM-1:0];
 
 	wire [TAG_W-1:0]					addr_tag	= raddr[ADDR_WIDTH-1:CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W];
 	wire [CACHE_LINE_ADDR_W-1:0]		addr_index	= raddr[CACHE_LINE_OFF_ADDR_W+CACHE_LINE_ADDR_W-1:CACHE_LINE_OFF_ADDR_W];
@@ -101,8 +104,10 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	wire check_hit_1 					= (addr_tag == cache_tag_way_1[addr_index][TAG_W-1:0] && cache_tag_way_1[addr_index][TAG_W+CACHE_VALID_W-1] == 1);
 	wire check_hit = check_hit_0 | check_hit_1;
 	wire hit_write = check_hit & in_pwrite;
-	// wire hit_dirty = check_hit_0 & cache_tag_way_0[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1] | cache_tag_way_1[addr_index][CACHE_LINE_NUM+CACHE_VALID_W-1] & check_hit_1;
-	wire wr_back   = replace_way_addr ? cache_tag_way_1[addr_index][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] : cache_tag_way_0[addr_index][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1];
+
+	wire n_has_dirty = ~(|cache_tag_dirty_way_0 | |cache_tag_dirty_way_1);
+
+	wire wr_back   = replace_way_addr ? cache_tag_dirty_way_1[addr_index] : cache_tag_dirty_way_0[addr_index];
 
 	wire [CACHE_LINE_W-1:0] cache_line_data	= check_hit_0 ? cache_reg_way_0[addr_index] >> ({addr_off, 3'b0}) : cache_reg_way_1[addr_index] >> ({addr_off, 3'b0});
 	wire [DATA_WIDTH-1:0] 	prdata			= cache_line_data[DATA_WIDTH-1:0];
@@ -144,7 +149,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			STATE_IDLE: begin
 				if(in_psel) begin
 					next_state = STATE_CHECK;
-				end else if(in_fence_flag) begin
+				end else if(in_fencei) begin
 					next_state = STATE_FENCE;
 				end
 			end
@@ -164,7 +169,7 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				if(out_pwrdy) begin
 					if(uncache_r) begin
 						next_state = STATE_LOAD;
-					end else if(wr_back | uncache_w) begin
+					end else if(wr_back | uncache_w | in_fencei) begin
 						next_state = STATE_REPLACE;
 					end else begin
 						next_state = STATE_LOAD;
@@ -176,6 +181,10 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 			STATE_REPLACE: begin
 				if(uncache_w) begin
 					next_state = STATE_IDLE;
+				end else if(in_fencei) begin
+						next_state = STATE_GET_DIRTY;
+				end else if(n_has_dirty & in_fencei) begin
+						next_state = STATE_IDLE;
 				end else begin
 					next_state = STATE_LOAD;
 				end
@@ -190,7 +199,14 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 				end 
 			end
 			STATE_FENCE: begin
-				next_state = STATE_IDLE;
+				if(n_has_dirty) begin
+					next_state = STATE_IDLE;
+				end else begin
+					next_state = STATE_GET_DIRTY;
+				end
+			end
+			STATE_GET_DIRTY: begin
+				next_state = STATE_MISS;
 			end
 			default: begin
 
@@ -277,11 +293,17 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 	integer j;
 	always @(posedge clock) begin
 		// valid--1
-		if(out_pvalid & out_prlast & ~uncache_r) begin
+		if(reset) begin
+			cache_tag_dirty_way_1 <= 0;
+			cache_tag_dirty_way_0 <= 0;
+		end
+		else if(out_pvalid & out_prlast & ~uncache_r) begin
 			if(~replace_way_addr) begin
-				cache_tag_way_0[addr_index] <= {in_pwrite, 1'b1, addr_tag};
+				cache_tag_way_0[addr_index] <= {1'b1, addr_tag};
+				cache_tag_dirty_way_0[addr_index] <= in_pwrite;
 			end else begin
-				cache_tag_way_1[addr_index] <= {in_pwrite, 1'b1, addr_tag};
+				cache_tag_way_1[addr_index] <= {1'b1, addr_tag};
+				cache_tag_dirty_way_1[addr_index] <= in_pwrite;
 			end
 			
 		end else if(next_state == STATE_FENCE) begin
@@ -292,9 +314,9 @@ module ysyx_23060025_dcache #(parameter ADDR_WIDTH = 32, DATA_WIDTH = 32, CACHE_
 		// hit_write
 		end else if(w_buffer_con_state == WRITE_STATE_WRITE) begin
 			if(write_buffer_away) begin
-				cache_tag_way_1[write_buffer_aindex][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
+				cache_tag_dirty_way_1[write_buffer_aindex] <= 1'b1;
 			end else begin
-				cache_tag_way_0[write_buffer_aindex][TAG_W+CACHE_VALID_W+CACHE_DIRTY_W-1] <= 1'b1;
+				cache_tag_dirty_way_0[write_buffer_aindex] <= 1'b1;
 			end
 		end
 	end

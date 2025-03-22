@@ -75,7 +75,8 @@ module ysyx_23060025_id_stage(
                             wreg_o      ,
                             store_type_o ,
                             load_type_o  ,
-                            ebreak_flag_o};
+                            ebreak_flag_o,
+                            fencei_flag_o};
 
 
     reg  [`FS_TO_DS_DATA_BUS -1:0]   fs_to_ds_forward_bus_reg ;
@@ -220,9 +221,9 @@ module ysyx_23060025_id_stage(
 
     //      2.1.1 I-fence (1)
     wire rv32_fence    = opcode_I_fence & func3_000;
-    // wire rv32_fence_i  = opcode_I_fence & func3_001;
+    wire rv32_fence_i  = opcode_I_fence & func3_001;
 
-    wire rv32_fence_fencei  = opcode_I_fence;
+
 
     //  2.2 S-type (3)
     wire rv32_sb       = opcode_S_store  & func3_000;
@@ -406,6 +407,8 @@ module ysyx_23060025_id_stage(
     
 
     assign jmp_flag_o = rv32_jalr;
+
+    assign fencei_flag_o = rv32_fence_i;
     
 
     assign csr_flag = {3{rv32_ecall}} & `CSR_ECALL

@@ -80,6 +80,7 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 
 
 	// wb Unit
+	wire								lsu_fencei_sign_o		;
 	wire								lsu_reg_wen_o		;
 	wire			[4:0]				lsu_wreg_o			;
 	wire			[DATA_LEN - 1:0]	lsu_reg_wdata_o		;
@@ -352,8 +353,9 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.csr_wdata_o    ( lsu_csr_wdata_o	 	),
 		.csr_waddr_o	( lsu_csr_waddr_o  ),
 		.csr_mcause_o	( lsu_csr_mcause_o  ),
-		// .memory_inst_o  ( lsu_memory_inst_o ),
+		.fencei_sign    ( lsu_fencei_sign_o ),
 
+		.out_fencei   ( lsu_fencei_o    ),
 		.out_paddr   ( lsu_paddr_o    ),
 		.out_psel    ( lsu_psel_o     ),
 		.out_psize    (lsu_psize_o     ),
@@ -373,10 +375,13 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 	wire	[DATA_LEN - 1:0]		lsu_prdata_o;
 	wire	                		lsu_pvalid_o;
 
+	wire	                		lsu_fencei_o  ;
+
 	ysyx_23060025_dcache 
 	u_ysyx_23060025_dcache(
 		.clock         	(clock          ),
 		.reset         	(reset          ),
+		.in_fencei      (lsu_fencei_o       ),
 		.in_paddr      	(lsu_paddr_o       ),
 		.in_pwdata     	(lsu_pwdata_o      ),
 		.in_pwstrb     	(lsu_pwstrb_o      ),
@@ -385,7 +390,6 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.in_psize       (lsu_psize_o        ),
 		.in_pready     	(lsu_pvalid_o      ),
 		.in_prdata     	(lsu_prdata_o      ),
-		.in_fence_flag 	(icache_fencei_flag  ),
 
 		.out_pwr_req   	(data_pwsel_o    ),
 		.out_pwaddr    	(data_pwaddr_o     ),
@@ -412,29 +416,29 @@ module ysyx_23060025_cpu #(parameter DATA_LEN = 32,ADDR_LEN = 32) (
 		.reset          ( reset          ),
 		.clock          ( clock          ),
 
-		.wd_i         ( lsu_reg_wen_o	   ),
-		.wreg_i       ( lsu_wreg_o		   ),
-		.reg_wdata_i  ( lsu_reg_wdata_o ),
-		.csr_wdata_i  ( lsu_csr_wdata_o ),
-		.csr_waddr_i  ( lsu_csr_waddr_o ),
-		.csr_type_i   ( lsu_csr_type_o	 ),
+		.wd_i         	( lsu_reg_wen_o	   ),
+		.wreg_i       	( lsu_wreg_o		   ),
+		.reg_wdata_i  	( lsu_reg_wdata_o ),
+		.csr_wdata_i  	( lsu_csr_wdata_o ),
+		.csr_waddr_i  	( lsu_csr_waddr_o ),
+		.csr_type_i   	( lsu_csr_type_o	 ),
 		.csr_mcause_i   ( lsu_csr_mcause_o	 ),
-		// .memory_inst_i( lsu_memory_inst_o  ),
-		.ebreak_flag_i(    lsu_ebreak_flag_o  ),
+		.fencei_sign_i	( lsu_fencei_sign_o  ),
+		.ebreak_flag_i	( lsu_ebreak_flag_o  ),
 `ifdef DIFFTEST
-		.diff_skip_flag_i  ( lsu_diff_skip_flag_o           ),
+		.diff_skip_flag_i  	( lsu_diff_skip_flag_o           ),
 `endif
 		// lsu_wbu 
-		.ms_to_ws_valid    ( lsu_valid_o	    ),
-		.ws_allowin_o    ( wbu_ready_o    ),
+		.ms_to_ws_valid    	( lsu_valid_o	    ),
+		.ws_allowin_o    	( wbu_ready_o    ),
 
-		.wd_o     	  ( reg_wen_i   ),
-		.wreg_o   	  ( reg_waddr_i ),
-		.wdata_o  	  ( reg_wdata_i ),
-		.csr_type_o   ( csr_type_i  ),
-		.csr_waddr_o  ( wb_csr_waddr_o ),
+		.wd_o     	  	( reg_wen_i   ),
+		.wreg_o   	  	( reg_waddr_i ),
+		.wdata_o  	  	( reg_wdata_i ),
+		.csr_type_o   	( csr_type_i  ),
+		.csr_waddr_o  	( wb_csr_waddr_o ),
 		.csr_mcause_o   ( csr_mcause_i	 ),
-		.csr_wdata_o  ( csr_wdata_i  )
+		.csr_wdata_o  	( csr_wdata_i  )
 	);
 
 

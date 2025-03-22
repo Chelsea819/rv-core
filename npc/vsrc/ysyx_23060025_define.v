@@ -25,11 +25,13 @@
 
 
 `define FS_TO_DS_DATA_BUS 32+32
-`define DS_TO_ES_DATA_BUS 195
+`define DS_TO_ES_DATA_BUS 195+1
 
+`define WS_TO_FS_FLUSH_BUS 87
+`define WS_TO_DS_FLUSH_BUS 87
+`define WS_TO_ES_FLUSH_BUS 87
 
-
-`define ES_TO_MS_DATA_BUS 156
+`define ES_TO_MS_DATA_BUS 156+1
 
 `define TYPE_R_OPCODE     7'b0110011
 `define TYPE_R_ADD_FUNC  10'b000_000_0000

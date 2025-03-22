@@ -24,6 +24,8 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	//to ds forward path 
     output [`MS_TO_DS_FORWARD_BUS-1:0] ms_to_ds_forward_bus,
     output                             ms_to_ds_valid,
+
+	
 	
 	output	reg							          lsu_valid_o	        ,
 
@@ -40,11 +42,12 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
     
     output	   	                		wd_o		,
     output	   	[4:0]		            wreg_o		,
-	output     [DATA_LEN - 1:0]		    wdata_o,
+	output      [DATA_LEN - 1:0]		wdata_o,
     output      [DATA_LEN - 1:0]        csr_wdata_o	,
     output      [2:0]                   csr_type_o	,
-	output       [11:0]        			csr_waddr_o	,
-	output       [31:0]        			csr_mcause_o	,
+	output      [11:0]        			csr_waddr_o	,
+	output      [31:0]        			csr_mcause_o,
+	output		                		fencei_sign	,
 
 	output		[ADDR_LEN - 1:0]		out_paddr	,
 	output		                		out_psel	,
@@ -53,7 +56,8 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 	output		[DATA_LEN - 1:0]		out_pwdata	,	// 写出的数据
 	output		[3:0]					out_pwstrb	,	// wmask 	数据的字节选通，数据中每8bit对应这里的1bit
 	input		[DATA_LEN - 1:0]		out_prdata	,
-	input		                		out_pvalid	
+	input		                		out_pvalid	,	
+	output		                		out_fencei	
     
 );	
     wire [31:0] mem_rdata;
@@ -126,7 +130,10 @@ module ysyx_23060025_lsu_stage #(parameter DATA_LEN = 32,ADDR_LEN = 32)(
 				csr_type_o	 ,
 				csr_waddr_i	 ,
 				csr_mcause_o ,
-				ebreak_flag_i } = es_to_ms_bus_reg;
+				ebreak_flag_i ,
+				fencei_sign } = es_to_ms_bus_reg;
+
+	assign out_fencei = fencei_sign;
 
 	assign lsu_allowin_o    = !lsu_valid_o || lsu_ready_go_o && wbu_allowin_i;
     assign lsu_ready_go_o   = ~(mem_to_reg | mem_wen_i) || out_pvalid;

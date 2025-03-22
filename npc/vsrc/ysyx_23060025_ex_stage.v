@@ -42,6 +42,7 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 	wire		[1:0]					store_type_i	;
 	wire        [2:0]                   load_type_i 	;
 	wire                                ebreak_flag_i 	;
+	wire		                		fencei_flag_i	;
 
 	wire        [DATA_LEN - 1:0]        csr_rdata_i		;
 	wire  	    [11:0]     				csr_waddr_i		;
@@ -72,7 +73,8 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 		wreg_i			,
 		store_type_i	,
 		load_type_i 	,
-		ebreak_flag_i 	} = ds_to_es_bus_reg;
+		ebreak_flag_i 	,
+		fencei_flag_i	} = ds_to_es_bus_reg;
 	assign es_to_ms_bus = {
 					wd_i, 
 					wreg_i,
@@ -85,7 +87,8 @@ module ysyx_23060025_ex_stage #(parameter DATA_LEN = 32)(
 					csr_flag_i,
 					csr_waddr_i,
 					csr_mcause_o,
-					ebreak_flag_i
+					ebreak_flag_i,
+					fencei_flag_i
 							};
 
 

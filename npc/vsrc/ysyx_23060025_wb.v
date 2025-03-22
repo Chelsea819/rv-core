@@ -11,6 +11,19 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input       [DATA_LEN - 1:0]        reg_wdata_i	,
     input       [DATA_LEN - 1:0]        csr_mcause_i	,
     input                               ebreak_flag_i	,
+    input                               fencei_sign_i	,
+
+    //to fs fencei flush path 
+    output [`WS_TO_FS_FLUSH_BUS-1:0]    ws_to_fs_flush_bus,
+    output                              ws_to_fs_valid,
+	//to ds fencei flush path  
+    output [`WS_TO_DS_FLUSH_BUS-1:0]    ws_to_ds_flush_bus,
+    output                              Ws_to_ds_valid,
+	//to es fencei flush path 
+    output [`WS_TO_ES_FLUSH_BUS-1:0]    ws_to_es_flush_bus,
+    output                              ws_to_es_valid,
+
+
 `ifdef DIFFTEST
 	input								diff_skip_flag_i,
 `endif
@@ -18,9 +31,6 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
     input                               ms_to_ws_valid  ,
     output                              ws_allowin_o  ,
 
-    // input                               memory_inst_i,
-    // output                              wb_ready_o  ,
-    // output  reg                         finish      ,
     output	reg    	                	    wd_o		,
     output	reg   	[4:0]		            wreg_o		,
     output  reg   [DATA_LEN - 1:0]          csr_mcause_o	,
@@ -57,9 +67,9 @@ module ysyx_23060025_wb #(parameter DATA_LEN = 32, ADDR_LEN = 32)(
             wd_o	         <=     wd_i & ms_to_ws_valid; 
             wreg_o	         <=     wreg_i;  	
             csr_wdata_o	     <=     csr_wdata_i; 
-            csr_mcause_o	     <=     csr_mcause_i; 
+            csr_mcause_o	 <=     csr_mcause_i; 
             csr_waddr_o	     <=     csr_waddr_i; 
-			csr_type_o		 <=	   csr_type_i & {3{ms_to_ws_valid}}; 
+			csr_type_o		 <=	    csr_type_i & {3{ms_to_ws_valid}}; 
             wdata_o          <=     reg_wdata_i; 
         end
 	end
